@@ -99,7 +99,8 @@ in one):
 The flight state is a position, a velocity and an orthonormal frame (right, up, back). Each step
 rotates the frame by the body rates (from the sticks in Acro, from the tilt error in Angle and
 Simple), re-orthonormalises it, and integrates thrust, gravity and drag. The step length comes from
-the system tick counter (`cntvct_el0` / `cntfrq_el0`), capped at 50 ms.
+`svcGetSystemTick` (19.2 MHz), capped at 50 ms. (An earlier build read `cntvct_el0` directly,
+which Fritchii's CPU emulator doesn't implement: the game stopped on the first frame.)
 
 [`tests/test_fpv_drone.py`](../../tests/test_fpv_drone.py) runs all of it on a patched `main` in
 Unicorn, through the game's real import stubs.

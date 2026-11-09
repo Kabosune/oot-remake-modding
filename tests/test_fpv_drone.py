@@ -13,7 +13,7 @@ import struct
 import sys
 import zipfile
 
-from unicorn import Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK_INSN
+from unicorn import Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK_INSN, UC_HOOK_INTR
 from unicorn.arm64_const import *
 
 BASE = 0x80020000
@@ -60,7 +60,9 @@ class Game:
             fn = FAKE_HID + 0x10 * i
             self.q(got, fn)
             u.hook_add(UC_HOOK_CODE, self._hid, style, fn, fn)
+        u.hook_add(UC_HOOK_INTR, self._svc)
         u.hook_add(UC_HOOK_INSN, self._mrs, None, 1, 0, UC_ARM64_INS_MRS)
+        self.svcs = []
         # camera manager -> camera 0 -> gameplay view
         self.view, self.camera = HEAP + 0x1000, HEAP + 0x3000
         mgr_ptr, mgr, cams, cam0 = HEAP + 0x100, HEAP + 0x200, HEAP + 0x300, HEAP + 0x400
@@ -75,11 +77,21 @@ class Game:
     def f(self, a, *v): self.u.mem_write(a, struct.pack("<%df" % len(v), *v))
     def rf(self, a, n=1): return struct.unpack("<%df" % n, self.u.mem_read(a, 4 * n))
 
+    def _svc(self, u, intno, _):
+        pc = u.reg_read(UC_ARM64_REG_PC)          # the instruction after the svc
+        word = struct.unpack("<I", u.mem_read(pc - 4, 4))[0]
+        assert word & 0xFFE0001F == 0xD4000001, f"exception {intno} at {pc - 4:#x}, not an svc"
+        num = (word >> 5) & 0xFFFF
+        self.svcs.append(num)
+        assert num == 0x1E, f"svc {num:#x}"       # GetSystemTick: x0 = ticks, nothing else changes
+        u.reg_write(UC_ARM64_REG_X0, self.tick)
+
     def _mrs(self, u, reg, cp, _):
-        if (cp.op0, cp.op1, cp.crn, cp.crm) != (3, 3, 14, 0):
-            return False
-        u.reg_write(reg, {2: self.tick, 0: FREQ}[cp.op2])   # cntvct_el0 / cntfrq_el0
-        return True
+        # Lichii's CPU emulator stops on system registers it doesn't know (cntvct_el0, cntfrq_el0),
+        # so the patch must not read any. The flags (NZCV) are fine: First Person uses them too.
+        if (cp.op0, cp.op1, cp.crn, cp.crm, cp.op2) == (3, 3, 4, 2, 0):
+            return False   # not handled here: Unicorn reads NZCV itself
+        raise AssertionError(f"mrs of a system register at {u.reg_read(UC_ARM64_REG_PC):#x}")
 
     def _hid(self, u, addr, size, style):
         out, count = u.reg_read(UC_ARM64_REG_X0), u.reg_read(UC_ARM64_REG_X1)
@@ -355,6 +367,8 @@ def main():
     u.emu_start(SITE, SITE_TAKEN, count=2000)
     assert u.reg_read(UC_ARM64_REG_PC) == SITE_TAKEN
     print("replaced cbz x8: still branches when x8 == 0")
+    assert g.svcs and set(g.svcs) == {0x1E}
+    print("timer: svcGetSystemTick only, no system-register reads")
     print("all checks passed")
 
 

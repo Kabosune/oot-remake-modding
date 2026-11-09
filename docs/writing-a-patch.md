@@ -22,6 +22,10 @@ Branches and `adrp` are PC-relative, so the code works wherever the emulator or 
 - **Check object types before using them.** Compare vtables (`adrp` + `add` to the vtable
   address) and names, not just null pointers. Many functions run for more than one kind of
   object.
+- **Don't read timer or other system registers.** Lichii / Fritchii's CPU emulator (dynarmic)
+  stops the game on an `mrs` of a register it doesn't implement, such as `cntvct_el0` or
+  `cntfrq_el0` (log: `MRS: ... unreachable`). NZCV is fine. For time, call
+  `svcGetSystemTick` (`svc #0x1e`, ticks at 19.2 MHz in `x0`), which every emulator implements.
 - **Claim your space** in [memory-map.md](memory-map.md).
 
 ## The build

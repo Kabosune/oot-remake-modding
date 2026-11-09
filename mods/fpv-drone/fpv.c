@@ -48,13 +48,13 @@ typedef struct {
 extern drone_t DRONE_STATE;
 
 typedef struct {
-    float deadzone, dz_scale, dt_max, tilt_cos, tilt_sin;
+    float deadzone, dz_scale, dt_max, tick_s, tilt_cos, tilt_sin;
     float yaw_center, yaw_extra, rate_center, rate_extra, level_gain, max_tilt_sin;
     float gravity, climb_gain, climb_rate, brake, thrust_max, drag, min_up;
 } params_t;
 
 static const params_t PARAMS = {
-    DEADZONE, 1.0f / (1.0f - DEADZONE), DT_MAX, UPTILT_COS, UPTILT_SIN,
+    DEADZONE, 1.0f / (1.0f - DEADZONE), DT_MAX, 1.0f / 19200000.0f, UPTILT_COS, UPTILT_SIN,
     YAW_CENTER, YAW_MAX - YAW_CENTER, RATE_CENTER, RATE_MAX - RATE_CENTER, LEVEL_GAIN, TILT_SIN,
     GRAVITY, CLIMB_GAIN, CLIMB_RATE, SIMPLE_BRAKE, THRUST_MAX, DRAG, 0.3f,
 };
@@ -106,12 +106,13 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
         return;
     }
 
-    uint64_t now, freq;
-    __asm__ volatile("mrs %0, cntvct_el0" : "=r"(now));
-    __asm__ volatile("mrs %0, cntfrq_el0" : "=r"(freq));
+    // svcGetSystemTick (0x1e): 19.2 MHz ticks. Not mrs cntvct_el0 / cntfrq_el0: Lichii's CPU
+    // emulator (dynarmic) doesn't implement those and stops the game.
+    register uint64_t now __asm__("x0");
+    __asm__ volatile("svc #0x1e" : "=r"(now) : : "memory");
     float dt = 0.0f;
-    if (d->tick && freq)
-        dt = (float)(now - d->tick) / (float)freq;
+    if (d->tick)
+        dt = (float)(now - d->tick) * k->tick_s;
     d->tick = now;
     if (dt > k->dt_max)                         // first step after standing by: a short one
         dt = k->dt_max;
