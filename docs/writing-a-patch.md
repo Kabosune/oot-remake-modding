@@ -1,0 +1,47 @@
+# Writing a patch
+
+## How a hook works
+
+1. Pick a **site**: one instruction in the game's code where your code should run.
+2. The build replaces it with `b your_entry`.
+3. Your code, in the cave, does its work, runs the replaced instruction itself, then `b site + 4`.
+
+Branches and `adrp` are PC-relative, so the code works wherever the emulator or console loads
+`main`. Never put absolute addresses in data.
+
+## Rules
+
+- **Keep every register the game uses.** At a hook site you rarely know which registers are live,
+  so save what you touch. If you call a function, save all caller-saved registers (x0–x18, x30,
+  q0–q7, q16–q31) and NZCV.
+- **Keep the flags.** `cmp` in your code changes NZCV. Save it with `mrs x9, nzcv` and restore it
+  with `msr nzcv, x9`.
+- **Keep sp 16-byte aligned**, and put everything back the way it was before you branch home.
+- **Pick a site that's reached on every path you care about.** Check for branches into the middle
+  of what you replace (replacing exactly one instruction avoids most of this).
+- **Check object types before using them.** Compare vtables (`adrp` + `add` to the vtable
+  address) and names, not just null pointers. Many functions run for more than one kind of
+  object.
+- **Claim your space** in [memory-map.md](memory-map.md).
+
+## The build
+
+`tools/nxpatch.py` does the mechanical part:
+
+- assembles your `.S` with clang (C preprocessor on, so `#include "params.inc"` and `#define` work)
+- links it with ld.lld at the cave address against `symbols/e0f3ccfa.ld`, so `adrp x9, VT_VIEW`
+  and `b HOOK_VIEW_RET` resolve
+- writes the `b` at each site
+- `--verify-main` checks the original bytes at every site and that the cave is still zero
+- writes an IPS32 (offsets + 0x100 for the NSO header) and a zip with the
+  `0400486024DEC000/<mod>/exefs/<build id>.ips` layout emulators expect
+
+See [mods/first-person/build.py](../mods/first-person/build.py) for a complete example. It's
+about 60 lines, most of them options.
+
+## Testing without the game
+
+[`tests/test_first_person.py`](../tests/test_first_person.py) loads the patched `main` into
+Unicorn, builds fake game objects in memory, stubs the imports, runs each hook from its site to
+`site + 4`, and checks both the result and that no register changed. It's quick, and it catches
+most mistakes before you boot the game.

@@ -1,0 +1,10 @@
+# game files and anything made from them never go in the repo
+*.bin
+*.nso
+*.nup
+*.nsp
+*.xci
+main
+main.npdm
+work/
+__pycache__/
