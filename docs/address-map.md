@@ -56,6 +56,7 @@ in game yet.
 | `0x83c627f0` | `0x84cdf5c0` | `nn::hid::GetNpadStates(NpadJoyDualState*, int, uint const&)` |
 | `0x83c62800` | `0x84cdf5c8` | `nn::hid::GetNpadStates(NpadFullKeyState*, int, uint const&)` |
 | `0x83c62830` | `0x84cdf5e0` | `nn::hid::GetNpadStates(NpadHandheldState*, int, uint const&)` |
+| `0x83c64810` | `0x84ce05d0` | `nn::hid::GetKeyboardState(KeyboardState*)` (the game reads it itself at `0x83b48820`) |
 
 The full import list is easy to regenerate from `.rela.plt` (`DT_JMPREL`). Every Switch 2 module
 also uses packed `DT_RELR` relocations for its own pointers.

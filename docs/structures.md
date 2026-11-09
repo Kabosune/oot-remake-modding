@@ -71,3 +71,15 @@ res + 0x58 == "Player\0"
 | `+0x20` | u32 | attributes (bit 0 connected) |
 
 Npad IDs: `0` = player 1, `0x20` = handheld. Lichii's default Pro Controller is FullKey on player 1.
+
+## Keyboard state (`nn::hid::KeyboardState`)
+
+| Offset | Type | Field |
+|---|---|---|
+| `+0x00` | s64 | sampling number |
+| `+0x08` | u32 | modifiers |
+| `+0x0c` | u32 | attributes |
+| `+0x10` | u64[4] | keys, one bit per USB HID usage (`,` = 0x36, `.` = 0x37, `/` = 0x38) |
+
+In Lichii / Eden the game only sees the PC keyboard when keyboard emulation is on
+(`keyboard_enabled=true` in `qt-config.ini`, or Controls → Advanced → Keyboard).

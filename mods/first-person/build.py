@@ -28,6 +28,8 @@ README = """First Person (Ocarina of Time, Switch 2, main build E0F3CCFA)
 
 Press R3 (click the right stick) to switch first person on or off.
 Right stick looks around, left stick walks, everything else is the game's own.
+Keyboard (turn on the emulator's keyboard emulation): ',' eye down, '.' eye up, '/' back to 0.
+Each press moves the eye 2 cm. The offset stays until you restart the game.
 Source and notes: see the repository this came from.
 """
 
@@ -42,6 +44,8 @@ def main():
     p.add_argument("--height-fixed", type=float, help="use this eye height instead of measuring it at toggle")
     p.add_argument("--toggle-bit", type=int, default=5, help="Npad button bit (5 = R3, 4 = L3)")
     p.add_argument("--stale-limit", type=int, default=30, help="views without a Link update before pausing")
+    p.add_argument("--height-step", type=float, default=0.02, help="metres per ',' / '.' press (default 0.02)")
+    p.add_argument("--no-height-keys", action="store_true", help="leave out the keyboard height keys")
     p.add_argument("--diagnostic", action="store_true",
                    help="when Link isn't found, use the camera's look-at point as the eye (for testing the hooks)")
     p.add_argument("--name", default="First Person", help="mod folder name inside the zip")
@@ -54,6 +58,8 @@ def main():
         "FIXED_HEIGHT": 1 if a.height_fixed is not None else 0,
         "TOGGLE_BIT": a.toggle_bit, "STALE_LIMIT": a.stale_limit,
         "FALLBACK_TARGET": 1 if a.diagnostic else 0,
+        "HEIGHT_KEYS": 0 if a.no_height_keys else 1, "HEIGHT_STEP": a.height_step,
+        "KEY_DOWN": 0x36,   # HID usage of ',' ; '.' and '/' follow it (0x37, 0x38)
     }
     records, size = nxpatch.build(HERE / "first_person.S", REPO / "symbols" / "e0f3ccfa.ld", CAVE, HOOKS, defines)
     if a.verify_main:

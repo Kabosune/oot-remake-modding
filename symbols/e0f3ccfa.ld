@@ -15,6 +15,7 @@ CAMMGR_SLOT      = 0x84ca6bc0;  /* [[slot]] = camera manager; +0x20 count, +0x28
 PLT_GETNPAD_JOYDUAL  = 0x83c627f0; /* nn::hid::GetNpadStates(NpadJoyDualState*, int, uint const&) */
 PLT_GETNPAD_FULLKEY  = 0x83c62800; /* nn::hid::GetNpadStates(NpadFullKeyState*, int, uint const&) */
 PLT_GETNPAD_HANDHELD = 0x83c62830; /* nn::hid::GetNpadStates(NpadHandheldState*, int, uint const&) */
+PLT_GETKEYBOARD      = 0x83c64810; /* nn::hid::GetKeyboardState(KeyboardState*): keys bitset at +0x10 */
 
 /* --- hook sites used by mods in this repo (resume = site + 4) --- */
 HOOK_VIEW        = 0x804e5068;  /* in f_804e48c0, right after the view matrix is written: ldr x8, [x19, #0x20] */

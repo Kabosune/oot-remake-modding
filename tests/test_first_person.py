@@ -19,6 +19,8 @@ STACK = 0x20000000
 VT_VIEW, VT_ACTOR, VT_PLAYER = 0x84C18A88, 0x84B45E18, 0x84B6C460
 CAMMGR_SLOT, FP_STATE = 0x84CA6BC0, 0x84EBFC00
 PLT = {0x83C627F0: "joydual", 0x83C62800: "fullkey", 0x83C62830: "handheld"}
+PLT_KEYBOARD = 0x83C64810
+KEY_COMMA, KEY_PERIOD, KEY_SLASH = 0x36, 0x37, 0x38
 
 
 def load(image_path, zip_path):
@@ -44,7 +46,9 @@ class Game:
         u.reg_write(UC_ARM64_REG_CPACR_EL1, 0x300000)   # FP/SIMD on
         self.buttons = {"fullkey": 0, "joydual": 0, "handheld": 0}
         self.calls = []
+        self.keys = set()
         u.hook_add(UC_HOOK_CODE, self._plt, begin=0x83C627F0, end=0x83C62840)
+        u.hook_add(UC_HOOK_CODE, self._keyboard, begin=PLT_KEYBOARD, end=PLT_KEYBOARD)
         # camera manager chain -> camera 0 -> view
         self.view, self.camera = HEAP + 0x1000, HEAP + 0x3000
         mgr_ptr, mgr, cams, cam0 = HEAP + 0x100, HEAP + 0x200, HEAP + 0x300, HEAP + 0x400
@@ -80,6 +84,21 @@ class Game:
             u.reg_write(r, 0xBAD)
         u.reg_write(UC_ARM64_REG_X0, 1)
         u.reg_write(UC_ARM64_REG_PC, u.reg_read(UC_ARM64_REG_X30))
+
+    def _keyboard(self, u, addr, size, _):
+        bits = 0
+        for k in self.keys:
+            bits |= 1 << k
+        out = u.reg_read(UC_ARM64_REG_X0)
+        u.mem_write(out, struct.pack("<qII", 1, 0, 1) + bits.to_bytes(32, "little"))
+        for r in range(UC_ARM64_REG_X1, UC_ARM64_REG_X0 + 18):
+            u.reg_write(r, 0xDEAD0000 + r)
+        for r in range(UC_ARM64_REG_Q0, UC_ARM64_REG_Q0 + 8):
+            u.reg_write(r, 0xBAD)
+        u.reg_write(UC_ARM64_REG_PC, u.reg_read(UC_ARM64_REG_X30))
+
+    def offset(self):
+        return struct.unpack("<f", self.u.mem_read(FP_STATE + 0x24, 4))[0]
 
     def run(self, start, stop, regs):
         u = self.u
@@ -191,6 +210,34 @@ def main():
     print("Link updates again: first person resumes")
 
     g.buttons["fullkey"] = 0
+    cam = ((14.0, 3.5, -5.0), (12.0, 3.4, -5.0))
+    base = (12.0 - 0.15, 2.0 + h, -5.0)
+
+    def key_frame(*keys):
+        g.keys = set(keys)
+        g.actor_update((12.0, 2.0, -5.0))
+        return g.view_frame(yaw, *cam)[0]
+
+    for _ in range(3):
+        key_frame(KEY_PERIOD)
+        key_frame()
+    eye = key_frame(KEY_COMMA)
+    for _ in range(5):
+        eye = key_frame(KEY_COMMA)   # held: no repeat
+    assert abs(g.offset() - 0.04) < 1e-5, g.offset()
+    assert close(eye, (base[0], base[1] + 0.04, base[2])), eye
+    print("keys: '.' x3, ',' x1 (held) -> eye +4 cm, no repeat while held")
+
+    g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # off
+    assert g.state()[0] == 0
+    g.buttons["fullkey"] = 1 << 5; eye = key_frame(); g.buttons["fullkey"] = 0
+    assert g.state()[0] == 1 and close(eye, (base[0], base[1] + 0.04, base[2])), eye
+    print("offset kept across R3 off / on")
+    key_frame(KEY_SLASH)
+    eye = key_frame()
+    assert g.offset() == 0 and close(eye, base), eye
+    print("'/' resets the offset")
+
     g.view_frame(yaw, (14.0, 3.5, -5.0), (12.0, 3.4, -5.0))
     g.buttons["handheld"] = 1 << 5
     g.actor_update((12.0, 2.0, -5.0))

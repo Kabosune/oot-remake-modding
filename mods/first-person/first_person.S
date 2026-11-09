@@ -10,7 +10,11 @@
 // FP_STATE layout (zeroed at boot, so the mode starts off):
 //   +0x00 u32 enabled        +0x04 u32 R3 last frame    +0x08 u32 Link update counter
 //   +0x0c u32 counter seen   +0x10 u32 views since Link last updated
-//   +0x14 f32 x, y, z of Link (+0x14 +0x18 +0x1c)      +0x20 f32 eye height above Link
+//   +0x14 f32 x, y, z of Link (+0x14 +0x18 +0x1c)      +0x20 f32 measured eye height above Link
+//   +0x24 f32 height offset from the keyboard (kept across toggles until the game restarts)
+//   +0x28 u32 adjust keys last frame
+//
+// Keyboard (needs the emulator's keyboard emulation on): ',' eye down, '.' eye up, '/' offset back to 0.
 //
 // Tunables come from params.inc, written by build.py.
 
@@ -204,6 +208,31 @@ fp_view_hook:
     ldr     w9, [x11]
     cbz     w9, 90f
 
+    // 3b. Height keys: one step per press (rising edge), so presses can be counted.
+.if HEIGHT_KEYS
+    add     x0, sp, #PADBUF
+    stp     xzr, xzr, [x0]
+    stp     xzr, xzr, [x0, #0x10]
+    stp     xzr, xzr, [x0, #0x20]
+    bl      PLT_GETKEYBOARD
+    adrp    x11, FP_STATE
+    add     x11, x11, :lo12:FP_STATE
+    ldr     x10, [sp, #PADBUF + 0x10]       // keys 0..63
+    ubfx    x10, x10, #KEY_DOWN, #3         // bit 0 down, bit 1 up, bit 2 reset
+    ldr     w9, [x11, #0x28]
+    str     w10, [x11, #0x28]
+    bic     w9, w10, w9
+    ldr     s0, [x11, #0x24]
+    ldr     s1, height_step
+    tbz     w9, #0, 21f
+    fsub    s0, s0, s1
+21: tbz     w9, #1, 22f
+    fadd    s0, s0, s1
+22: tbz     w9, #2, 23f
+    movi    d0, #0
+23: str     s0, [x11, #0x24]
+.endif
+
     // 4. Link must still be updating (not paused, loading, or gone).
     ldr     w9, [x11, #0x08]
     ldr     w10, [x11, #0x0c]
@@ -234,6 +263,8 @@ fp_view_hook:
     ldp     s0, s1, [x11, #0x14]
     ldr     s2, [x11, #0x1c]
     ldr     s3, [x11, #0x20]
+    fadd    s1, s1, s3
+    ldr     s3, [x11, #0x24]
     fadd    s1, s1, s3
     ldr     s4, [x20, #0x28]
     ldr     s6, [x20, #0x30]
@@ -289,3 +320,4 @@ height_min:   .float HEIGHT_MIN
 height_max:   .float HEIGHT_MAX
 height_add:   .float HEIGHT_ADD
 height_fixed: .float HEIGHT_FIXED
+height_step:  .float HEIGHT_STEP

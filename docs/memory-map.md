@@ -9,7 +9,7 @@ then add yourself.
 |---|---|
 | `0x3C46200..0x3C46278` | Lichii's built-in patches |
 | `0x3C46400..0x3C46610` | [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod) (Ultrawide) |
-| `0x3C46B00..0x3C46ED0` | First Person (this repo) |
+| `0x3C46B00..0x3C46F30` | First Person (this repo) |
 | everything else | free |
 
 ## Free writable memory: `.bss` tail `0x4E9A4C8..0x4EA0000` (~23 KB, zeroed at boot)
