@@ -197,6 +197,8 @@ def main():
     eye, _ = g.view_frame(yaw, orbit_eye, target)   # R3 still held: no second toggle
     assert g.state()[0] == 1 and close(eye, want)
     print("R3 held: stays on")
+    assert g.model_state() == (0, 0x800), g.model_state()
+    print("Link hidden by default once first person is on (visible byte 0, model told to update)")
 
     yaw = math.radians(90)
     g.actor_update((12.0, 2.0, -5.0))
@@ -248,24 +250,30 @@ def main():
     assert g.offset() == 0 and close(eye, base), eye
     print("'/' resets the offset")
 
-    assert g.model_state() == (1, 0)
-    key_frame(KEY_SEMI)
-    key_frame()   # the actor update after the toggle applies it
-    assert g.model_state() == (0, 0x800), g.model_state()
-    print("';': Link hidden (visible byte 0, model told to update)")
+    assert g.model_state()[0] == 0, g.model_state()
     g.set_model(1, 0)        # the game shows him again (say, an event): hidden again next update
     key_frame()
-    assert g.model_state() == (0, 0x800)
+    assert g.model_state() == (0, 0x800), g.model_state()
     print("hiding holds against the game showing him")
+    key_frame(KEY_SEMI)
+    key_frame()   # the actor update after the toggle applies it
+    assert g.model_state()[0] == 1, g.model_state()
+    print("';': Link shown")
+    g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 off
+    g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 on
+    assert g.state()[0] == 1 and g.model_state()[0] == 1, g.model_state()
+    print("R3 off / on: still shown (toggle remembered)")
+    key_frame(KEY_SEMI); key_frame()
+    assert g.model_state()[0] == 0
+    print("';' again: hidden")
     g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 off
     assert g.state()[0] == 0 and g.model_state()[0] == 1, g.model_state()
     print("R3 off: Link visible again")
     g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 on
     assert g.model_state()[0] == 0
-    print("R3 on: hidden again (toggle remembered)")
-    key_frame(KEY_SEMI); key_frame()
+    print("R3 on: hidden again")
+    key_frame(KEY_SEMI); key_frame()    # show him
     assert g.model_state()[0] == 1
-    print("';' again: visible")
     g.set_model(0, 0)        # the game itself had him hidden: we must not show him when we stop
     key_frame(KEY_SEMI); key_frame()
     key_frame(KEY_SEMI); key_frame()

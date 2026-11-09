@@ -12,11 +12,11 @@
 //   +0x0c u32 counter seen   +0x10 u32 views since Link last updated
 //   +0x14 f32 x, y, z of Link (+0x14 +0x18 +0x1c)      +0x20 f32 measured eye height above Link
 //   +0x24 f32 height offset from the keyboard (kept across toggles until the game restarts)
-//   +0x28 u32 keys last frame        +0x2c u32 hide Link toggle
+//   +0x28 u32 keys last frame        +0x2c u32 show Link toggle (0 = hidden, the default)
 //   +0x30 u32 Link currently hidden by us                 +0x34 u32 his visible byte before that
 //
 // Keyboard (needs the emulator's keyboard emulation on): ',' eye down, '.' eye up, '/' offset back
-// to 0, ';' hide / show Link while in first person.
+// to 0, ';' show / hide Link while in first person (he starts hidden).
 //
 // Tunables come from params.inc, written by build.py.
 
@@ -81,7 +81,7 @@ fp_actor_hook:
     add     w11, w11, #1
     str     w11, [x10, #0x08]
 
-    // Hide Link's model while first person and the hide toggle are both on, the same way the
+    // Hide Link's model while first person is on and the show toggle is off, the same way the
     // game's OneShotSetModelVisible does: model = [[actor+0x270]+0x260], visible byte +0xe5,
     // then flag +0x120 bit 11 so the model picks up the change. What the game had before is
     // put back when hiding stops.
@@ -90,8 +90,8 @@ fp_actor_hook:
     ldr     x12, [x12, #0x260]              // model component
     cbz     x12, 9f
     ldr     w11, [x10]                      // first person on
-    ldr     w13, [x10, #0x2c]               // hide toggle
-    and     w11, w11, w13
+    ldr     w13, [x10, #0x2c]               // show toggle
+    bic     w11, w11, w13
     ldr     w13, [x10, #0x30]               // we hid him
     cbz     w11, 50f
     cbnz    w13, 45f
@@ -266,7 +266,7 @@ fp_view_hook:
 22: tbz     w9, #5, 23f
     movi    d0, #0
 23: str     s0, [x11, #0x24]
-    tbz     w9, #0, 24f                     // ';' toggles hiding Link
+    tbz     w9, #0, 24f                     // ';' toggles showing Link
     ldr     w10, [x11, #0x2c]
     eor     w10, w10, #1
     str     w10, [x11, #0x2c]

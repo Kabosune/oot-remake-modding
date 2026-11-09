@@ -10,7 +10,7 @@ Press **R3** (click the right stick) to switch to Link's eyes. Press it again to
 - The eye sits 0.15 m in front of Link's face, so his head stays behind the camera.
 - When Link stops updating (pause, loading), the normal camera comes back by itself until he moves
   again.
-- Starts off at every boot.
+- Starts off at every boot. Link is hidden while first person is on; `;` shows him.
 
 ### Eye height keys
 
@@ -19,7 +19,7 @@ Press **R3** (click the right stick) to switch to Link's eyes. Press it again to
 | `,` | eye down 2 cm |
 | `.` | eye up 2 cm |
 | `/` | back to the measured height |
-| `;` | hide / show Link (only while first person is on; remembered until the game restarts) |
+| `;` | show / hide Link (only while first person is on; hidden by default, remembered until the game restarts) |
 
 Hiding uses the same switch the game's own `OneShotSetModelVisible` script command uses, and
 puts back whatever the game had when you show him again or leave first person.
@@ -55,8 +55,8 @@ python mods/first-person/build.py --forward 0.25 --height-add 0.1
 | `--toggle-bit` | 5 (R3) | Npad button bit, 4 = L3 |
 | `--stale-limit` | 30 | views without a Link update before the normal camera returns |
 | `--height-step` | 0.02 | metres per `,` / `.` press |
-| `--no-height-keys` | off | leave the keyboard keys out (this also removes `;`) |
-| `--no-hide` | off | leave out hiding Link |
+| `--no-height-keys` | off | leave the keyboard keys out (this also removes `;`, so Link always stays hidden) |
+| `--no-hide` | off | leave out hiding Link (he stays visible) |
 | `--diagnostic` | off | if Link isn't found, use the look-at point as the eye (to tell the two hooks apart) |
 
 ## How it works
@@ -80,5 +80,6 @@ Two hooks ([first_person.S](first_person.S)):
   above child Link's head. Use the height keys for now; the next version should set child and
   adult heights separately.
 - Field of view is the game's. A wider FOV option would suit first person.
-- Link's arms and sword show when you look down or attack, unless you hide him with `;`.
+- Link is hidden by default; if you show him with `;`, his arms and sword show when you look
+  down or attack.
   Weapons and shield are separate equipment models, so they may stay visible while he's hidden.

@@ -29,7 +29,7 @@ README = """First Person (Ocarina of Time, Switch 2, main build E0F3CCFA)
 Press R3 (click the right stick) to switch first person on or off.
 Right stick looks around, left stick walks, everything else is the game's own.
 Keyboard (turn on the emulator's keyboard emulation): ',' eye down, '.' eye up, '/' back to 0,
-';' hide / show Link while in first person.
+';' show / hide Link while in first person (Link is hidden by default).
 Each press moves the eye 2 cm. The offset stays until you restart the game.
 Source and notes: see the repository this came from.
 """
@@ -47,7 +47,7 @@ def main():
     p.add_argument("--stale-limit", type=int, default=30, help="views without a Link update before pausing")
     p.add_argument("--height-step", type=float, default=0.02, help="metres per ',' / '.' press (default 0.02)")
     p.add_argument("--no-height-keys", action="store_true", help="leave out the keyboard keys")
-    p.add_argument("--no-hide", action="store_true", help="leave out hiding Link (';')")
+    p.add_argument("--no-hide", action="store_true", help="leave out hiding Link (he stays visible, no ';')")
     p.add_argument("--diagnostic", action="store_true",
                    help="when Link isn't found, use the camera's look-at point as the eye (for testing the hooks)")
     p.add_argument("--name", default="First Person", help="mod folder name inside the zip")
