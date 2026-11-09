@@ -2,8 +2,9 @@
 
     python3 tests/test_first_person.py <flat main image> <first-person zip>
 
-Checks: the R3 toggle, the measured eye height, the view translation, the staleness pause, and that
-every register the game uses comes back unchanged.
+Checks: the R3 toggle, the measured eye height, the view translation, the staleness pause, hiding
+Link, keeping the pitch through R3's camera recenter, and that every register the game uses comes
+back unchanged.
 """
 import math
 import struct
@@ -45,6 +46,7 @@ class Game:
         u.mem_map(STACK - 0x10000, 0x20000)
         u.reg_write(UC_ARM64_REG_CPACR_EL1, 0x300000)   # FP/SIMD on
         self.buttons = {"fullkey": 0, "joydual": 0, "handheld": 0}
+        self.stick_y = {"fullkey": 0, "joydual": 0, "handheld": 0}   # right stick
         self.calls = []
         self.keys = set()
         u.hook_add(UC_HOOK_CODE, self._plt, begin=0x83C627F0, end=0x83C62840)
@@ -78,8 +80,9 @@ class Game:
         out, count = u.reg_read(UC_ARM64_REG_X0), u.reg_read(UC_ARM64_REG_X1)
         npad = struct.unpack("<I", u.mem_read(u.reg_read(UC_ARM64_REG_X2), 4))[0]
         self.calls.append((kind, count, npad))
-        b = self.buttons[kind] if (npad == 0x20) == (kind == "handheld") else 0
-        u.mem_write(out, struct.pack("<qQiiiiI4x", 1, b, 0, 0, 0, 0, 1))
+        mine = (npad == 0x20) == (kind == "handheld")
+        b, ry = (self.buttons[kind], self.stick_y[kind]) if mine else (0, 0)
+        u.mem_write(out, struct.pack("<qQiiiiI4x", 1, b, 0, 0, 0, ry, 1))
         for r in range(UC_ARM64_REG_X0, UC_ARM64_REG_X0 + 18):   # clobber caller-saved like real code would
             if r != UC_ARM64_REG_X0:
                 u.reg_write(r, 0xDEAD0000 + r)
@@ -142,10 +145,10 @@ class Game:
             if k != 23:
                 assert self.u.reg_read(UC_ARM64_REG_X0 + k) == s[k], f"x{k} changed (actor hook)"
 
-    def view_frame(self, yaw, eye, target):
-        """Write a camera matrix the way the game does (rows: right, up, back; t = -axis.eye)."""
-        sy, cy = math.sin(yaw), math.cos(yaw)
-        rows = [(cy, 0, -sy), (0, 1, 0), (sy, 0, cy)]
+    def view_frame(self, yaw, eye, target, pitch=0.0):
+        """Write a camera matrix the way the game does (rows: right, up, back; t = -axis.eye).
+        pitch > 0: the back axis points up, so the camera looks down."""
+        rows = rotation(yaw, pitch)
         for r, axis in enumerate(rows):
             t = -sum(a * e for a, e in zip(axis, eye))
             self.f(self.view + 8 + r * 16, *axis, t)
@@ -159,6 +162,18 @@ class Game:
         rows_out = [self.rf(self.view + 8 + r * 16, 4) for r in range(3)]
         # recover the eye from the matrix: eye = -R^T t
         return tuple(-sum(rows_out[r][i] * rows_out[r][3] for r in range(3)) for i in range(3)), rows_out
+
+
+def rotation(yaw, pitch):
+    sy, cy, sp, cp = math.sin(yaw), math.cos(yaw), math.sin(pitch), math.cos(pitch)
+    return [(cy, 0, -sy), (-sp * sy, cp, -sp * cy), (sy * cp, sp, cy * cp)]
+
+
+def view_angles(rows):
+    """(yaw, pitch) of a view's rotation, and how far it is from orthonormal."""
+    back = rows[2][:3]
+    err = max(abs(sum(a * b for a, b in zip(rows[i][:3], rows[j][:3])) - (i == j)) for i in range(3) for j in range(3))
+    return math.atan2(back[0], back[2]), math.asin(max(-1.0, min(1.0, back[1]))), err
 
 
 def close(a, b, eps=1e-3):
@@ -293,7 +308,71 @@ def main():
     g.actor_update((99.0, 99.0, 99.0))
     assert g.state()[2] == before and close(g.state()[5:8], (12.0, 2.0, -5.0))
     print("other actors: ignored")
+
+    check_pitch(img)
     print("all checks passed")
+
+
+def check_pitch(img):
+    """R3 is also the game's camera recenter: in first person the yaw swing shows, the pitch doesn't."""
+    g = Game(img)
+    deg = math.radians
+    link, eye3, target = (10.0, 2.0, -5.0), (10.0, 3.5, -1.0), (10.0, 3.4, -5.0)
+
+    def frame(yaw, pitch, r3=False, stick=0):
+        g.buttons["fullkey"] = 1 << 5 if r3 else 0
+        g.stick_y["fullkey"] = stick
+        g.actor_update(link)
+        eye, rows = g.view_frame(yaw, eye3, target, deg(pitch))
+        y, p, err = view_angles(rows)
+        assert err < 1e-4, err
+        return eye, math.degrees(y), math.degrees(p)
+
+    for _ in range(3):
+        _, y, p = frame(0.3, 25)
+    assert abs(p - 25) < 1e-3 and abs(y - math.degrees(0.3)) < 1e-3, (y, p)
+    print("pitch: mode off, view untouched (25 deg down)")
+    _, y, p = frame(0.0, 22, r3=True)          # the recenter already took one step on the press
+    assert g.state()[0] == 1 and abs(p - 25) < 1e-3 and abs(y) < 1e-3, (y, p)
+    for pitch in (17, 12, 8, 5):
+        eye, y, p = frame(0.0, pitch)
+        assert abs(p - 25) < 1e-3 and abs(y) < 1e-3, (pitch, p)
+    print("R3 on: the recenter swings the yaw behind Link, the pitch stays at 25 deg")
+    for _ in range(8):
+        eye, y, p = frame(0.0, 5)
+    h = target[1] - link[1]
+    assert close(eye, (link[0], link[1] + h, link[2] - 0.15)), eye   # eye placement unchanged
+    eye, y, p = frame(0.0, 15)                  # game pitch moves again (right stick): followed
+    assert abs(p - 35) < 1e-3, p
+    eye, y, p = frame(0.0, -20)
+    assert abs(p) < 1e-3, p
+    print("after the recenter: the game's pitch changes are followed (+10, -35 deg)")
+    eye, y, p = frame(0.0, 70)                  # 90 + offset 20 would pass straight up: clamped
+    assert abs(p - 85) < 1e-2, p
+    print("pitch clamped at 85 deg")
+    frame(0.0, 70, r3=True)                     # off
+    assert g.state()[0] == 0
+    _, y, p = frame(0.0, 40)
+    assert abs(p - 40) < 1e-3
+    print("R3 off: the game's camera again")
+
+    frame(0.0, 30)
+    frame(0.0, 27, r3=True)                     # on from 30
+    _, y, p = frame(0.0, 22)
+    assert abs(p - 30) < 1e-3, p
+    _, y, p = frame(0.0, 20, stick=20000)       # right stick used: follow from here on
+    assert abs(p - 28) < 1e-3, p
+    _, y, p = frame(0.0, 15)
+    assert abs(p - 23) < 1e-3, p
+    print("right stick during the recenter: following resumes at once")
+    g.stick_y["fullkey"] = 0
+    frame(0.0, 15, r3=True)                     # off
+    frame(0.0, 10)
+    frame(0.0, 10, r3=True)                     # on from 10
+    for k in range(70):                         # the game keeps drifting the pitch: after HOLD_MAX views it's followed
+        _, y, p = frame(0.0, 10 - 0.5 * (k + 1))
+    assert abs(p - (10 - 0.5 * 10)) < 1e-2, p   # ignored for 60 views, then the last 10 steps followed
+    print("a pitch that never settles is followed again after 60 views")
 
 
 if __name__ == "__main__":

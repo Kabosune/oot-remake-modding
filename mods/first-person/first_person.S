@@ -6,6 +6,8 @@
 //                    toggles on R3 (right stick click), and when on, moves the view to Link's eyes.
 //                    The rotation stays the game's own, so the right stick still looks around and
 //                    the left stick still moves relative to where you look.
+//                    R3 is also the game's camera recenter; with KEEP_PITCH, fp_pitch.c keeps the
+//                    up / down angle through it and only the left / right swing happens.
 //
 // FP_STATE layout (zeroed at boot, so the mode starts off):
 //   +0x00 u32 enabled        +0x04 u32 R3 last frame    +0x08 u32 Link update counter
@@ -14,6 +16,7 @@
 //   +0x24 f32 height offset from the keyboard (kept across toggles until the game restarts)
 //   +0x28 u32 keys last frame        +0x2c u32 show Link toggle (0 = hidden, the default)
 //   +0x30 u32 Link currently hidden by us                 +0x34 u32 his visible byte before that
+//   +0x38..+0x54 pitch kept across the R3 recenter (fp_pitch.c)
 //
 // Keyboard (needs the emulator's keyboard emulation on): ',' eye down, '.' eye up, '/' offset back
 // to 0, ';' show / hide Link while in first person (he starts hidden).
@@ -22,7 +25,8 @@
 
 #include "params.inc"
 
-    .text
+// The Link hook lives in its own section (a second gap of the code cave, see build.py).
+    .section .text.actor,"ax",@progbits
     .p2align 2
 
 // ---------------------------------------------------------------------------------------------
@@ -120,19 +124,26 @@ fp_actor_hook:
     add     x23, x19, #0x328                // the replaced instruction
     b       HOOK_ACTOR_RET
 
+    .text
+    .p2align 2
+
 // ---------------------------------------------------------------------------------------------
 // View hook. x19 = camera, x20 = view (matrix just written). Replaces: ldr x8, [x19, #0x20]
 // Calls into nn::hid, so every caller-saved register is kept.
 // ---------------------------------------------------------------------------------------------
-    .equ    FRAME, 0x2c0
+    .equ    FRAME, 0x2d0
     .equ    PADBUF, 0x230                   // one Npad state (0x28 bytes, room for 0x80)
     .equ    PADID,  0x2b0
     .equ    BUTTONS, 0x2b8
+    .equ    STICKS, 0x2c0                   // right stick y of each controller type (3 x s32)
 
-    .macro  READPAD plt, id
+    .macro  READPAD plt, id, n
     mov     w9, #\id
     str     w9, [sp, #PADID]
     str     xzr, [sp, #PADBUF + 8]
+.if KEEP_PITCH
+    str     xzr, [sp, #PADBUF + 0x18]       // right stick
+.endif
     add     x0, sp, #PADBUF
     mov     w1, #1
     add     x2, sp, #PADID
@@ -141,6 +152,10 @@ fp_actor_hook:
     ldr     x10, [sp, #BUTTONS]
     orr     x10, x10, x9
     str     x10, [sp, #BUTTONS]
+.if KEEP_PITCH
+    ldr     w9, [sp, #PADBUF + 0x1c]
+    str     w9, [sp, #STICKS + 4 * \n]
+.endif
     .endm
 
     .macro  TRANSLATE row
@@ -204,9 +219,9 @@ fp_view_hook:
 
     // 2. Buttons of player 1 (Pro Controller / Joy-Con pair) and handheld, merged.
     str     xzr, [sp, #BUTTONS]
-    READPAD PLT_GETNPAD_FULLKEY, 0
-    READPAD PLT_GETNPAD_JOYDUAL, 0
-    READPAD PLT_GETNPAD_HANDHELD, 0x20
+    READPAD PLT_GETNPAD_FULLKEY, 0, 0
+    READPAD PLT_GETNPAD_JOYDUAL, 0, 1
+    READPAD PLT_GETNPAD_HANDHELD, 0x20, 2
 
     // 3. R3 pressed this frame -> toggle.
     adrp    x11, FP_STATE
@@ -222,6 +237,10 @@ fp_view_hook:
     str     w9, [x11]
     cbz     w9, 20f
     str     wzr, [x11, #0x10]               // fresh start for the staleness count
+.if KEEP_PITCH
+    mov     w10, #1
+    str     w10, [x11, #0x50]               // fp_pitch: keep the pitch from before this press
+.endif
 .if FIXED_HEIGHT
     ldr     s0, height_fixed
 .else
@@ -240,6 +259,13 @@ fp_view_hook:
 .endif
     str     s0, [x11, #0x20]
 20:
+.if KEEP_PITCH
+    add     x0, x20, #8
+    add     x1, sp, #STICKS
+    bl      fp_pitch_track
+    adrp    x11, FP_STATE
+    add     x11, x11, :lo12:FP_STATE
+.endif
     ldr     w9, [x11]
     cbz     w9, 90f
 
@@ -296,6 +322,12 @@ fp_view_hook:
 25:
 .else
     b.hi    90f
+.endif
+.if KEEP_PITCH
+    add     x0, x20, #8
+    bl      fp_pitch_apply
+    adrp    x11, FP_STATE
+    add     x11, x11, :lo12:FP_STATE
 .endif
 
     // 5. Eye = Link + (0, height, 0), pushed forward along the flat view direction so his
