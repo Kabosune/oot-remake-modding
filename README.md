@@ -21,7 +21,7 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 
 | Mod | What it does | Status |
 |---|---|---|
-| [First Person](mods/first-person/README.md) | R3 toggles a first-person view. Right stick looks, left stick walks. | v0.1, testing |
+| [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Keyboard: `,` `.` eye height, `;` hide Link. | Works in Lichii / Fritchii |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Lichii / Fritchii / Eden: `%APPDATA%\eden\load\`), then restart the game.
