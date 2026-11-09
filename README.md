@@ -29,17 +29,26 @@ Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into t
 ## Docs
 
 - [Getting started](docs/getting-started.md): from your dump to a flat `main` image you can read and patch.
+- [The engine](docs/engine.md): what the Tears of the Kingdom engine (ModuleSystem) means for modding this game.
+- [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, and how to look inside.
+- [Camera](docs/camera.md): the camera's parameter files, FOV, distances, and Link's heights.
+- [Script commands](docs/script-commands.md): all ~5,200 AI / logic commands mapped to their code in `main`.
 - [Address map](docs/address-map.md): functions, globals, vtables and imports we know about.
 - [Structures](docs/structures.md): field layouts (camera view, camera manager, Link, controller state).
 - [Memory map](docs/memory-map.md): which code cave and free memory each mod uses, so mods don't collide.
 - [Writing a patch](docs/writing-a-patch.md): how `tools/nxpatch.py` works and the rules for hooks.
+- [Community projects](docs/community.md): emulators, recomps, other mods and tools.
 
 ## Layout
 
 ```
 symbols/e0f3ccfa.ld        addresses for build E0F3CCFA, shared by every mod (a linker script)
+symbols/e0f3ccfa-commands.csv   every script command and its code (tools/gen_commands.py makes it)
 tools/nxpatch.py           assemble + link at the cave + IPS32 + verify against your main
 tools/flatten_nso.py       uncompressed main -> flat module image
+tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
+tools/gen_commands.py      regenerate the script-command table from a flat main
+tools/ghidra_label_commands.py  name those functions in Ghidra
 mods/<mod>/                source (.S), build.py, README
 tests/                     Unicorn tests that run the hooks on a patched main with fake game objects
 releases/                  built zips

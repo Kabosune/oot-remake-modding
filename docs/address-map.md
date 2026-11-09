@@ -30,9 +30,14 @@ in game yet.
 | `f_80b1e140` | Steps a text pane's letter animation (text speed). | Hookshot |
 | `f_828d4a70` | `OneShotAddOrRemovePouchContent`: add / remove an inventory item by actor name. | Hookshot |
 | `f_831f3200` | Dynamic resolution apply block. | Hookshot |
+| `f_804d6db0` | Is the actor child Link? `(actor)` → bool. Fast path `[[actor+0x270]+0x358]+0x1c5d` (bit 8 valid, bit 0 child), else GameData. Used by `QueryPlayerIsChild`. | Disasm |
+| `f_80853d60` | Script command → the actor it runs on: `[[[cmd+8]+8]+0x1f0]`. | Disasm |
 | `0x82959ea0` | `OneShotSetModelVisible` execute (vtable `0x84a548d0` slot 39): `model = [[actor+0x270]+0x260]`, writes the visible byte `+0xe5`, sets bit `0x800` of `+0x120`. | Disasm |
 | `0x82be6cd0` | Debug printer for why an actor isn't drawn: flags `[[actor+0x380]+8]` bit 8 Demo, 9 TL(SelectiveFC), 10 Model, 11 Event, 12 ActorVisibleOffByEvent, 23 ModelAlphaLink. | Disasm |
 | `0x83489500..0x834896b0` | The game's own controller polling (`GetNpadStates` with 16 entries). | Disasm |
+
+All ~5,200 script commands (`OneShot*`, `Query*`, `Execute*`, ...) and their functions are in
+[`symbols/e0f3ccfa-commands.csv`](../symbols/e0f3ccfa-commands.csv); see [script-commands.md](script-commands.md).
 
 ## Globals
 
