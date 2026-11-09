@@ -59,6 +59,20 @@ caller-saved register first (about 200 bytes of saves and restores). Two ways ar
 - Keep the mid-function hook tiny: do the work at a boundary, leave the result in memory, and
   have the hook only copy it (FPV Drone's view hook uses four integer registers).
 
+### Code in the padding between functions
+
+When a mod doesn't fit the cave, give `build_regions` a slot list (`nxpatch.load_slots`,
+[`symbols/e0f3ccfa-slots.txt`](../symbols/e0f3ccfa-slots.txt)). The C file is compiled to
+assembly (with `-fno-jump-tables`, since jump-table offsets assume the code stays together),
+`split_into_slots` puts as many instructions in each slot as fit, ending each with a `b` to the next
+slot unless the last one already ends the flow, and every slot is linked at its own address.
+Labels stay with their instructions, so branches inside the code still resolve. The data (constant
+tables) still goes to a cave region. `verify_slots` checks with `--verify-main` that each slot is
+still zero padding after a `ret` / `b` / `br`. See [mods/fpv-drone](../mods/fpv-drone/build.py).
+
+Hooks stay hand-written assembly in a cave region: they're small, and a hook can't be split
+without changing the registers it touches.
+
 Code size: one `const` table for float constants reached through one base register, and
 `__asm__("" : "+r"(ptr))` to stop the compiler re-deriving a global's address for each field.
 

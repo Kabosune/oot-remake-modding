@@ -1,4 +1,4 @@
-// FPV drone: the two hooks. The flying itself is fpv_input in fpv.c.
+// FPV drone: the hooks. The flying itself is fpv_input in fpv.c.
 //
 //   npad_wrap      - the last instruction (br x17) of each nn::hid::GetNpadStates import stub
 //                    branches here instead. It calls the real function, then fpv_input with the
@@ -10,7 +10,10 @@
 //                    the drone flies it copies the drone's matrix over the game's. Integer
 //                    registers only. Replaces: cbz x8, 0x804e5b78
 //
-// The two parts can go to different gaps of the code cave (sections .text.hook and .text).
+//   fpv_actor_hook - the first instruction (pacibsp) of f_82c415e0, the movement update of
+//                    physics actors. Only while carrying Link, it calls fpv_actor(actor). At a
+//                    function's first instruction only the arguments (x0-x7, q0-q7, x8) are live,
+//                    so those are all that need keeping; x16 / x17 are free there by the ABI.
 
 #include "params.inc"
 
@@ -84,3 +87,33 @@ fpv_view_hook:
     cbz     x8, 8f                          // the replaced instruction
     b       HOOK_VIEW2_RET
 8:  b       HOOK_VIEW2_TAKEN
+
+    .global fpv_actor_hook
+fpv_actor_hook:
+    adrp    x16, DRONE_STATE
+    ldr     w16, [x16, :lo12:DRONE_STATE + 0x0c]   // carrying?
+    cbz     w16, 9f
+    stp     x29, x30, [sp, #-0xe0]!
+    mov     x29, sp
+    stp     x0, x1, [sp, #0x10]
+    stp     x2, x3, [sp, #0x20]
+    stp     x4, x5, [sp, #0x30]
+    stp     x6, x7, [sp, #0x40]
+    str     x8, [sp, #0x50]
+    stp     q0, q1, [sp, #0x60]
+    stp     q2, q3, [sp, #0x80]
+    stp     q4, q5, [sp, #0xa0]
+    stp     q6, q7, [sp, #0xc0]
+    bl      fpv_actor                       // (actor)
+    ldp     q6, q7, [sp, #0xc0]
+    ldp     q4, q5, [sp, #0xa0]
+    ldp     q2, q3, [sp, #0x80]
+    ldp     q0, q1, [sp, #0x60]
+    ldr     x8, [sp, #0x50]
+    ldp     x6, x7, [sp, #0x40]
+    ldp     x4, x5, [sp, #0x30]
+    ldp     x2, x3, [sp, #0x20]
+    ldp     x0, x1, [sp, #0x10]
+    ldp     x29, x30, [sp], #0xe0
+9:  hint    #27                             // pacibsp, the replaced instruction (same sp and x30 as the game's)
+    b       HOOK_MOVE_RET

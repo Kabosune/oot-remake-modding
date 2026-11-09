@@ -7,6 +7,10 @@
 VT_VIEW          = 0x84c18a88;  /* camera view: matrix +0x08, eye +0x60 (f64x3), target +0x78 (f64x3) */
 VT_ACTOR         = 0x84b45e18;  /* physics actor handed to the movement update; pos +0x31c, rot 3x4 +0x328 */
 VT_PLAYER        = 0x84b6c460;  /* player-type object; resource name at [[obj+0x10]+0x58] = "Player" */
+VT_CCT           = 0x84c54f10;  /* Link's physics character controller: [[[[[actor+0x270]+80]+32]+16]+8] */
+
+/* --- functions --- */
+CCT_CHANGE_POSITION = 0x806d2530; /* f_806d2530(controller, float pos[4]): moves a character controller (vtable slot +0xe8) */
 
 /* --- globals --- */
 CAMMGR_SLOT      = 0x84ca6bc0;  /* [[slot]] = camera manager; +0x20 count, +0x28 cameras; [cameras][0]+0x78 = gameplay view */
@@ -28,6 +32,8 @@ HOOK_ACTOR_RET   = 0x82c41724;
 HOOK_VIEW2       = 0x804e506c;  /* in f_804e48c0, the instruction after HOOK_VIEW: cbz x8, 0x804e5b78 */
 HOOK_VIEW2_RET   = 0x804e5070;
 HOOK_VIEW2_TAKEN = 0x804e5b78;  /* where that cbz goes */
+HOOK_MOVE        = 0x82c415e0;  /* f_82c415e0's first instruction: pacibsp; x0 = actor */
+HOOK_MOVE_RET    = 0x82c415e4;
 
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */

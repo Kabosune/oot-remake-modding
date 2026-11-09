@@ -19,16 +19,15 @@ import nxpatch  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
 BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
-# Free gaps of the shared code cave this mod takes (module offsets; see docs/memory-map.md).
-REGIONS = [
-    (0x3C46610, 0x3C46B00, [".text.fpv_input", ".rodata.cst*", ".text.level", ".text"]),
-    (0x3C46278, 0x3C46400, [".text.hook", ".text.cross_n"]),
-    (0x3C46FB0, 0x3C47000, [".rodata.PARAMS", ".rodata"]),
-]
+# The hooks and constants take one gap of the shared code cave; the C code is split over padding
+# slots between the game's functions (module offsets; see docs/memory-map.md).
+REGIONS = [(0x3C46610, 0x3C46B00, [".text.hook", ".text", ".rodata*"])]
+SLOTS = REPO / "symbols" / "e0f3ccfa-slots.txt"
 BR_X17 = 0xD61F0220
 HOOKS = [
     # (site, original instruction, cave entry)
     (0x804E506C, 0xB4005868, "fpv_view_hook"),   # cbz x8, 0x804e5b78 (after the view matrix)
+    (0x82C415E0, 0xD503237F, "fpv_actor_hook"),  # pacibsp (movement update of physics actors)
     # the last instruction (br x17) of each GetNpadStates import stub
     (0x83C627FC, BR_X17, "npad_wrap"),           # JoyDual
     (0x83C6280C, BR_X17, "npad_wrap"),           # FullKey (Pro Controller)
@@ -51,8 +50,11 @@ Buttons while flying:
   Y  Angle mode  (self-levelling; stick = tilt angle)       <- starts in this one
   X  Acro mode   (stick = rotation rate; no levelling, flips and rolls)
   B  Simple mode (self-levelling, holds height; throttle = climb / sink, lets go = stops)
+  L  Free fly    (noclip camera: left stick moves where you look, right stick looks,
+                  ZL / ZR down / up; no physics)
+  R  carry Link  (he hangs under the drone and flies with it; R again drops him)
   A  back to the game camera
-  + or -  leaves the drone (so menus work)
+  + or -  leaves the drone (so menus work; also drops Link)
 
 Throttle: stick centred = hover, up = up to 3.5 g, down = less thrust.
 The drone has no collision: it flies through walls and floors.
@@ -76,6 +78,9 @@ def main():
     p.add_argument("--climb-rate", type=float, default=4.0, help="Simple mode climb / sink speed at full stick, m/s (default 4)")
     p.add_argument("--brake", type=float, default=1.5, help="Simple mode extra slow-down, 1/s (default 1.5)")
     p.add_argument("--deadzone", type=float, default=0.06, help="stick dead zone, 0..1 (default 0.06)")
+    p.add_argument("--free-speed", type=float, default=8.0, help="Free fly speed at full stick, m/s (default 8)")
+    p.add_argument("--free-turn", type=float, default=120.0, help="Free fly look speed at full stick, deg/s (default 120)")
+    p.add_argument("--carry-drop", type=float, default=2.0, help="carried Link's feet below the drone, m (default 2)")
     p.add_argument("--throttle-half", action="store_true",
                    help="throttle stick centre = half thrust instead of hover (closer to a real radio)")
     p.add_argument("--toggle", choices=BUTTONS, default="l3", help="drone on / off (default l3)")
@@ -83,6 +88,8 @@ def main():
     p.add_argument("--acro", choices=BUTTONS, default="x", help="Acro mode (default x)")
     p.add_argument("--angle", choices=BUTTONS, default="y", help="Angle mode (default y)")
     p.add_argument("--simple", choices=BUTTONS, default="b", help="Simple mode (default b)")
+    p.add_argument("--free", choices=BUTTONS, default="l", help="Free fly mode (default l)")
+    p.add_argument("--carry", choices=BUTTONS, default="r", help="carry / drop Link (default r)")
     p.add_argument("--name", default="FPV Drone", help="mod folder name inside the zip")
     p.add_argument("--out", type=Path, default=REPO / "releases" / "fpv-drone.zip")
     a = p.parse_args()
@@ -99,17 +106,22 @@ def main():
         "SIMPLE_BRAKE": f(a.brake), "THRUST_MAX": f(a.thrust * a.gravity), "DRAG": f(a.drag),
         "THROTTLE_HOVER_CENTER": 0 if a.throttle_half else 1, "PAUSE_READS": 10,
         "TOGGLE_BIT": BUTTONS[a.toggle], "BTN_RESET": BUTTONS[a.reset], "BTN_ACRO": BUTTONS[a.acro],
-        "BTN_ANGLE": BUTTONS[a.angle], "BTN_SIMPLE": BUTTONS[a.simple],
+        "BTN_ANGLE": BUTTONS[a.angle], "BTN_SIMPLE": BUTTONS[a.simple], "BTN_FREE": BUTTONS[a.free],
+        "BTN_CARRY": BUTTONS[a.carry], "FREE_SPEED": f(a.free_speed), "FREE_TURN": f(rad(a.free_turn)),
+        "CARRY_DROP": f(a.carry_drop),
     }
-    records, used = nxpatch.build_regions([HERE / "fpv.S", HERE / "fpv.c"], REPO / "symbols" / "e0f3ccfa.ld",
-                                          REGIONS, HOOKS, defines)
+    slots = nxpatch.load_slots(SLOTS)
+    records, used, nslots = nxpatch.build_regions([HERE / "fpv.S", HERE / "fpv.c"], REPO / "symbols" / "e0f3ccfa.ld",
+                                                  REGIONS, HOOKS, defines, slots)
     if a.verify_main:
         nxpatch.verify(records, a.verify_main)
+        nxpatch.verify_slots(slots[:nslots], a.verify_main)
         print("verified against", a.verify_main)
     patch = nxpatch.ips32(records)
     nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README)
     for start, end, _ in REGIONS:
         print(f"cave {start:#x}..{end:#x}: {used[start]} of {end - start} bytes")
+    print(f"code: {nslots} of {len(slots)} padding slots, {slots[0][0]:#x}..{slots[nslots - 1][0] + slots[nslots - 1][1]:#x}")
     print(f"{len(HOOKS)} hooks -> {a.out}")
 
 

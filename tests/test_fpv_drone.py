@@ -28,7 +28,9 @@ STUBS = {  # style: (PLT stub, GOT slot)
 }
 SITE, SITE_RET, SITE_TAKEN = 0x804E506C, 0x804E5070, 0x804E5B78
 FREQ = 19_200_000
-A, B, X, Y, L3, R3, PLUS, MINUS = 0, 1, 2, 3, 4, 5, 10, 11
+A, B, X, Y, L3, R3, L, R, ZL, ZR, PLUS, MINUS = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+VT_ACTOR, VT_PLAYER, VT_CCT = 0x84B45E18, 0x84B6C460, 0x84C54F10
+MOVE, MOVE_RET, CHANGE_POSITION = 0x82C415E0, 0x82C415E4, 0x806D2530
 FULL = 32767
 
 
@@ -71,6 +73,49 @@ class Game:
         self.other_view = HEAP + 0x5000
         self.q(self.other_view, VT_VIEW)
         self.buf, self.idp = HEAP + 0x8000, HEAP + 0x9000
+        # Link: actor -> components -> movement (in the player object at +0x1d50) -> "Player",
+        # and components -> +80 -> +32 -> +16 -> +8 = his character controller.
+        self.link = self.make_actor(HEAP + 0x40000, b"Player\0")
+        self.other = self.make_actor(HEAP + 0x80000, b"Enemy\0")
+        self.moves = []
+        u.hook_add(UC_HOOK_CODE, self._change_position, None, CHANGE_POSITION, CHANGE_POSITION)
+
+    def make_actor(self, base, name):
+        actor, comps, player, res = base, base + 0x1000, base + 0x2000, base + 0x8000
+        c1, c2, c3, cct = base + 0x9000, base + 0x9100, base + 0x9200, base + 0x9300
+        self.q(actor, VT_ACTOR); self.q(actor + 0x270, comps)
+        self.q(comps + 0x320, player + 0x1D50); self.q(player + 0x1D50 + 0x18, actor)
+        self.q(player, VT_PLAYER); self.q(player + 0x10, res); self.u.mem_write(res + 0x58, name)
+        self.q(comps + 80, c1); self.q(c1 + 32, c2); self.q(c2 + 16, c3); self.q(c3 + 8, cct)
+        self.q(cct, VT_CCT)
+        return actor, cct
+
+    def _change_position(self, u, addr, size, _):
+        cct = u.reg_read(UC_ARM64_REG_X0)
+        self.moves.append((cct, struct.unpack("<4f", u.mem_read(u.reg_read(UC_ARM64_REG_X1), 16))))
+        for r in range(UC_ARM64_REG_X0, UC_ARM64_REG_X0 + 18):
+            u.reg_write(r, 0xDEAD0000 + r)
+        for r in range(UC_ARM64_REG_Q0, UC_ARM64_REG_Q0 + 8):
+            u.reg_write(r, 0xBAD)
+        u.reg_write(UC_ARM64_REG_PC, u.reg_read(UC_ARM64_REG_X30))
+
+    def actor_update(self, actor):
+        """The game's call into the movement update, from its first instruction to its second."""
+        u = self.u
+        self._sentinels()
+        u.reg_write(UC_ARM64_REG_X0, actor)
+        u.emu_start(MOVE, MOVE_RET, count=20000)
+        assert u.reg_read(UC_ARM64_REG_PC) == MOVE_RET
+        assert u.reg_read(UC_ARM64_REG_SP) == STACK and u.reg_read(UC_ARM64_REG_X30) == 0x7777
+        for k in range(29):
+            if 9 <= k <= 18:
+                continue   # caller-saved and not arguments: free at a function's first instruction
+            want = actor if k == 0 else 0x5000 + k
+            assert u.reg_read(UC_ARM64_REG_X0 + k) == want, f"x{k} changed (actor hook)"
+        for k in list(range(8)) + list(range(8, 16)):
+            got = u.reg_read(UC_ARM64_REG_Q0 + k)
+            want = 0x1111 * (k + 1)
+            assert (got if k < 8 else got & 0xFFFFFFFFFFFFFFFF) == want, f"q{k} changed (actor hook)"
 
     def q(self, a, v): self.u.mem_write(a, struct.pack("<Q", v))
     def d(self, a, v): self.u.mem_write(a, struct.pack("<I", v))
@@ -369,6 +414,77 @@ def main():
     print("replaced cbz x8: still branches when x8 == 0")
     assert g.svcs and set(g.svcs) == {0x1E}
     print("timer: svcGetSystemTick only, no system-register reads")
+    # Free fly: L. Level, no uptilt; left stick moves where you look, right stick looks, ZR up.
+    g.frame(buttons=1 << PLUS, eye=game_eye, yaw=game_yaw)   # off, whatever came before
+    g.frame(eye=game_eye, yaw=game_yaw)
+    g.frame(buttons=1 << L3, eye=game_eye, yaw=game_yaw)
+    assert g.drone()[0] == 1
+    g.frame(buttons=1 << L, eye=game_eye, yaw=game_yaw)
+    on, mode, p, v, r = g.drone()
+    assert mode == 3 and abs(r[1][1] - 1) < 1e-3
+    _, (eye, rows) = g.frame(eye=game_eye, yaw=game_yaw)
+    assert abs(rows[2][1]) < 1e-3, "Free fly: camera not tilted up"
+    p0 = g.drone()[2]
+    fly(1.0, ly=FULL)
+    p1 = g.drone()[2]
+    moved = tuple(a - b for a, b in zip(p1, p0))
+    fwd0 = (-math.sin(game_yaw), 0.0, -math.cos(game_yaw))
+    assert abs(dot(moved, fwd0) - 8.0) < 0.6 and abs(moved[1]) < 0.05, moved
+    print("Free fly: left stick forward 1 s: %.1f m along the view, level" % dot(moved, fwd0))
+    fly(0.5, ry=FULL)
+    look_up = math.degrees(math.asin(-g.drone()[4][2][1]))
+    assert 50 < look_up < 70, look_up
+    fly(2.0, ry=FULL)
+    look_up = math.degrees(math.asin(-g.drone()[4][2][1]))
+    assert 70 < look_up < 80, look_up
+    r = g.drone()[4]
+    assert abs(r[0][1]) < 1e-3, "no roll"
+    print("Free fly: right stick up looks up (%.0f deg after 2.5 s, stops short of straight up), no roll" % look_up)
+    p0 = g.drone()[2]
+    fly(1.0, ly=FULL)
+    moved = tuple(a - b for a, b in zip(g.drone()[2], p0))
+    assert moved[1] > 7.0, moved
+    print("Free fly: moving while looking up climbs (%.1f m)" % moved[1])
+    p0 = g.drone()[2]
+    fly(1.0, buttons=1 << ZR)
+    assert abs(g.drone()[2][1] - p0[1] - 8.0) < 0.6
+    fly(0.5, buttons=1 << ZL)
+    print("Free fly: ZR up 8 m/s, ZL down")
+    fly(0.5, rx=FULL)
+    assert abs(g.drone()[4][0][1]) < 1e-3
+    p0 = g.drone()[2]
+    fly(1.0)
+    assert close(g.drone()[2], p0, 1e-4)
+    print("Free fly: turning keeps it level, sticks centred stops dead")
+
+    # Carry Link: R. His controller is moved 2 m under the drone in his movement update.
+    g.moves.clear()
+    g.actor_update(g.link[0])
+    assert not g.moves
+    g.frame(buttons=1 << R, eye=game_eye, yaw=game_yaw)
+    g.actor_update(g.other[0])
+    assert not g.moves, "only Link is carried"
+    g.actor_update(g.link[0])
+    p = g.drone()[2]
+    assert len(g.moves) == 1 and g.moves[0][0] == g.link[1], g.moves
+    assert close(g.moves[0][1], (p[0], p[1] - 2.0, p[2], 0.0), 1e-4), (g.moves, p)
+    print("R: carrying; Link's controller moved to %s, 2 m under the drone" % (tuple(round(x, 2) for x in g.moves[0][1][:3]),))
+    fly(1.0, ly=FULL)
+    g.actor_update(g.link[0])
+    p = g.drone()[2]
+    assert close(g.moves[-1][1], (p[0], p[1] - 2.0, p[2], 0.0), 1e-4)
+    print("carried Link follows the drone")
+    g.frame(buttons=1 << R, eye=game_eye, yaw=game_yaw)
+    n = len(g.moves)
+    g.actor_update(g.link[0])
+    assert len(g.moves) == n
+    print("R again: drops him")
+    g.frame(buttons=1 << R, eye=game_eye, yaw=game_yaw)
+    g.frame(buttons=1 << L3, eye=game_eye, yaw=game_yaw)
+    n = len(g.moves)
+    g.actor_update(g.link[0])
+    assert g.drone()[0] == 0 and len(g.moves) == n
+    print("drone off while carrying: Link is let go")
     print("all checks passed")
 
 

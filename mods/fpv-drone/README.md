@@ -19,8 +19,33 @@ Mode 2, like most FPV radios:
 | **Y** | **Angle** mode: self-levelling. The right stick sets the tilt angle (up to 50°); let go and it levels out. Starts in this mode. |
 | **X** | **Acro** mode: the right stick sets how fast it rotates, nothing levels it. Flips, rolls, power loops. |
 | **B** | **Simple** mode: self-levelling and holds its height. The throttle stick climbs / sinks (4 m/s), and when you let go of everything it slows down and stops. |
+| **L** | **Free fly**: a noclip camera like a map viewer's. See below. |
+| **R** | **Carry Link**: he hangs 2 m under the drone and flies with it. R again drops him. |
 | **A** | back to the game camera's position |
-| **+** / **−** | leave the drone (these still reach the game, so the menus work) |
+| **+** / **−** | leave the drone (these still reach the game, so the menus work). Leaving drops Link. |
+
+### Free fly
+
+No physics, no tilt, no momentum: the camera goes exactly where you push it, and stops when you
+let go.
+
+| | |
+|---|---|
+| Left stick | move forward / back along where you look, and strafe left / right |
+| Right stick | look around (turn and look up / down; it stops just short of straight up or down) |
+| ZR / ZL | straight up / down |
+
+8 m/s at full stick, 120°/s turning (`--free-speed`, `--free-turn`). Y, X or B switches back to a
+drone mode from where you are.
+
+### Carrying Link
+
+R picks Link up wherever he is: he's put 2 m under the drone and follows it every frame, in any
+mode. The game moves him itself, through his character controller (`ChangePosition`, the same call
+its `OneShotPhysicsCctChangePosition` script command makes), so collision with the world is off
+while he's carried, and the area around him loads as he goes. R, L3, + or − drops him, and he falls
+from where he is: drop him low, or he'll take fall damage. His controls are still off while the
+drone flies.
 
 Throttle: a gamepad stick springs back to the middle, so the middle is **hover**. Up gives up to
 3.5 g of thrust, down less than hover. Build with `--throttle-half` for radio-style throttle
@@ -77,12 +102,15 @@ python mods/fpv-drone/build.py --uptilt 30 --rate-max 800
 | `--brake` | 1.5 | Simple: how quickly it stops sideways |
 | `--deadzone` | 0.06 | stick dead zone |
 | `--throttle-half` | off | throttle centre = half thrust instead of hover |
-| `--toggle` `--reset` `--acro` `--angle` `--simple` | l3 a x y b | buttons (`a b x y l3 r3 l r zl zr up down left right`) |
+| `--free-speed` / `--free-turn` | 8 / 120 | Free fly: m/s and deg/s at full stick |
+| `--carry-drop` | 2 | carried Link's feet below the drone, m |
+| `--toggle` `--reset` `--acro` `--angle` `--simple` `--free` `--carry` | l3 a x y b l r | buttons (`a b x y l3 r3 l r zl zr up down left right`) |
 
 ## How it works
 
-Two hooks, and the code is spread over three free gaps of the shared code cave (it doesn't fit
-in one):
+Three hooks. They and the constant table sit in one gap of the shared code cave; the C code
+(about 2 KB, more than any gap) is split over the compiler's padding between the game's
+functions (see [memory-map](../../docs/memory-map.md#padding-slots-the-compilers-alignment-padding-between-functions)):
 
 - **Controller.** The game reads every controller with `nn::hid::GetNpadStates` through five import
   stubs (one per controller style), each with exactly one caller, in its polling loop
@@ -95,6 +123,11 @@ in one):
   is finished there and nothing has read it yet), `fpv_view_hook` checks it's the gameplay view,
   keeps the game camera's eye and back axis for the next take-off, and while flying copies the
   drone's matrix over the game's. It uses integer registers only.
+- **Carry.** The first instruction of `f_82c415e0`, the movement update every physics actor runs
+  each frame. While carrying (one flag checked before anything else), `fpv_actor` checks that the
+  actor is Link (the same checks as First Person) and calls `ChangePosition` on his character
+  controller with the point under the drone. At a function's first instruction only its arguments
+  are live, so the hook keeps just those.
 
 The flight state is a position, a velocity and an orthonormal frame (right, up, back). Each step
 rotates the frame by the body rates (from the sticks in Acro, from the tilt error in Angle and

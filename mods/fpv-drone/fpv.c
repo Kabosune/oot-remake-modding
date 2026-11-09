@@ -5,23 +5,28 @@
 // view matrix into DRONE_STATE, and, while the drone is on, blanks the controller the game sees so
 // Link stands still. fpv_view_hook in fpv.S copies that matrix over the gameplay view each frame.
 //
+// fpv_actor() runs at the start of the game's movement update for physics actors (fpv_actor_hook
+// in fpv.S, only while carrying). For Link, it moves his character controller under the drone
+// with the game's own ChangePosition, the call behind the OneShotPhysicsCctChangePosition script
+// command (Hookshot's flight cheat moves Link the same way).
+//
 // The drone's attitude is three unit vectors in world space: right, up, back (the same convention
 // as the rows of the game's view matrix; the drone faces -back).
 //
-// Tunables come from params.inc, written by build.py. All of this has to fit the shared code cave,
-// so it is written for size: one constant table, one base register for the state, few helpers.
+// Tunables come from params.inc, written by build.py. The code is built for size (one constant
+// table, one base register for the state) and split over the padding between the game's functions.
 
 #include <stdint.h>
 #include "params.inc"
 
 typedef struct {
     uint32_t on;           // +0x00 drone flying
-    uint32_t mode;         // +0x04 MODE_ANGLE / MODE_ACRO / MODE_SIMPLE
+    uint32_t mode;         // +0x04 MODE_ANGLE / MODE_ACRO / MODE_SIMPLE / MODE_FREE
     uint32_t prev;         // +0x08 buttons at the last read (for presses)
-    uint32_t pad0;         // +0x0c
+    uint32_t carrying;     // +0x0c on and carry: fpv_actor_hook reads this first
     uint64_t tick;         // +0x10 system tick of the last step
     uint32_t seen;         // +0x18 reads since the gameplay view was last built (fpv.S zeroes it)
-    uint32_t pad;          // +0x1c
+    uint32_t carry;        // +0x1c carry Link (toggled with the carry button)
     float    eye[3];       // +0x20 the game camera's eye, kept by fpv.S every frame
     float    gback[3];     // +0x2c the game camera's back axis, kept by fpv.S every frame
     float    mat[12];      // +0x38 the drone camera's view matrix, copied over the game's by fpv.S
@@ -30,6 +35,7 @@ typedef struct {
     float    r[3][3];      // +0x80 right, up, back
 } drone_t;                 // 0xa4 bytes
 
+_Static_assert(__builtin_offsetof(drone_t, carrying) == 0x0c, "fpv.S");
 _Static_assert(__builtin_offsetof(drone_t, seen) == 0x18, "fpv.S");
 _Static_assert(__builtin_offsetof(drone_t, eye) == 0x20, "fpv.S");
 _Static_assert(__builtin_offsetof(drone_t, gback) == 0x2c, "fpv.S");
@@ -46,22 +52,28 @@ typedef struct {
 } npad_t;
 
 extern drone_t DRONE_STATE;
+extern char VT_ACTOR[], VT_PLAYER[], VT_CCT[];
+void CCT_CHANGE_POSITION(char *controller, const float *position);   // f_806d2530
 
 typedef struct {
     float deadzone, dz_scale, dt_max, tick_s, tilt_cos, tilt_sin;
     float yaw_center, yaw_extra, rate_center, rate_extra, level_gain, max_tilt_sin;
     float gravity, climb_gain, climb_rate, brake, thrust_max, drag, min_up;
+    float free_speed, free_turn, max_look, carry_drop;
 } params_t;
 
 static const params_t PARAMS = {
     DEADZONE, 1.0f / (1.0f - DEADZONE), DT_MAX, 1.0f / 19200000.0f, UPTILT_COS, UPTILT_SIN,
     YAW_CENTER, YAW_MAX - YAW_CENTER, RATE_CENTER, RATE_MAX - RATE_CENTER, LEVEL_GAIN, TILT_SIN,
     GRAVITY, CLIMB_GAIN, CLIMB_RATE, SIMPLE_BRAKE, THRUST_MAX, DRAG, 0.3f,
+    FREE_SPEED, FREE_TURN, 0.97f, CARRY_DROP,
 };
 
-enum { MODE_ANGLE = 0, MODE_ACRO = 1, MODE_SIMPLE = 2 };
+enum { MODE_ANGLE = 0, MODE_ACRO = 1, MODE_SIMPLE = 2, MODE_FREE = 3 };
 
 #define BTN(bit) (1u << (bit))
+#define BTN_ZL 8
+#define BTN_ZR 9
 #define BTN_PLUS 10
 #define BTN_MINUS 11
 
@@ -77,19 +89,21 @@ static void cross_n(float *out, const float *a, const float *b)
     out[2] = z * k;
 }
 
-// Level the drone, keeping the heading of (bx, ?, bz).
-static void level(float *r, float bx, float bz)
+// Point the frame along back = (bx, by, bz) with no roll: right stays level.
+static void aim(float *r, float bx, float by, float bz)
 {
+    static const float world_up[3] = { 0.0f, 1.0f, 0.0f };
     float n = __builtin_sqrtf(bx * bx + bz * bz);
-    if (n < 1e-3f) {
+    if (n < 1e-3f) {                            // straight up or down: pick any heading
         bx = 0.0f;
-        bz = n = 1.0f;
+        bz = 1.0f;
     }
-    bx /= n;
-    bz /= n;
-    r[0] = bz;   r[1] = 0.0f; r[2] = -bx;    // right = up x back
-    r[3] = 0.0f; r[4] = 1.0f; r[5] = 0.0f;   // up
-    r[6] = bx;   r[7] = 0.0f; r[8] = bz;     // back
+    float m = 1.0f / __builtin_sqrtf(bx * bx + by * by + bz * bz);
+    r[6] = bx * m;
+    r[7] = by * m;
+    r[8] = bz * m;
+    cross_n(r, world_up, r + 6);                // right = world up x back
+    cross_n(r + 3, r + 6, r);                   // up = back x right
 }
 
 void fpv_input(npad_t *st, int n, const uint32_t *idp)
@@ -127,6 +141,11 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
     }
     if (press & (BTN(BTN_PLUS) | BTN(BTN_MINUS)))   // menus need the buttons: leave the drone
         d->on = 0;
+    if (press & BTN(BTN_CARRY))
+        d->carry ^= 1;
+    if (!d->on)
+        d->carry = 0;                           // leaving the drone lets go of Link
+    d->carrying = d->carry;
     if (!d->on)
         return;
 
@@ -136,7 +155,7 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
             d->p[i] = d->eye[i];
             d->v[i] = 0.0f;
         }
-        level(right, d->gback[0], d->gback[2]);
+        aim(right, d->gback[0], 0.0f, d->gback[2]);
     }
     uint32_t mode = d->mode;
     if (press & BTN(BTN_ACRO))
@@ -145,11 +164,12 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
         mode = MODE_ANGLE;
     if (press & BTN(BTN_SIMPLE))
         mode = MODE_SIMPLE;
-    if (mode != d->mode && mode != MODE_ACRO)   // into a self-levelling mode: start level
-        level(right, back[0], back[2]);
+    if (press & BTN(BTN_FREE))
+        mode = MODE_FREE;
+    if (mode != d->mode && mode != MODE_ACRO)   // into a levelled mode: start level
+        aim(right, back[0], 0.0f, back[2]);
     d->mode = mode;
 
-    // Mode 2: left stick throttle (y) / yaw (x), right stick pitch (y) / roll (x).
     float in[4];
     for (int i = 0; i < 4; i++) {
         float x = (float)st->stick[i] * (1.0f / 32767.0f);
@@ -157,58 +177,88 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
         a = a < 0.0f ? 0.0f : a * k->dz_scale;
         in[i] = __builtin_copysignf(a > 1.0f ? 1.0f : a, x);
     }
-    float yaw = in[0], thr = in[1], roll = in[2], pitch = in[3];
+    float tc = k->tilt_cos, ts = k->tilt_sin;
 
-    // Body rates (rad/s): wx about right (nose up), wy about up (turn left), wz about back (roll left).
-    // Rate curve: center + extra * x^2, so fine near the middle and fast at full stick.
-    float wx, wz;
-    float wy = -yaw * (k->yaw_center + k->yaw_extra * yaw * yaw);
-    if (mode == MODE_ACRO) {
-        wx = -pitch * (k->rate_center + k->rate_extra * pitch * pitch);
-        wz = -roll * (k->rate_center + k->rate_extra * roll * roll);
+    if (mode == MODE_FREE) {
+        // Noclip camera: right stick looks (yaw about world up, pitch), left stick moves where
+        // you look, ZL / ZR down / up. No physics, no roll, no camera uptilt.
+        float turn = k->free_turn * dt, yaw = -in[2] * turn, look = in[3] * turn;
+        float bx = back[0] + yaw * back[2] - look * up[0];
+        float by = back[1] - look * up[1];
+        float bz = back[2] - yaw * back[0] - look * up[2];
+        float m = 1.0f / __builtin_sqrtf(bx * bx + by * by + bz * bz);
+        bx *= m;
+        by *= m;
+        bz *= m;
+        if (__builtin_fabsf(by) > k->max_look) {    // stop short of straight up / down
+            float h = __builtin_sqrtf((1.0f - k->max_look * k->max_look) / (bx * bx + bz * bz));
+            bx *= h;
+            bz *= h;
+            by = __builtin_copysignf(k->max_look, by);
+        }
+        aim(right, bx, by, bz);
+        float vert = (float)((b >> BTN_ZR) & 1) - (float)((b >> BTN_ZL) & 1);
+        for (int i = 0; i < 3; i++) {
+            d->v[i] = (right[i] * in[0] - back[i] * in[1] + (i == 1 ? vert : 0.0f)) * k->free_speed;
+            d->p[i] += d->v[i] * dt;
+        }
+        tc = 1.0f;
+        ts = 0.0f;
     } else {
-        // Self-levelling: the stick sets the sine of the tilt; steer towards it.
-        wx = k->level_gain * (back[1] - pitch * k->max_tilt_sin);
-        wz = k->level_gain * (-roll * k->max_tilt_sin - right[1]);
-    }
+        // Mode 2: left stick throttle (y) / yaw (x), right stick pitch (y) / roll (x).
+        float yaw = in[0], thr = in[1], roll = in[2], pitch = in[3];
 
-    float g = k->gravity, thrust, brake = 0.0f;
-    if (mode == MODE_SIMPLE) {
-        // Height hold: the throttle stick asks for a climb rate. Centered sticks stop the drone.
-        float uy = up[1] > k->min_up ? up[1] : k->min_up;
-        thrust = (g + k->climb_gain * (thr * k->climb_rate - d->v[1])) / uy;
-        brake = k->brake;
-    } else {
+        // Body rates (rad/s): wx about right (nose up), wy about up (turn left), wz about back
+        // (roll left). Rate curve: center + extra * x^2, fine near the middle, fast at full stick.
+        float wx, wz;
+        float wy = -yaw * (k->yaw_center + k->yaw_extra * yaw * yaw);
+        if (mode == MODE_ACRO) {
+            wx = -pitch * (k->rate_center + k->rate_extra * pitch * pitch);
+            wz = -roll * (k->rate_center + k->rate_extra * roll * roll);
+        } else {
+            // Self-levelling: the stick sets the sine of the tilt; steer towards it.
+            wx = k->level_gain * (back[1] - pitch * k->max_tilt_sin);
+            wz = k->level_gain * (-roll * k->max_tilt_sin - right[1]);
+        }
+
+        float g = k->gravity, thrust, brake = 0.0f;
+        if (mode == MODE_SIMPLE) {
+            // Height hold: the throttle stick asks for a climb rate. Centred sticks stop the drone.
+            float uy = up[1] > k->min_up ? up[1] : k->min_up;
+            thrust = (g + k->climb_gain * (thr * k->climb_rate - d->v[1])) / uy;
+            brake = k->brake;
+        } else {
 #if THROTTLE_HOVER_CENTER
-        thrust = g + thr * (thr >= 0.0f ? k->thrust_max - g : g);   // centre = hover
+            thrust = g + thr * (thr >= 0.0f ? k->thrust_max - g : g);   // centre = hover
 #else
-        thrust = (thr + 1.0f) * 0.5f * k->thrust_max;                // centre = half throttle
+            thrust = (thr + 1.0f) * 0.5f * k->thrust_max;                // centre = half throttle
 #endif
-    }
-    thrust = thrust < 0.0f ? 0.0f : thrust > k->thrust_max ? k->thrust_max : thrust;
+        }
+        thrust = thrust < 0.0f ? 0.0f : thrust > k->thrust_max ? k->thrust_max : thrust;
 
-    // Rotate the frame by the body rates, then make it orthonormal again.
-    for (int i = 0; i < 3; i++) {
-        float r0 = right[i], u0 = up[i], b0 = back[i];
-        right[i] = r0 + dt * (wz * u0 - wy * b0);
-        up[i]    = u0 + dt * (wx * b0 - wz * r0);
-        back[i]  = b0 + dt * (wy * r0 - wx * u0);
-    }
-    cross_n(right, up, back);
-    cross_n(back, right, up);
-    cross_n(up, back, right);
+        // Rotate the frame by the body rates, then make it orthonormal again.
+        for (int i = 0; i < 3; i++) {
+            float r0 = right[i], u0 = up[i], b0 = back[i];
+            right[i] = r0 + dt * (wz * u0 - wy * b0);
+            up[i]    = u0 + dt * (wx * b0 - wz * r0);
+            back[i]  = b0 + dt * (wy * r0 - wx * u0);
+        }
+        cross_n(right, up, back);
+        cross_n(back, right, up);
+        cross_n(up, back, right);
 
-    // Thrust along up, gravity, quadratic drag, and in Simple mode a linear brake sideways.
-    float drag = k->drag * __builtin_sqrtf(d->v[0] * d->v[0] + d->v[1] * d->v[1] + d->v[2] * d->v[2]);
-    for (int i = 0; i < 3; i++) {
-        float a = up[i] * thrust - drag * d->v[i] - (i == 1 ? g : brake * d->v[i]);
-        d->v[i] += a * dt;
-        d->p[i] += d->v[i] * dt;
+        // Thrust along up, gravity, quadratic drag, and in Simple mode a linear brake sideways.
+        float drag = k->drag * __builtin_sqrtf(d->v[0] * d->v[0] + d->v[1] * d->v[1] + d->v[2] * d->v[2]);
+        for (int i = 0; i < 3; i++) {
+            float a = up[i] * thrust - drag * d->v[i] - (i == 1 ? g : brake * d->v[i]);
+            d->v[i] += a * dt;
+            d->p[i] += d->v[i] * dt;
+        }
     }
 
     // View = the drone frame tilted up about its right axis (the camera's uptilt);
     // translation = -(row . eye).
-    float cam[3][3], tc = k->tilt_cos, ts = k->tilt_sin;
+    float cam[3][3];
     for (int i = 0; i < 3; i++) {
         cam[0][i] = right[i];
         cam[1][i] = up[i] * tc + back[i] * ts;
@@ -223,11 +273,45 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
     }
 
 blank:
-    // While flying, the game sees centered sticks and no buttons (except + and -), so Link waits.
+    // While flying, the game sees centred sticks and no buttons (except + and -), so Link waits.
     if (d->on) {
         for (int i = 0; i < n; i++) {
             st[i].buttons &= BTN(BTN_PLUS) | BTN(BTN_MINUS);
             st[i].stick[0] = st[i].stick[1] = st[i].stick[2] = st[i].stick[3] = 0;
         }
     }
+}
+
+// The movement update of a physics actor is starting. If it's Link and we carry him, put his
+// character controller under the drone.
+void fpv_actor(char *actor)
+{
+    drone_t *d = &DRONE_STATE;
+    if (!d->carrying || *(char **)actor != VT_ACTOR)
+        return;
+    char *components = *(char **)(actor + 0x270);
+    if (!components)
+        return;
+    char *movement = *(char **)(components + 0x320);
+    if (!movement || *(char **)(movement + 0x18) != actor)
+        return;
+    char *player = movement - 0x1d50;           // Link's player object holds the movement component
+    if (*(char **)player != VT_PLAYER)
+        return;
+    char *res = *(char **)(player + 0x10);      // resource name must be "Player"
+    if (!res || *(uint32_t *)(res + 0x58) != 0x79616c50 || *(uint16_t *)(res + 0x5c) != 0x7265 ||
+        res[0x5e])
+        return;
+    // components -> character controller, the chain OneShotPhysicsCctChangePosition follows.
+    char *controller = components;
+    static const uint8_t chain[4] = { 80, 32, 16, 8 };
+    for (int i = 0; i < 4; i++) {
+        controller = *(char **)(controller + chain[i]);
+        if (!controller)
+            return;
+    }
+    if (*(char **)controller != VT_CCT)
+        return;
+    float to[4] = { d->p[0], d->p[1] - PARAMS.carry_drop, d->p[2], 0.0f };
+    CCT_CHANGE_POSITION(controller, to);
 }

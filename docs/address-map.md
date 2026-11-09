@@ -25,7 +25,8 @@ in game yet.
 | `0x804e5068` | Inside `f_804e48c0`, first instruction after the matrix is stored (also the join point when eye == target). Hook site for First Person. | Hookshot, Disasm |
 | `f_82c415e0` | Movement update for a physics actor, `x0` = actor (kept in `x19`). Runs for Link every frame. | Hookshot, Disasm |
 | `0x82c41720` | Inside `f_82c415e0`, after the early setup, on every path. Hook site for First Person. | Disasm |
-| `f_806d2530` | Physics controller `ChangePosition` (vtable slot `+0xe8` of `0x84c54f10`). Hookshot's flight cheat calls it to move Link. | Hookshot |
+| `0x82c415e0` | `f_82c415e0`'s first instruction (`pacibsp`). Arguments `x0..x3`, `x0` = actor. Hook site for FPV Drone's carry, which calls `f_806d2530` from here. | Disasm |
+| `f_806d2530` | Physics controller `ChangePosition(controller, float pos[4])` (vtable slot `+0xe8` of `0x84c54f10`; the 4th float is 0). Controller = `[[[[[actor+0x270]+80]+32]+16]+8]`, the chain `OneShotPhysicsCctChangePosition` follows. Hookshot's flight cheat and FPV Drone's carry call it to move Link. | Hookshot |
 | `f_804bd8c0` | Writes an actor's life (hearts) with a compare-and-swap. | Hookshot |
 | `f_80b1e140` | Steps a text pane's letter animation (text speed). | Hookshot |
 | `f_828d4a70` | `OneShotAddOrRemovePouchContent`: add / remove an inventory item by actor name. | Hookshot |
