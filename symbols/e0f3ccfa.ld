@@ -36,5 +36,5 @@ HOOK_MOVE        = 0x82c415e0;  /* f_82c415e0's first instruction: pacibsp; x0 =
 HOOK_MOVE_RET    = 0x82c415e4;
 
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
-FP_STATE         = 0x84ebfc00;  /* 0x60 bytes of unused .bss (zeroed at boot), First Person */
+FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */
 DRONE_STATE      = 0x84ebfd00;  /* 0x100 bytes, FPV drone */

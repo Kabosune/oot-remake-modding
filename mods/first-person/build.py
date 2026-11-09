@@ -8,7 +8,6 @@
 main.bin is a flat image of main (tools/flatten_nso.py makes one from an uncompressed main).
 """
 import argparse
-import math
 import sys
 from pathlib import Path
 
@@ -19,12 +18,7 @@ import nxpatch  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
 BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
-# The hooks take two gaps of the shared code cave (module offsets; see docs/memory-map.md for who
-# uses which part of the padding). fp_pitch.c is split over padding slots between the game's
-# functions, taken from the end of the list so they stay clear of FPV Drone's (from the start).
-REGIONS = [(0x3C46B00, 0x3C46FB0, [".text", ".rodata*"]), (0x3C46278, 0x3C46400, [".text.actor"])]
-SLOTS = REPO / "symbols" / "e0f3ccfa-slots.txt"
-FIRST_SLOT = 160
+CAVE = 0x3C46B00   # module offset; see docs/memory-map.md for who uses which part of the padding
 HOOKS = [
     # (site, original instruction, cave entry)
     (0x804E5068, 0xF9401268, "fp_view_hook"),    # ldr x8, [x19, #0x20]
@@ -34,7 +28,6 @@ README = """First Person (Ocarina of Time, Switch 2, main build E0F3CCFA)
 
 Press R3 (click the right stick) to switch first person on or off.
 Right stick looks around, left stick walks, everything else is the game's own.
-R3 also recenters the game camera: the view swings behind Link but keeps its up / down angle.
 Keyboard (turn on the emulator's keyboard emulation): ',' eye down, '.' eye up, '/' back to 0,
 ';' show / hide Link while in first person (Link is hidden by default).
 Each press moves the eye 2 cm. The offset stays until you restart the game.
@@ -55,11 +48,6 @@ def main():
     p.add_argument("--height-step", type=float, default=0.02, help="metres per ',' / '.' press (default 0.02)")
     p.add_argument("--no-height-keys", action="store_true", help="leave out the keyboard keys")
     p.add_argument("--no-hide", action="store_true", help="leave out hiding Link (he stays visible, no ';')")
-    p.add_argument("--no-keep-pitch", action="store_true",
-                   help="let R3's camera recenter level the view too (the game's own behaviour)")
-    p.add_argument("--hold-max", type=int, default=60, help="views at most to ignore the recenter's pitch change")
-    p.add_argument("--stick-deadzone", type=int, default=6000,
-                   help="right stick y (of 32767) that ends ignoring the recenter early (default 6000)")
     p.add_argument("--diagnostic", action="store_true",
                    help="when Link isn't found, use the camera's look-at point as the eye (for testing the hooks)")
     p.add_argument("--name", default="First Person", help="mod folder name inside the zip")
@@ -74,26 +62,14 @@ def main():
         "FALLBACK_TARGET": 1 if a.diagnostic else 0,
         "HEIGHT_KEYS": 0 if a.no_height_keys else 1, "HEIGHT_STEP": a.height_step,
         "HIDE_LINK": 0 if a.no_hide else 1,
-        "KEEP_PITCH": 0 if a.no_keep_pitch else 1,
-        "HOLD_MAX": a.hold_max, "HOLD_MIN": 6, "DEADZONE": a.stick_deadzone,
-        "STILL": f"{math.sin(math.radians(0.05))!r}f",          # pitch change per view that counts as stopped
-        "COS_MIN": f"{math.cos(math.radians(85))!r}f", "SIN_MAX": f"{math.sin(math.radians(85))!r}f",
     }
-    sources = [HERE / "first_person.S"] + ([HERE / "fp_pitch.c"] if not a.no_keep_pitch else [])
-    slots = nxpatch.load_slots(SLOTS)[FIRST_SLOT:]
-    records, used, nslots = nxpatch.build_regions(sources, REPO / "symbols" / "e0f3ccfa.ld", REGIONS, HOOKS,
-                                                  defines, slots if not a.no_keep_pitch else None)
+    records, size = nxpatch.build(HERE / "first_person.S", REPO / "symbols" / "e0f3ccfa.ld", CAVE, HOOKS, defines)
     if a.verify_main:
         nxpatch.verify(records, a.verify_main)
-        nxpatch.verify_slots(slots[:nslots], a.verify_main)
         print("verified against", a.verify_main)
     patch = nxpatch.ips32(records)
     nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README)
-    for start, end, _ in REGIONS:
-        print(f"cave {start:#x}..{end:#x}: {used[start]} of {end - start} bytes")
-    if nslots:
-        print(f"code: {nslots} padding slots, {slots[0][0]:#x}..{slots[nslots - 1][0] + slots[nslots - 1][1]:#x}")
-    print(f"{len(HOOKS)} hooks -> {a.out}")
+    print(f"cave {CAVE:#x}..{CAVE + size:#x} ({size} bytes), {len(HOOKS)} hooks -> {a.out}")
 
 
 if __name__ == "__main__":

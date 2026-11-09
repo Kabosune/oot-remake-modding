@@ -10,9 +10,8 @@ then add yourself.
 | `0x3C46200..0x3C46278` | Lichii's built-in patches |
 | `0x3C46400..0x3C46610` | [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod) (Ultrawide) |
 | `0x3C46610..0x3C46B00` | FPV Drone (this repo): hooks + constant table (about 470 bytes used) |
-| `0x3C46B00..0x3C46FB0` | First Person (this repo): view hook |
-| `0x3C46278..0x3C46400` | First Person (this repo): Link position hook |
-| everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46FB0..0x3C47000` (80) |
+| `0x3C46B00..0x3C46FB0` | First Person (this repo) |
+| everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46278..0x3C46400` (392), `0x3C46FB0..0x3C47000` (80) |
 
 There's no dead code to use as a second cave: no function in `.text` is unreferenced (every
 candidate turned out to be reached through a thunk, a vtable, or a shrink-wrapped entry a few
@@ -31,9 +30,8 @@ bytes, in `0x817976a8..0x8179f6a8`).
 
 | Range (address) | Used by |
 |---|---|
-| `0x817976a8..0x8179cb20` | FPV Drone (this repo): its C code, the first 113 slots of the list |
-| `0x8179dfe8..0x8179eb00` | First Person (this repo): `fp_pitch.c`, slots 160–183 of the list (it starts at 160 so FPV Drone can grow) |
-| everything else in the list | free: slots 113–159 and 184–204 |
+| `0x817976a8..0x8179c940` | FPV Drone (this repo): its C code, the first 108 slots of the list |
+| `0x8179c940..0x8179f6a8` | free: the other 97 slots of the list (about 1.4 KB) |
 
 For more, `tools/find_slots.py main.bin` lists other 32 KB windows (the best few each hold 2–4 KB).
 
@@ -45,7 +43,7 @@ reference, relocation or data pointer reaches past it (checked by scanning all o
 
 | Range (address) | Used by |
 |---|---|
-| `0x84ebfc00..0x84ebfc60` | First Person state |
+| `0x84ebfc00..0x84ebfc40` | First Person state |
 | `0x84ebfd00..0x84ebfe00` | FPV Drone state |
 | everything else | free |
 
