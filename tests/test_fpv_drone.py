@@ -326,6 +326,10 @@ def main():
     g.frame(buttons=1 << A, eye=game_eye, yaw=game_yaw)
     g.frame(buttons=1 << X, eye=game_eye, yaw=game_yaw)
     assert g.drone()[1] == ACRO
+    _, (eye, rows) = g.frame(eye=game_eye, yaw=game_yaw)
+    tilt = math.degrees(math.acos(dot(rows[2], g.drone()[4][2])))
+    assert abs(tilt - 30) < 0.2 and rows[2][1] < g.drone()[4][2][1], tilt
+    print("X: Acro mode, camera tilted up %.0f deg (Angle / Simple: 20)" % tilt)
     g.frame(rx=FULL, eye=game_eye, yaw=game_yaw)
     r = g.drone()[4]
     assert r[0][1] < 0, "roll right: right side goes down"

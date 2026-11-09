@@ -21,7 +21,7 @@ In the drone modes (Angle, Acro, Simple) the sticks are Mode 2, like most FPV ra
 | **L3** | drone off (back to the game) |
 | **L** | **Free fly**: a noclip camera like a map viewer's. See below. The mode you start in. |
 | **Y** | **Angle** mode: self-levelling. The right stick sets the tilt angle (up to 50°); let go and it levels out. |
-| **X** | **Acro** mode: the right stick sets how fast it rotates, nothing levels it. Flips, rolls, power loops. |
+| **X** | **Acro** mode: the right stick sets how fast it rotates, nothing levels it. Flips, rolls, power loops. The camera is tilted up 30° instead of 20°. |
 | **B** | **Simple** mode: self-levelling and holds its height. The throttle stick climbs / sinks (4 m/s), and when you let go of everything it slows down and stops. |
 | **R** | **Carry Link**: he flies with the camera, his feet at its height and 1 m behind it, out of view. R again drops him. |
 | **A** | back to the game camera's position |
@@ -58,8 +58,9 @@ Throttle: a gamepad stick springs back to the middle, so the middle is **hover**
 ## How it flies
 
 - Thrust along the drone's up axis, gravity, and air drag (top speed about 29 m/s).
-- The camera is tilted up 20° from the drone body, like a real FPV camera, so you see ahead when
-  the drone leans forward to fly fast.
+- The camera is tilted up from the drone body, like a real FPV camera, so you see ahead when the
+  drone leans forward to fly fast: 20° in Angle and Simple (a usual beginner setup), 30° in Acro
+  (a usual freestyle setup; racers go to 40–55°). Free fly has no tilt.
 - Acro rates: 200°/s near the middle of the stick, 670°/s at full stick (similar to
   Betaflight's defaults). Yaw: 120 → 300°/s.
 - It's a ghost: no collision. It flies through walls, floors and water.
@@ -90,12 +91,12 @@ the game.
 ## Tune it
 
 ```
-python mods/fpv-drone/build.py --uptilt 30 --rate-max 800
+python mods/fpv-drone/build.py --acro-uptilt 40 --rate-max 800
 ```
 
 | Option | Default | |
 |---|---|---|
-| `--uptilt` | 20 | camera tilt above the drone body, degrees |
+| `--uptilt` / `--acro-uptilt` | 20 / 30 | camera tilt above the drone body, degrees: Angle and Simple / Acro |
 | `--rate-center` / `--rate-max` | 200 / 670 | Acro pitch and roll, deg/s near centre / at full stick |
 | `--yaw-center` / `--yaw-max` | 120 / 300 | yaw, deg/s |
 | `--max-tilt` | 50 | Angle / Simple: tilt at full stick, degrees |

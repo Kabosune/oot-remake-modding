@@ -3,7 +3,7 @@
 
     python3 mods/fpv-drone/build.py                          # releases/fpv-drone.zip
     python3 mods/fpv-drone/build.py --verify-main main.bin   # also check against your own main
-    python3 mods/fpv-drone/build.py --uptilt 30 --rate-max 800
+    python3 mods/fpv-drone/build.py --acro-uptilt 40 --rate-max 800
 
 main.bin is a flat image of main (tools/flatten_nso.py makes one from an uncompressed main).
 """
@@ -45,8 +45,8 @@ While it's on, Link stands still and the game doesn't see your controller.
 Modes:
   L  Free fly    (noclip camera, the mode at boot): left stick moves where you look,
                   right stick looks, ZL / ZR down / up; no physics
-  Y  Angle mode  (drone, self-levelling; stick = tilt angle)
-  X  Acro mode   (drone, stick = rotation rate; no levelling, flips and rolls)
+  Y  Angle mode  (drone, self-levelling; stick = tilt angle; camera tilted up 20)
+  X  Acro mode   (drone, stick = rotation rate; no levelling, flips and rolls; camera tilted up 30)
   B  Simple mode (drone, self-levelling, holds height; throttle = climb / sink, lets go = stops)
 
 Drone sticks (Mode 2, like a radio):
@@ -67,7 +67,8 @@ Source and notes: see the repository this came from.
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--verify-main", type=Path, help="flat main image to check the patched bytes against")
-    p.add_argument("--uptilt", type=float, default=20.0, help="camera tilted up from the drone body, degrees (default 20)")
+    p.add_argument("--uptilt", type=float, default=20.0, help="Angle / Simple: camera tilted up from the drone body, degrees (default 20)")
+    p.add_argument("--acro-uptilt", type=float, default=30.0, help="Acro: camera uptilt, degrees (default 30, a usual freestyle setup)")
     p.add_argument("--rate-center", type=float, default=200.0, help="Acro pitch / roll rate near centre stick, deg/s per full stick (default 200)")
     p.add_argument("--rate-max", type=float, default=670.0, help="Acro pitch / roll rate at full stick, deg/s (default 670)")
     p.add_argument("--yaw-center", type=float, default=120.0, help="yaw rate near centre stick, deg/s per full stick (default 120)")
@@ -102,6 +103,7 @@ def main():
     defines = {
         "DEADZONE": f(a.deadzone), "DT_MAX": "0.05f",
         "UPTILT_COS": f(math.cos(rad(a.uptilt))), "UPTILT_SIN": f(math.sin(rad(a.uptilt))),
+        "ACRO_UPTILT_COS": f(math.cos(rad(a.acro_uptilt))), "ACRO_UPTILT_SIN": f(math.sin(rad(a.acro_uptilt))),
         "YAW_CENTER": f(rad(a.yaw_center)), "YAW_MAX": f(rad(a.yaw_max)),
         "RATE_CENTER": f(rad(a.rate_center)), "RATE_MAX": f(rad(a.rate_max)),
         "LEVEL_GAIN": f(a.level_gain), "TILT_SIN": f(math.sin(rad(a.max_tilt))),

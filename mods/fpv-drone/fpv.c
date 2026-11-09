@@ -57,7 +57,7 @@ extern char VT_ACTOR[], VT_PLAYER[], VT_CCT[];
 void CCT_CHANGE_POSITION(char *controller, const float *position);   // f_806d2530
 
 typedef struct {
-    float deadzone, dz_scale, dt_max, tick_s, tilt_cos, tilt_sin;
+    float deadzone, dz_scale, dt_max, tick_s, tilt_cos, tilt_sin, acro_cos, acro_sin;
     float yaw_center, yaw_extra, rate_center, rate_extra, level_gain, max_tilt_sin;
     float gravity, climb_gain, climb_rate, brake, thrust_max, drag, min_up;
     float free_speed, free_turn, max_look, carry_drop, carry_back;
@@ -65,6 +65,7 @@ typedef struct {
 
 static const params_t PARAMS = {
     DEADZONE, 1.0f / (1.0f - DEADZONE), DT_MAX, 1.0f / 19200000.0f, UPTILT_COS, UPTILT_SIN,
+    ACRO_UPTILT_COS, ACRO_UPTILT_SIN,
     YAW_CENTER, YAW_MAX - YAW_CENTER, RATE_CENTER, RATE_MAX - RATE_CENTER, LEVEL_GAIN, TILT_SIN,
     GRAVITY, CLIMB_GAIN, CLIMB_RATE, SIMPLE_BRAKE, THRUST_MAX, DRAG, 0.3f,
     FREE_SPEED, FREE_TURN, 0.97f, CARRY_DROP, CARRY_BACK,
@@ -178,7 +179,11 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
         a = a < 0.0f ? 0.0f : a * k->dz_scale;
         in[i] = __builtin_copysignf(a > 1.0f ? 1.0f : a, x);
     }
-    float tc = k->tilt_cos, ts = k->tilt_sin;
+    float tc = k->tilt_cos, ts = k->tilt_sin;   // camera uptilt: Angle / Simple
+    if (mode == MODE_ACRO) {                    // Acro flies faster and leans further: more uptilt
+        tc = k->acro_cos;
+        ts = k->acro_sin;
+    }
 
     if (mode == MODE_FREE) {
         // Noclip camera: right stick looks (yaw about world up, pitch), left stick moves where
