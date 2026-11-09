@@ -6,7 +6,7 @@
 // Link stands still. fpv_view_hook in fpv.S copies that matrix over the gameplay view each frame.
 //
 // fpv_actor() runs at the start of the game's movement update for physics actors (fpv_actor_hook
-// in fpv.S, only while carrying). For Link, it moves his character controller under the drone
+// in fpv.S, only while carrying). For Link, it moves his character controller to the drone
 // with the game's own ChangePosition, the call behind the OneShotPhysicsCctChangePosition script
 // command (Hookshot's flight cheat moves Link the same way).
 //
@@ -21,7 +21,7 @@
 
 typedef struct {
     uint32_t on;           // +0x00 drone flying
-    uint32_t mode;         // +0x04 MODE_ANGLE / MODE_ACRO / MODE_SIMPLE / MODE_FREE
+    uint32_t mode;         // +0x04 MODE_FREE (0: the mode at boot) / ANGLE / ACRO / SIMPLE
     uint32_t prev;         // +0x08 buttons at the last read (for presses)
     uint32_t carrying;     // +0x0c on and carry: fpv_actor_hook reads this first
     uint64_t tick;         // +0x10 system tick of the last step
@@ -33,7 +33,8 @@ typedef struct {
     float    p[3];         // +0x68 position
     float    v[3];         // +0x74 velocity
     float    r[3][3];      // +0x80 right, up, back
-} drone_t;                 // 0xa4 bytes
+    float    carry_at[3];  // +0xa4 where carried Link's feet go: behind the camera, at its height
+} drone_t;                 // 0xb0 bytes
 
 _Static_assert(__builtin_offsetof(drone_t, carrying) == 0x0c, "fpv.S");
 _Static_assert(__builtin_offsetof(drone_t, seen) == 0x18, "fpv.S");
@@ -59,17 +60,17 @@ typedef struct {
     float deadzone, dz_scale, dt_max, tick_s, tilt_cos, tilt_sin;
     float yaw_center, yaw_extra, rate_center, rate_extra, level_gain, max_tilt_sin;
     float gravity, climb_gain, climb_rate, brake, thrust_max, drag, min_up;
-    float free_speed, free_turn, max_look, carry_drop;
+    float free_speed, free_turn, max_look, carry_drop, carry_back;
 } params_t;
 
 static const params_t PARAMS = {
     DEADZONE, 1.0f / (1.0f - DEADZONE), DT_MAX, 1.0f / 19200000.0f, UPTILT_COS, UPTILT_SIN,
     YAW_CENTER, YAW_MAX - YAW_CENTER, RATE_CENTER, RATE_MAX - RATE_CENTER, LEVEL_GAIN, TILT_SIN,
     GRAVITY, CLIMB_GAIN, CLIMB_RATE, SIMPLE_BRAKE, THRUST_MAX, DRAG, 0.3f,
-    FREE_SPEED, FREE_TURN, 0.97f, CARRY_DROP,
+    FREE_SPEED, FREE_TURN, 0.97f, CARRY_DROP, CARRY_BACK,
 };
 
-enum { MODE_ANGLE = 0, MODE_ACRO = 1, MODE_SIMPLE = 2, MODE_FREE = 3 };
+enum { MODE_FREE = 0, MODE_ANGLE = 1, MODE_ACRO = 2, MODE_SIMPLE = 3 };   // state is zero at boot
 
 #define BTN(bit) (1u << (bit))
 #define BTN_ZL 8
@@ -272,6 +273,14 @@ void fpv_input(npad_t *st, int n, const uint32_t *idp)
         o[3] = -(a[0] * d->p[0] + a[1] * d->p[1] + a[2] * d->p[2]);
     }
 
+    // Carried Link: feet CARRY_DROP below the camera, CARRY_BACK behind it (along the level part of
+    // its back axis), so he's out of view and turns with it.
+    float h = __builtin_sqrtf(back[0] * back[0] + back[2] * back[2]);
+    h = h > 1e-3f ? k->carry_back / h : 0.0f;
+    d->carry_at[0] = d->p[0] + back[0] * h;
+    d->carry_at[1] = d->p[1] - k->carry_drop;
+    d->carry_at[2] = d->p[2] + back[2] * h;
+
 blank:
     // While flying, the game sees centred sticks and no buttons (except + and -), so Link waits.
     if (d->on) {
@@ -282,8 +291,8 @@ blank:
     }
 }
 
-// The movement update of a physics actor is starting. If it's Link and we carry him, put his
-// character controller under the drone.
+// The movement update of a physics actor is starting. If it's Link and we carry him, move his
+// character controller to carry_at (ChangePosition takes the actor position: his feet).
 void fpv_actor(char *actor)
 {
     drone_t *d = &DRONE_STATE;
@@ -312,6 +321,6 @@ void fpv_actor(char *actor)
     }
     if (*(char **)controller != VT_CCT)
         return;
-    float to[4] = { d->p[0], d->p[1] - PARAMS.carry_drop, d->p[2], 0.0f };
+    float to[4] = { d->carry_at[0], d->carry_at[1], d->carry_at[2], 0.0f };
     CCT_CHANGE_POSITION(controller, to);
 }

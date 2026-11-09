@@ -22,7 +22,7 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 | Mod | What it does | Status |
 |---|---|---|
 | [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Keyboard: `,` `.` eye height, `;` hide Link. | Works in Lichii / Fritchii |
-| [FPV Drone](mods/fpv-drone/README.md) | L3 launches an FPV quadcopter from the game camera. Mode 2 sticks; Angle (Y), Acro (X), Simple (B) and noclip Free fly (L) modes. R carries Link under the drone. | Drone modes tried in Fritchii; Free fly and carry tested in Unicorn only |
+| [FPV Drone](mods/fpv-drone/README.md) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | Drone modes tried in Fritchii; Free fly and carry tested in Unicorn only |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Lichii / Fritchii / Eden: `%APPDATA%\eden\load\`), then restart the game.

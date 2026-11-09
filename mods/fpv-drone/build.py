@@ -39,25 +39,27 @@ BUTTONS = {"a": 0, "b": 1, "x": 2, "y": 3, "l3": 4, "r3": 5, "l": 6, "r": 7, "zl
            "left": 12, "up": 13, "right": 14, "down": 15}
 README = """FPV Drone (Ocarina of Time, Switch 2, main build E0F3CCFA)
 
-L3 (click the left stick): drone on / off. It takes off from where the game camera is.
-While flying, Link stands still and the game doesn't see your controller.
+L3 (click the left stick): on / off. It starts where the game camera is, in Free fly.
+While it's on, Link stands still and the game doesn't see your controller.
 
-Sticks (Mode 2, like a radio):
+Modes:
+  L  Free fly    (noclip camera, the mode at boot): left stick moves where you look,
+                  right stick looks, ZL / ZR down / up; no physics
+  Y  Angle mode  (drone, self-levelling; stick = tilt angle)
+  X  Acro mode   (drone, stick = rotation rate; no levelling, flips and rolls)
+  B  Simple mode (drone, self-levelling, holds height; throttle = climb / sink, lets go = stops)
+
+Drone sticks (Mode 2, like a radio):
   left stick  up / down = throttle, left / right = yaw
   right stick up / down = pitch,    left / right = roll
+  Throttle: stick centred = hover, up = up to 3.5 g, down = less thrust.
 
-Buttons while flying:
-  Y  Angle mode  (self-levelling; stick = tilt angle)       <- starts in this one
-  X  Acro mode   (stick = rotation rate; no levelling, flips and rolls)
-  B  Simple mode (self-levelling, holds height; throttle = climb / sink, lets go = stops)
-  L  Free fly    (noclip camera: left stick moves where you look, right stick looks,
-                  ZL / ZR down / up; no physics)
-  R  carry Link  (he hangs under the drone and flies with it; R again drops him)
+Other buttons:
+  R  carry Link: his feet at camera height, 1 m behind it (out of view); R again drops him
   A  back to the game camera
-  + or -  leaves the drone (so menus work; also drops Link)
+  + or -  leaves (so menus work; also drops Link)
 
-Throttle: stick centred = hover, up = up to 3.5 g, down = less thrust.
-The drone has no collision: it flies through walls and floors.
+No collision: it flies through walls and floors.
 Source and notes: see the repository this came from.
 """
 
@@ -80,7 +82,8 @@ def main():
     p.add_argument("--deadzone", type=float, default=0.06, help="stick dead zone, 0..1 (default 0.06)")
     p.add_argument("--free-speed", type=float, default=8.0, help="Free fly speed at full stick, m/s (default 8)")
     p.add_argument("--free-turn", type=float, default=120.0, help="Free fly look speed at full stick, deg/s (default 120)")
-    p.add_argument("--carry-drop", type=float, default=2.0, help="carried Link's feet below the drone, m (default 2)")
+    p.add_argument("--carry-drop", type=float, default=0.0, help="carried Link's feet below the camera, m (default 0: at camera height)")
+    p.add_argument("--carry-back", type=float, default=1.0, help="carried Link behind the camera, m (default 1: out of view)")
     p.add_argument("--throttle-half", action="store_true",
                    help="throttle stick centre = half thrust instead of hover (closer to a real radio)")
     p.add_argument("--toggle", choices=BUTTONS, default="l3", help="drone on / off (default l3)")
@@ -108,7 +111,7 @@ def main():
         "TOGGLE_BIT": BUTTONS[a.toggle], "BTN_RESET": BUTTONS[a.reset], "BTN_ACRO": BUTTONS[a.acro],
         "BTN_ANGLE": BUTTONS[a.angle], "BTN_SIMPLE": BUTTONS[a.simple], "BTN_FREE": BUTTONS[a.free],
         "BTN_CARRY": BUTTONS[a.carry], "FREE_SPEED": f(a.free_speed), "FREE_TURN": f(rad(a.free_turn)),
-        "CARRY_DROP": f(a.carry_drop),
+        "CARRY_DROP": f(a.carry_drop), "CARRY_BACK": f(a.carry_back),
     }
     slots = nxpatch.load_slots(SLOTS)
     records, used, nslots = nxpatch.build_regions([HERE / "fpv.S", HERE / "fpv.c"], REPO / "symbols" / "e0f3ccfa.ld",

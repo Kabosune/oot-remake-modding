@@ -29,6 +29,7 @@ STUBS = {  # style: (PLT stub, GOT slot)
 SITE, SITE_RET, SITE_TAKEN = 0x804E506C, 0x804E5070, 0x804E5B78
 FREQ = 19_200_000
 A, B, X, Y, L3, R3, L, R, ZL, ZR, PLUS, MINUS = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
+FREE, ANGLE, ACRO, SIMPLE = 0, 1, 2, 3
 VT_ACTOR, VT_PLAYER, VT_CCT = 0x84B45E18, 0x84B6C460, 0x84C54F10
 MOVE, MOVE_RET, CHANGE_POSITION = 0x82C415E0, 0x82C415E4, 0x806D2530
 FULL = 32767
@@ -259,21 +260,26 @@ def main():
     assert close(eye, game_eye) and g.drone()[0] == 0
     print("off: controller passes through, game camera unchanged")
 
-    # L3: on, taking off from the game camera, level, same heading.
+    # L3: on, at the game camera, level, same heading, in Free fly (the mode at boot).
     states, (eye, rows) = g.frame(buttons=1 << L3, eye=game_eye, yaw=game_yaw)
     on, mode, p, v, r = g.drone()
-    assert on == 1 and mode == 0, (on, mode)
+    assert on == 1 and mode == FREE, (on, mode)
     assert all(s[1] == 0 for s in states), states[:2]
     assert close(eye, game_eye, 2e-2), eye
     want_back = (math.sin(game_yaw), 0.0, math.cos(game_yaw))
     assert close(r[2], want_back, 1e-3) and close(r[1], (0, 1, 0), 1e-3), r
+    assert close(rows[2], want_back, 1e-3), rows[2]   # Free fly: no camera uptilt
+    print("L3: on in Free fly (the boot default) at the game camera, level, heading kept")
+    states, (eye, rows) = g.frame(buttons=1 << Y | 1 << R3, lx=FULL, ly=-FULL, rx=123, ry=-456, eye=game_eye, yaw=game_yaw)
+    assert all(s[1] == 0 and s[2:6] == (0, 0, 0, 0) for s in states), states[:2]
+    print("flying: all 16 states the game reads have no buttons and centred sticks")
+    assert g.drone()[1] == ANGLE
+    g.frame(buttons=1 << A, eye=game_eye, yaw=game_yaw)
+    _, (eye, rows) = g.frame(eye=game_eye, yaw=game_yaw)
     up20 = math.radians(20)
     assert abs(dot(rows[2], want_back) - math.cos(up20)) < 2e-3, rows[2]   # camera tilted up 20 deg
     assert rows[2][1] < 0, "camera should look up a little (back axis points down)"
-    print("L3: on in Angle mode at the game camera, level, heading kept, camera tilted up 20 deg")
-    states, _ = g.frame(buttons=1 << Y | 1 << R3, lx=FULL, ly=-FULL, rx=123, ry=-456, eye=game_eye, yaw=game_yaw)
-    assert all(s[1] == 0 and s[2:6] == (0, 0, 0, 0) for s in states), states[:2]
-    print("flying: all 16 states the game reads have no buttons and centred sticks")
+    print("Y: Angle mode, camera tilted up 20 deg from the drone")
 
     g.frame(buttons=1 << A, eye=game_eye, yaw=game_yaw)
     fly(0.5)   # let go of the sticks
@@ -319,7 +325,7 @@ def main():
     # Acro: X. Full right roll for 1 s should roll about 670 deg, frame stays orthonormal.
     g.frame(buttons=1 << A, eye=game_eye, yaw=game_yaw)
     g.frame(buttons=1 << X, eye=game_eye, yaw=game_yaw)
-    assert g.drone()[1] == 1
+    assert g.drone()[1] == ACRO
     g.frame(rx=FULL, eye=game_eye, yaw=game_yaw)
     r = g.drone()[4]
     assert r[0][1] < 0, "roll right: right side goes down"
@@ -347,7 +353,7 @@ def main():
     # Simple: B. Throttle up = climb at ~4 m/s, let go = stops.
     g.frame(buttons=1 << B, eye=game_eye, yaw=game_yaw)
     on, mode, p, v, r = g.drone()
-    assert mode == 2 and abs(r[1][1] - 1) < 1e-3, (mode, r)
+    assert mode == SIMPLE and abs(r[1][1] - 1) < 1e-3, (mode, r)
     print("B: Simple mode, starts level")
     fly(2.0, ly=FULL)
     vy = g.drone()[3][1]
@@ -421,7 +427,7 @@ def main():
     assert g.drone()[0] == 1
     g.frame(buttons=1 << L, eye=game_eye, yaw=game_yaw)
     on, mode, p, v, r = g.drone()
-    assert mode == 3 and abs(r[1][1] - 1) < 1e-3
+    assert mode == FREE and abs(r[1][1] - 1) < 1e-3
     _, (eye, rows) = g.frame(eye=game_eye, yaw=game_yaw)
     assert abs(rows[2][1]) < 1e-3, "Free fly: camera not tilted up"
     p0 = g.drone()[2]
@@ -457,7 +463,12 @@ def main():
     assert close(g.drone()[2], p0, 1e-4)
     print("Free fly: turning keeps it level, sticks centred stops dead")
 
-    # Carry Link: R. His controller is moved 2 m under the drone in his movement update.
+    # Carry Link: R. His controller is moved in his movement update: feet at camera height,
+    # 1 m behind the camera along its level back axis.
+    def carry_point():
+        p, r = g.drone()[2], g.drone()[4]
+        h = math.hypot(r[2][0], r[2][2])
+        return (p[0] + r[2][0] / h, p[1], p[2] + r[2][2] / h, 0.0)
     g.moves.clear()
     g.actor_update(g.link[0])
     assert not g.moves
@@ -465,15 +476,22 @@ def main():
     g.actor_update(g.other[0])
     assert not g.moves, "only Link is carried"
     g.actor_update(g.link[0])
-    p = g.drone()[2]
     assert len(g.moves) == 1 and g.moves[0][0] == g.link[1], g.moves
-    assert close(g.moves[0][1], (p[0], p[1] - 2.0, p[2], 0.0), 1e-4), (g.moves, p)
-    print("R: carrying; Link's controller moved to %s, 2 m under the drone" % (tuple(round(x, 2) for x in g.moves[0][1][:3]),))
+    want = carry_point()
+    assert close(g.moves[0][1], want, 1e-4), (g.moves, want)
+    eye, rows = g.view_pose()
+    assert abs(g.moves[0][1][1] - eye[1]) < 1e-3, "feet at camera height"
+    h = math.hypot(rows[2][0], rows[2][2])
+    behind = dot(tuple(a - b for a, b in zip(g.moves[0][1][:3], eye)), (rows[2][0] / h, 0.0, rows[2][2] / h))
+    assert abs(behind - 1.0) < 1e-3, "1 m behind the camera"   # (back axis = away from where it looks)
+    print("R: carrying; Link's feet at camera height, 1 m behind it: %s" % (tuple(round(x, 2) for x in g.moves[0][1][:3]),))
     fly(1.0, ly=FULL)
     g.actor_update(g.link[0])
-    p = g.drone()[2]
-    assert close(g.moves[-1][1], (p[0], p[1] - 2.0, p[2], 0.0), 1e-4)
-    print("carried Link follows the drone")
+    assert close(g.moves[-1][1], carry_point(), 1e-4)
+    fly(0.3, rx=FULL)
+    g.actor_update(g.link[0])
+    assert close(g.moves[-1][1], carry_point(), 1e-4)
+    print("carried Link follows the camera and stays behind it as it turns")
     g.frame(buttons=1 << R, eye=game_eye, yaw=game_yaw)
     n = len(g.moves)
     g.actor_update(g.link[0])

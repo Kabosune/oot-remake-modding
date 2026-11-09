@@ -1,12 +1,15 @@
 # FPV Drone
 
-Fly a first-person-view quadcopter around Hyrule. Press **L3** (click the left stick) and the
-camera takes off from wherever the game camera is. Link stands still while you fly. Press L3
-again to land back in the normal game.
+Fly a free camera or a first-person-view quadcopter around Hyrule, and take Link along if you
+like. Press **L3** (click the left stick) and the camera leaves from wherever the game camera is.
+Link stands still while you fly. Press L3 again to go back to the normal game.
+
+The first time you press L3 after starting the game you're in **Free fly**, a noclip camera.
+After that it keeps whichever mode you last picked, until the game restarts.
 
 ## Controls
 
-Mode 2, like most FPV radios:
+In the drone modes (Angle, Acro, Simple) the sticks are Mode 2, like most FPV radios:
 
 | | Up / down | Left / right |
 |---|---|---|
@@ -16,11 +19,11 @@ Mode 2, like most FPV radios:
 | Button (while flying) | |
 |---|---|
 | **L3** | drone off (back to the game) |
-| **Y** | **Angle** mode: self-levelling. The right stick sets the tilt angle (up to 50°); let go and it levels out. Starts in this mode. |
+| **L** | **Free fly**: a noclip camera like a map viewer's. See below. The mode you start in. |
+| **Y** | **Angle** mode: self-levelling. The right stick sets the tilt angle (up to 50°); let go and it levels out. |
 | **X** | **Acro** mode: the right stick sets how fast it rotates, nothing levels it. Flips, rolls, power loops. |
 | **B** | **Simple** mode: self-levelling and holds its height. The throttle stick climbs / sinks (4 m/s), and when you let go of everything it slows down and stops. |
-| **L** | **Free fly**: a noclip camera like a map viewer's. See below. |
-| **R** | **Carry Link**: he hangs 2 m under the drone and flies with it. R again drops him. |
+| **R** | **Carry Link**: he flies with the camera, his feet at its height and 1 m behind it, out of view. R again drops him. |
 | **A** | back to the game camera's position |
 | **+** / **−** | leave the drone (these still reach the game, so the menus work). Leaving drops Link. |
 
@@ -40,8 +43,9 @@ drone mode from where you are.
 
 ### Carrying Link
 
-R picks Link up wherever he is: he's put 2 m under the drone and follows it every frame, in any
-mode. The game moves him itself, through his character controller (`ChangePosition`, the same call
+R picks Link up wherever he is: every frame his feet are put at the camera's height, 1 m behind
+it (along the level part of where it faces), so he stays out of view as you turn, in any mode.
+`--carry-drop` and `--carry-back` change the spot. The game moves him itself, through his character controller (`ChangePosition`, the same call
 its `OneShotPhysicsCctChangePosition` script command makes), so collision with the world is off
 while he's carried, and the area around him loads as he goes. R, L3, + or − drops him, and he falls
 from where he is: drop him low, or he'll take fall damage. His controls are still off while the
@@ -103,7 +107,7 @@ python mods/fpv-drone/build.py --uptilt 30 --rate-max 800
 | `--deadzone` | 0.06 | stick dead zone |
 | `--throttle-half` | off | throttle centre = half thrust instead of hover |
 | `--free-speed` / `--free-turn` | 8 / 120 | Free fly: m/s and deg/s at full stick |
-| `--carry-drop` | 2 | carried Link's feet below the drone, m |
+| `--carry-drop` / `--carry-back` | 0 / 1 | carried Link's feet below / behind the camera, m |
 | `--toggle` `--reset` `--acro` `--angle` `--simple` `--free` `--carry` | l3 a x y b l r | buttons (`a b x y l3 r3 l r zl zr up down left right`) |
 
 ## How it works
