@@ -52,6 +52,18 @@ res      = [player + 0x10]
 res + 0x58 == "Player\0"
 ```
 
+Model component (found through `OneShotSetModelVisible`'s execute, `0x82959ea0`):
+
+```
+model = [[actor + 0x270] + 0x260]
+u8  model + 0xe5     visible (1) / hidden (0)
+u32 model + 0x120    change flags; set bit 0x800 after writing +0xe5 so the model picks it up
+```
+
+The game's script commands are classes: a type-info singleton, a param binder (vtable slot 28)
+and an execute (slot 39), with the name string returned by slot 19. Comparing two commands'
+vtables shows which slots are theirs.
+
 ## Player-type actor (vtable `0x84b6c460`)
 
 | Offset | Type | Field |

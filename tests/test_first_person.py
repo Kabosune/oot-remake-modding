@@ -20,7 +20,7 @@ VT_VIEW, VT_ACTOR, VT_PLAYER = 0x84C18A88, 0x84B45E18, 0x84B6C460
 CAMMGR_SLOT, FP_STATE = 0x84CA6BC0, 0x84EBFC00
 PLT = {0x83C627F0: "joydual", 0x83C62800: "fullkey", 0x83C62830: "handheld"}
 PLT_KEYBOARD = 0x83C64810
-KEY_COMMA, KEY_PERIOD, KEY_SLASH = 0x36, 0x37, 0x38
+KEY_SEMI, KEY_COMMA, KEY_PERIOD, KEY_SLASH = 0x33, 0x36, 0x37, 0x38
 
 
 def load(image_path, zip_path):
@@ -61,6 +61,9 @@ class Game:
         self.q(self.actor, VT_ACTOR); self.q(self.actor + 0x270, comps); self.q(comps + 0x320, movement)
         self.q(movement + 0x18, self.actor); self.q(self.player, VT_PLAYER); self.q(self.player + 0x10, res)
         u.mem_write(res + 0x58, b"Player\0")
+        self.model = HEAP + 0x40000
+        self.q(comps + 0x260, self.model)
+        self.set_model(1, 0)
 
     def q(self, a, v): self.u.mem_write(a, struct.pack("<Q", v))
     def d(self, a, v): self.u.mem_write(a, struct.pack("<I", v))
@@ -96,6 +99,13 @@ class Game:
         for r in range(UC_ARM64_REG_Q0, UC_ARM64_REG_Q0 + 8):
             u.reg_write(r, 0xBAD)
         u.reg_write(UC_ARM64_REG_PC, u.reg_read(UC_ARM64_REG_X30))
+
+    def set_model(self, visible, flags):
+        self.u.mem_write(self.model + 0xE5, bytes([visible]))
+        self.d(self.model + 0x120, flags)
+
+    def model_state(self):
+        return self.u.mem_read(self.model + 0xE5, 1)[0], struct.unpack("<I", self.u.mem_read(self.model + 0x120, 4))[0]
 
     def offset(self):
         return struct.unpack("<f", self.u.mem_read(FP_STATE + 0x24, 4))[0]
@@ -237,6 +247,31 @@ def main():
     eye = key_frame()
     assert g.offset() == 0 and close(eye, base), eye
     print("'/' resets the offset")
+
+    assert g.model_state() == (1, 0)
+    key_frame(KEY_SEMI)
+    key_frame()   # the actor update after the toggle applies it
+    assert g.model_state() == (0, 0x800), g.model_state()
+    print("';': Link hidden (visible byte 0, model told to update)")
+    g.set_model(1, 0)        # the game shows him again (say, an event): hidden again next update
+    key_frame()
+    assert g.model_state() == (0, 0x800)
+    print("hiding holds against the game showing him")
+    g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 off
+    assert g.state()[0] == 0 and g.model_state()[0] == 1, g.model_state()
+    print("R3 off: Link visible again")
+    g.buttons["fullkey"] = 1 << 5; key_frame(); g.buttons["fullkey"] = 0; key_frame()   # R3 on
+    assert g.model_state()[0] == 0
+    print("R3 on: hidden again (toggle remembered)")
+    key_frame(KEY_SEMI); key_frame()
+    assert g.model_state()[0] == 1
+    print("';' again: visible")
+    g.set_model(0, 0)        # the game itself had him hidden: we must not show him when we stop
+    key_frame(KEY_SEMI); key_frame()
+    key_frame(KEY_SEMI); key_frame()
+    assert g.model_state()[0] == 0, g.model_state()
+    print("game-hidden Link stays hidden after our hide stops")
+    g.set_model(1, 0)
 
     g.view_frame(yaw, (14.0, 3.5, -5.0), (12.0, 3.4, -5.0))
     g.buttons["handheld"] = 1 << 5

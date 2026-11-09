@@ -12,9 +12,11 @@
 //   +0x0c u32 counter seen   +0x10 u32 views since Link last updated
 //   +0x14 f32 x, y, z of Link (+0x14 +0x18 +0x1c)      +0x20 f32 measured eye height above Link
 //   +0x24 f32 height offset from the keyboard (kept across toggles until the game restarts)
-//   +0x28 u32 adjust keys last frame
+//   +0x28 u32 keys last frame        +0x2c u32 hide Link toggle
+//   +0x30 u32 Link currently hidden by us                 +0x34 u32 his visible byte before that
 //
-// Keyboard (needs the emulator's keyboard emulation on): ',' eye down, '.' eye up, '/' offset back to 0.
+// Keyboard (needs the emulator's keyboard emulation on): ',' eye down, '.' eye up, '/' offset back
+// to 0, ';' hide / show Link while in first person.
 //
 // Tunables come from params.inc, written by build.py.
 
@@ -28,10 +30,11 @@
 // ---------------------------------------------------------------------------------------------
     .global fp_actor_hook
 fp_actor_hook:
-    stp     x9, x10, [sp, #-0x30]!
+    stp     x9, x10, [sp, #-0x40]!
     stp     x11, x12, [sp, #0x10]
+    stp     x13, x14, [sp, #0x20]
     mrs     x9, nzcv
-    str     x9, [sp, #0x20]
+    str     x9, [sp, #0x30]
 
     ldr     x9, [x19]                       // actor vtable
     adrp    x10, VT_ACTOR
@@ -77,11 +80,43 @@ fp_actor_hook:
     ldr     w11, [x10, #0x08]
     add     w11, w11, #1
     str     w11, [x10, #0x08]
+
+    // Hide Link's model while first person and the hide toggle are both on, the same way the
+    // game's OneShotSetModelVisible does: model = [[actor+0x270]+0x260], visible byte +0xe5,
+    // then flag +0x120 bit 11 so the model picks up the change. What the game had before is
+    // put back when hiding stops.
+.if HIDE_LINK
+    ldr     x12, [x19, #0x270]
+    ldr     x12, [x12, #0x260]              // model component
+    cbz     x12, 9f
+    ldr     w11, [x10]                      // first person on
+    ldr     w13, [x10, #0x2c]               // hide toggle
+    and     w11, w11, w13
+    ldr     w13, [x10, #0x30]               // we hid him
+    cbz     w11, 50f
+    cbnz    w13, 45f
+    ldrb    w14, [x12, #0xe5]               // start hiding: remember the game's value
+    str     w14, [x10, #0x34]
+    mov     w13, #1
+    str     w13, [x10, #0x30]
+45: ldrb    w14, [x12, #0xe5]
+    cbz     w14, 9f
+    strb    wzr, [x12, #0xe5]
+    b       55f
+50: cbz     w13, 9f                         // stop hiding: put the game's value back
+    str     wzr, [x10, #0x30]
+    ldr     w14, [x10, #0x34]
+    strb    w14, [x12, #0xe5]
+55: ldr     w14, [x12, #0x120]
+    orr     w14, w14, #0x800
+    str     w14, [x12, #0x120]
+.endif
 9:
-    ldr     x9, [sp, #0x20]
+    ldr     x9, [sp, #0x30]
     msr     nzcv, x9
+    ldp     x13, x14, [sp, #0x20]
     ldp     x11, x12, [sp, #0x10]
-    ldp     x9, x10, [sp], #0x30
+    ldp     x9, x10, [sp], #0x40
     add     x23, x19, #0x328                // the replaced instruction
     b       HOOK_ACTOR_RET
 
@@ -218,19 +253,24 @@ fp_view_hook:
     adrp    x11, FP_STATE
     add     x11, x11, :lo12:FP_STATE
     ldr     x10, [sp, #PADBUF + 0x10]       // keys 0..63
-    ubfx    x10, x10, #KEY_DOWN, #3         // bit 0 down, bit 1 up, bit 2 reset
+    ubfx    x10, x10, #0x33, #6             // bit 0 ';', 3 ',', 4 '.', 5 '/'
     ldr     w9, [x11, #0x28]
     str     w10, [x11, #0x28]
     bic     w9, w10, w9
     ldr     s0, [x11, #0x24]
     ldr     s1, height_step
-    tbz     w9, #0, 21f
+    tbz     w9, #3, 21f
     fsub    s0, s0, s1
-21: tbz     w9, #1, 22f
+21: tbz     w9, #4, 22f
     fadd    s0, s0, s1
-22: tbz     w9, #2, 23f
+22: tbz     w9, #5, 23f
     movi    d0, #0
 23: str     s0, [x11, #0x24]
+    tbz     w9, #0, 24f                     // ';' toggles hiding Link
+    ldr     w10, [x11, #0x2c]
+    eor     w10, w10, #1
+    str     w10, [x11, #0x2c]
+24:
 .endif
 
     // 4. Link must still be updating (not paused, loading, or gone).

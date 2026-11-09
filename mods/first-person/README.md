@@ -19,6 +19,10 @@ Press **R3** (click the right stick) to switch to Link's eyes. Press it again to
 | `,` | eye down 2 cm |
 | `.` | eye up 2 cm |
 | `/` | back to the measured height |
+| `;` | hide / show Link (only while first person is on; remembered until the game restarts) |
+
+Hiding uses the same switch the game's own `OneShotSetModelVisible` script command uses, and
+puts back whatever the game had when you show him again or leave first person.
 
 One step per press (no repeat while held), so you can count presses. The offset stays when you
 switch first person off and on, until the game restarts. The keys need the emulator's keyboard
@@ -51,7 +55,8 @@ python mods/first-person/build.py --forward 0.25 --height-add 0.1
 | `--toggle-bit` | 5 (R3) | Npad button bit, 4 = L3 |
 | `--stale-limit` | 30 | views without a Link update before the normal camera returns |
 | `--height-step` | 0.02 | metres per `,` / `.` press |
-| `--no-height-keys` | off | leave the keyboard keys out |
+| `--no-height-keys` | off | leave the keyboard keys out (this also removes `;`) |
+| `--no-hide` | off | leave out hiding Link |
 | `--diagnostic` | off | if Link isn't found, use the look-at point as the eye (to tell the two hooks apart) |
 
 ## How it works
@@ -75,4 +80,5 @@ Two hooks ([first_person.S](first_person.S)):
   above child Link's head. Use the height keys for now; the next version should set child and
   adult heights separately.
 - Field of view is the game's. A wider FOV option would suit first person.
-- Link's arms and sword show when you look down or attack. That's intended for now (body cam).
+- Link's arms and sword show when you look down or attack, unless you hide him with `;`.
+  Weapons and shield are separate equipment models, so they may stay visible while he's hidden.
