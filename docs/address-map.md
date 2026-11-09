@@ -34,7 +34,8 @@ in game yet.
 | `f_80853d60` | Script command → the actor it runs on: `[[[cmd+8]+8]+0x1f0]`. | Disasm |
 | `0x82959ea0` | `OneShotSetModelVisible` execute (vtable `0x84a548d0` slot 39): `model = [[actor+0x270]+0x260]`, writes the visible byte `+0xe5`, sets bit `0x800` of `+0x120`. | Disasm |
 | `0x82be6cd0` | Debug printer for why an actor isn't drawn: flags `[[actor+0x380]+8]` bit 8 Demo, 9 TL(SelectiveFC), 10 Model, 11 Event, 12 ActorVisibleOffByEvent, 23 ModelAlphaLink. | Disasm |
-| `0x83489500..0x834896b0` | The game's own controller polling (`GetNpadStates` with 16 entries). | Disasm |
+| `f_834893d0` | The game's controller polling, once per frame. For each Npad id (players `0..count-1`, then handheld `0x20`) it calls `GetNpadStyleSet`, then `GetNpadStates(buf, 16, &id)` for each style present (bit 0 FullKey, 1 Handheld, 2 JoyDual, 3 JoyLeft, 4 JoyRight; bits 12–14 also go to JoyDual / Left / Right). `buf` is the start of a per-controller record, `0xec0` bytes apart; 16 states × `0x28` end at `+0x280`. Each `GetNpadStates` stub has this as its only caller. | Disasm |
+| `0x804e506c` | Inside `f_804e48c0`, the instruction after First Person's site: `cbz x8, 0x804e5b78`. The matrix is final and not read yet. Hook site for FPV Drone. | Disasm |
 
 All ~5,200 script commands (`OneShot*`, `Query*`, `Execute*`, ...) and their functions are in
 [`symbols/e0f3ccfa-commands.csv`](../symbols/e0f3ccfa-commands.csv); see [script-commands.md](script-commands.md).
@@ -60,10 +61,17 @@ All ~5,200 script commands (`OneShot*`, `Query*`, `Execute*`, ...) and their fun
 
 | Stub | GOT | Function |
 |---|---|---|
+| `0x83c627e0` | `0x84cdf5b8` | `nn::hid::GetNpadStyleSet(uint const&)` (by its use) |
 | `0x83c627f0` | `0x84cdf5c0` | `nn::hid::GetNpadStates(NpadJoyDualState*, int, uint const&)` |
 | `0x83c62800` | `0x84cdf5c8` | `nn::hid::GetNpadStates(NpadFullKeyState*, int, uint const&)` |
+| `0x83c62810` | `0x84cdf5d0` | `nn::hid::GetNpadStates` for Joy-Con left (style bit 3, by its use) |
+| `0x83c62820` | `0x84cdf5d8` | `nn::hid::GetNpadStates` for Joy-Con right (style bit 4, by its use) |
 | `0x83c62830` | `0x84cdf5e0` | `nn::hid::GetNpadStates(NpadHandheldState*, int, uint const&)` |
 | `0x83c64810` | `0x84ce05d0` | `nn::hid::GetKeyboardState(KeyboardState*)` (the game reads it itself at `0x83b48820`) |
+
+Each stub is `adrp x16` / `ldr x17, [x16, #slot]` / `add x16` / `br x17`. Patching the final
+`br x17` into a branch to your own code wraps the import with `x17` already holding the real
+function, at a function-call boundary (FPV Drone does this).
 
 The full import list is easy to regenerate from `.rela.plt` (`DT_JMPREL`). Every Switch 2 module
 also uses packed `DT_RELR` relocations for its own pointers.

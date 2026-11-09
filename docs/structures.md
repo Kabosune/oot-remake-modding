@@ -82,6 +82,10 @@ vtables shows which slots are theirs.
 | `+0x18` | s32[2] | right stick |
 | `+0x20` | u32 | attributes (bit 0 connected) |
 
+`GetNpadStates(states, count, &id)` fills up to `count` states, newest first (the nn::hid
+convention; FPV Drone relies on entry 0 being the latest), and returns how many it wrote. The game
+asks for 16 and keeps them in its per-controller records (see `f_834893d0` in the address map).
+
 Npad IDs: `0` = player 1, `0x20` = handheld. Lichii's default Pro Controller is FullKey on player 1.
 
 ## Keyboard state (`nn::hid::KeyboardState`)

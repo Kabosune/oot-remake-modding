@@ -39,6 +39,25 @@ Branches and `adrp` are PC-relative, so the code works wherever the emulator or 
 See [mods/first-person/build.py](../mods/first-person/build.py) for a complete example. It's
 about 60 lines, most of them options.
 
+### C, and more than one gap
+
+`nxpatch.build_regions()` takes several sources, `.S` or `.c`, and a list of cave regions, each
+with the input sections that go there. C is compiled with `-Oz`, `-ffunction-sections` and
+`-fdata-sections`, so every function and constant table is its own section you can place. Any
+section left unplaced is a link error, so nothing silently goes missing. See
+[mods/fpv-drone/build.py](../mods/fpv-drone/build.py).
+
+C code needs a call, and a call from a hook in the middle of a function means saving every
+caller-saved register first (about 200 bytes of saves and restores). Two ways around that:
+
+- Hook a **function boundary**, where the ABI already says caller-saved registers are free. The
+  `br x17` at the end of an import stub is one: your code is entered as if it were the import.
+- Keep the mid-function hook tiny: do the work at a boundary, leave the result in memory, and
+  have the hook only copy it (FPV Drone's view hook uses four integer registers).
+
+Code size: one `const` table for float constants reached through one base register, and
+`__asm__("" : "+r"(ptr))` to stop the compiler re-deriving a global's address for each field.
+
 ## Testing without the game
 
 [`tests/test_first_person.py`](../tests/test_first_person.py) loads the patched `main` into

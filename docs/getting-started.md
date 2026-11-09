@@ -35,6 +35,16 @@ python Hookshot/nx2/nup.py "The Legend of Zelda Ocarina of Time [0400486024DEC00
 
 `work/exefs/main` is now there, still ZBIC-compressed.
 
+If you only have gcc (not clang), build Hookshot's decompressor by hand before step 3, from
+`Hookshot/third_party/zbic`:
+
+```
+gcc -O0 -DZSTD_DISABLE_ASM=1 -DDYNAMIC_BMI2=0 -DZSTD_ZBIC_SUPPORT=1 -shared -fPIC -I. -o zbic.so zstd.c zbic_api.c
+```
+
+With gcc 11 at `-O2` the library built but every segment failed to decompress (error -2);
+`-O0` with those two flags works, and `unpack.py` checks the segment hashes either way.
+
 ## 3. Decompress it
 
 `unpack.py` rewrites ZBIC NSOs in place, so run it on a copy:

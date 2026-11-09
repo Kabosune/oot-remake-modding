@@ -22,6 +22,7 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 | Mod | What it does | Status |
 |---|---|---|
 | [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Keyboard: `,` `.` eye height, `;` hide Link. | Works in Lichii / Fritchii |
+| [FPV Drone](mods/fpv-drone/README.md) | L3 launches an FPV quadcopter from the game camera. Mode 2 sticks; Angle (Y), Acro (X) and Simple (B) modes. Link waits while you fly. | Tested in Unicorn on the real `main`; not yet in game |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Lichii / Fritchii / Eden: `%APPDATA%\eden\load\`), then restart the game.
@@ -44,12 +45,12 @@ Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into t
 ```
 symbols/e0f3ccfa.ld        addresses for build E0F3CCFA, shared by every mod (a linker script)
 symbols/e0f3ccfa-commands.csv   every script command and its code (tools/gen_commands.py makes it)
-tools/nxpatch.py           assemble + link at the cave + IPS32 + verify against your main
+tools/nxpatch.py           assemble / compile C + link into the cave + IPS32 + verify against your main
 tools/flatten_nso.py       uncompressed main -> flat module image
 tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
 tools/gen_commands.py      regenerate the script-command table from a flat main
 tools/ghidra_label_commands.py  name those functions in Ghidra
-mods/<mod>/                source (.S), build.py, README
+mods/<mod>/                source (.S, .c), build.py, README
 tests/                     Unicorn tests that run the hooks on a patched main with fake game objects
 releases/                  built zips
 ```

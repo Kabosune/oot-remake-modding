@@ -4,6 +4,9 @@ The source is assembled with clang and linked with ld.lld at the cave address, a
 addresses in symbols/<build>.ld. Every hook site is checked against the original instruction,
 in a real main if one is given, so a patch can't silently land on a different game build.
 
+build() takes one assembly file and one cave. build_regions() takes several sources (.S or .c)
+and spreads their sections over several free gaps of the cave, for mods that don't fit one gap.
+
 Needs: clang, ld.lld, llvm-objcopy, llvm-nm (LLVM 15+).
 """
 import struct
@@ -62,6 +65,56 @@ def build(source, symbols, cave, hooks, defines):
         records.append((site - BASE, struct.pack("<I", b_word(site, syms[entry])), struct.pack("<I", original)))
     records.append((cave, code, bytes(len(code))))
     return records, len(code)
+
+
+C_FLAGS = ["-Oz", "-ffast-math", "-ffreestanding", "-fno-builtin", "-fno-stack-protector",
+           "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-ffunction-sections",
+           "-fdata-sections", "-mno-outline-atomics", "-std=c11", "-Wall", "-Werror"]
+
+
+def build_regions(sources, symbols, regions, hooks, defines):
+    """Compile sources (.S / .c) and link their sections into several cave regions.
+
+    regions: [(start, end, [input section patterns])], module offsets inside the cave.
+    hooks: [(site address, original word, entry symbol)].
+    Returns ([(module offset, bytes, original)], {region start: bytes used}).
+    Any section not placed in a region (code, data, bss) is an error, so nothing is left out."""
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        (tmp / "params.inc").write_text("".join(f"#define {k} {v}\n" for k, v in defines.items()))
+        objs = []
+        for i, src in enumerate(sources):
+            obj = tmp / f"{i}.o"
+            common = ["clang", "--target=aarch64-none-elf", "-march=armv8.2-a", "-I", tmp]
+            if str(src).endswith(".c"):
+                run(*common, *C_FLAGS, "-c", src, "-o", obj)
+            else:
+                run(*common, "-c", "-x", "assembler-with-cpp", src, "-o", obj)
+            objs.append(obj)
+        lines = [f'INCLUDE "{Path(symbols).resolve()}"', "SECTIONS {"]
+        for n, (start, end, patterns) in enumerate(regions):
+            assert TEXT_END <= start < end <= CAVE_LIMIT, f"region {start:#x}..{end:#x} is outside the cave"
+            lines.append(f"  .r{n} {BASE + start:#x} : {{ " + " ".join(f"*({p})" for p in patterns) + " }")
+        lines += ["  .symtab 0 : { *(.symtab) }", "  .strtab 0 : { *(.strtab) }", "  .shstrtab 0 : { *(.shstrtab) }",
+                  "  /DISCARD/ : { *(.comment) *(.note*) *(.llvm_addrsig) }", "}"]
+        script = tmp / "link.ld"
+        script.write_text("\n".join(lines) + "\n")
+        elf = tmp / "cave.elf"
+        run("ld.lld", "-e", "0", "--orphan-handling=error", "-T", script, *objs, "-o", elf)
+        nm = subprocess.run(["llvm-nm", str(elf)], check=True, capture_output=True, text=True).stdout
+        syms = {p[2]: int(p[0], 16) for p in (l.split() for l in nm.splitlines()) if len(p) == 3}
+        records, used = [], {}
+        for n, (start, end, _) in enumerate(regions):
+            out = tmp / f"r{n}.bin"
+            run("llvm-objcopy", "-O", "binary", "-j", f".r{n}", elf, out)
+            code = out.read_bytes() if out.exists() else b""
+            assert len(code) <= end - start, f"region {start:#x}..{end:#x}: {len(code)} bytes don't fit"
+            used[start] = len(code)
+            if code:
+                records.append((start, code, bytes(len(code))))
+    for site, original, entry in hooks:
+        records.append((site - BASE, struct.pack("<I", b_word(site, syms[entry])), struct.pack("<I", original)))
+    return records, used
 
 
 def verify(records, main_image):

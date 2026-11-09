@@ -32,7 +32,7 @@ emulation on (Lichii / Eden: Controls → Advanced → Keyboard, or `keyboard_en
 Works on: Lichii / Fritchii (tested target). Should work anywhere exefs IPS32 patches load for
 this build, including real hardware through ns2jb-modloader, but that's untested.
 
-Compatible with: Ultrawide, the FPS mods, and Lichii's built-ins (no shared bytes, see
+Compatible with: FPV Drone (when both are on, the drone's view wins), Ultrawide, the FPS mods, and Lichii's built-ins (no shared bytes, see
 [memory-map](../../docs/memory-map.md)).
 
 ## Install

@@ -11,9 +11,12 @@ VT_PLAYER        = 0x84b6c460;  /* player-type object; resource name at [[obj+0x
 /* --- globals --- */
 CAMMGR_SLOT      = 0x84ca6bc0;  /* [[slot]] = camera manager; +0x20 count, +0x28 cameras; [cameras][0]+0x78 = gameplay view */
 
-/* --- imports (PLT stubs) --- */
+/* --- imports (PLT stubs: adrp x16 / ldr x17 / add x16 / br x17, 16 bytes each) --- */
+PLT_GETNPAD_STYLESET = 0x83c627e0; /* nn::hid::GetNpadStyleSet(uint const&) (by its use in f_834893d0) */
 PLT_GETNPAD_JOYDUAL  = 0x83c627f0; /* nn::hid::GetNpadStates(NpadJoyDualState*, int, uint const&) */
 PLT_GETNPAD_FULLKEY  = 0x83c62800; /* nn::hid::GetNpadStates(NpadFullKeyState*, int, uint const&) */
+PLT_GETNPAD_JOYLEFT  = 0x83c62810; /* nn::hid::GetNpadStates for style bit 3 (Joy-Con left, by its use) */
+PLT_GETNPAD_JOYRIGHT = 0x83c62820; /* nn::hid::GetNpadStates for style bit 4 (Joy-Con right, by its use) */
 PLT_GETNPAD_HANDHELD = 0x83c62830; /* nn::hid::GetNpadStates(NpadHandheldState*, int, uint const&) */
 PLT_GETKEYBOARD      = 0x83c64810; /* nn::hid::GetKeyboardState(KeyboardState*): keys bitset at +0x10 */
 
@@ -22,6 +25,10 @@ HOOK_VIEW        = 0x804e5068;  /* in f_804e48c0, right after the view matrix is
 HOOK_VIEW_RET    = 0x804e506c;
 HOOK_ACTOR       = 0x82c41720;  /* in f_82c415e0 (movement update), x19 = actor: add x23, x19, #0x328 */
 HOOK_ACTOR_RET   = 0x82c41724;
+HOOK_VIEW2       = 0x804e506c;  /* in f_804e48c0, the instruction after HOOK_VIEW: cbz x8, 0x804e5b78 */
+HOOK_VIEW2_RET   = 0x804e5070;
+HOOK_VIEW2_TAKEN = 0x804e5b78;  /* where that cbz goes */
 
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */
+DRONE_STATE      = 0x84ebfd00;  /* 0x100 bytes, FPV drone */
