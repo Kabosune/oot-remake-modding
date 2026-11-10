@@ -16,9 +16,9 @@ who patches what, and a small core module that mods call instead of patching the
 
 | Part | State |
 |---|---|
-| Core 0.2: mods register and start, events (`frame`, `input`, `draw`, `actor_move`), symbols by name, log, memory pool, motion | Written. Passes its tests on a PC, including the real AArch64 modules run in an emulator against a fake game. **The new parts haven't run in the game yet** |
+| Core 0.2: mods register and start, events (`frame`, `input`, `draw`, `actor_move`), symbols by name, log, memory pool, motion | Written and tested in the game (10 November, Fritchii, game 1.1.1): Hello registered, started, drew and reacted to the A button. Also passes its tests on a PC, including the real AArch64 modules run in an emulator against a fake game |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
-| A mod as its own module (`subsdk2`+) finding Core through rtld | Built; whether the game's rtld links one added module to another is open question 1, answered by the test below |
+| A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaepora check / install / build`, the registry, romfs patches (levels 1 and 2) | Design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
@@ -76,6 +76,12 @@ The first two need no game files. `--log` on the second prints the log of a full
 
 ## The in-game test (open questions 1, 2 and 4)
 
+**Result, 10 November 2026 (Fritchii, game 1.1.1): passed.** The square appeared and turned green
+while A was held, so the game links one added module to another and runs several at once. The
+log lines (how many controller styles were hooked, who started first) haven't been read yet.
+`releases/mouse-grab.zip`, Core and Mouse Grab linked into one module, was tested the same day and
+works.
+
 `releases/kaepora-test.zip` is Core in `subsdk1` and Hello in `subsdk2`, plus Core's `.ips`.
 
 1. Turn off any other mod folder that has an `exefs/subsdk1` (older Mouse Grab builds), and
@@ -93,13 +99,16 @@ What each outcome means:
 |---|---|
 | The square and Hello's log lines | rtld links an added module to another one. Mods can be separate modules (question 1: yes) |
 | `Core 0.2 loaded` but `kaepora mod: Kaepora Core isn't loaded` and no square | rtld loaded both but didn't link them (question 1: no). Mods get bundled into Core's module instead: `--bundle` |
-| The game doesn't start | Something in the new Core stops it. Try `releases/mouse-grab-on-core-0.2.zip` (Core and Mouse Grab in one module): if that starts, the second module is the problem; if not, look first at Core's new input hooks |
+| The game doesn't start | Something in the new Core stops it. Try `releases/mouse-grab.zip` (Core and Mouse Grab in one module): if that starts, the second module is the problem; if not, look first at Core's new input hooks |
 | `input: 0 of 5 controller styles hooked` | The system's names for the controller functions aren't the ones Core guessed; the log line says which part is missing |
 
 The order of `Core 0.2 loaded` and the mod's first line also answers question 2 (who starts
 first); either order works. While the emulator runs its log is `eden_log.busy.txt`.
 
 ### A mod without Core (open question 6)
+
+**Result, 10 November 2026: installed alone, nothing appeared on screen, as hoped.** The log line
+below hasn't been read yet, which is what would settle the question for good.
 
 `releases/kaepora-hello-without-core.zip` is Hello's module alone. Install it with every other
 Kaepora folder off. Hoped for: the game starts as normal and logs `kaepora mod: Kaepora Core isn't

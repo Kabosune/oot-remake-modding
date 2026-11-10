@@ -317,7 +317,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 |---|---|---|
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods |
 | M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
-| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested outside the game (10 Nov); the in-game test is in [README.md](README.md)** |
+| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1 and 4 answered yes, 6 very likely yes. Results in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
 | M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
@@ -327,19 +327,20 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 1. **Does `rtld` connect one added module's imports to another added module's exports?** It does
    for `main`, `sdk` and `subsdk0`, and sloperinaGZ only imports from those. If not, mods are
    linked into Core's module instead (`--bundle`, already built), with the installer doing the
-   linking.
+   linking. **Answered 10 Nov: yes in Fritchii.** Hello in `subsdk2` found Core in `subsdk1`.
 2. **In what order are added modules initialised?** Rule 6 makes the answer not matter, but it
    should be measured.
 3. **Does the import-table rewrite work on hardware**, where memory permissions are stricter than
    in an emulator? If not, Core's base hooks become entries in the generated IPS. (In Fritchii it
    works: drawing and motion were tested that way.)
 4. **Do several added modules load at once** in Lichii and on hardware, and is there a size or
-   count limit?
+   count limit? **Two load at once in Fritchii (10 Nov).** Hardware and the limit are still open.
 5. **Static recompilations** (Hookshot, NX2navi) don't run `rtld`. Supporting them means their
    runtime offering the same C API natively, which is their authors' decision.
 6. **What does the game's `rtld` do with an import nobody exports?** Core 0.2 leans on weak
    imports being left empty (a mod without Core, Core on a system without a function it hopes
-   for). That is how ELF defines them, but it hasn't been seen in this game.
+   for). That is how ELF defines them. **10 Nov: Hello installed without Core showed nothing on
+   screen, as hoped; its log line hasn't been read yet.**
 7. **How many hook points fit?** Each needs one padding slot of 24+ bytes within branch range.
    There are thousands of such slots, so this should be comfortable, but the generator has to
    show it.
