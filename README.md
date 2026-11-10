@@ -27,6 +27,12 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Lichii / Fritchii / Eden: `%APPDATA%\eden\load\`), then restart the game.
 
+## A shared modding standard (draft)
+
+[Kaepora](api/README.md) is a proposal for how mods for this game can be packaged, checked for
+conflicts and, later, built on one shared core module so they survive game updates and work
+together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what's wrong with it.
+
 ## Docs
 
 - [Getting started](docs/getting-started.md): from your dump to a flat `main` image you can read and patch.
@@ -56,6 +62,7 @@ tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main
 tools/ghidra_label_commands.py  name those functions in Ghidra
+api/                       Kaepora, the proposed modding standard (design draft)
 mods/<mod>/                source (.S, .c), build.py, README
 tests/                     Unicorn tests that run the hooks on a patched main with fake game objects
 releases/                  built zips

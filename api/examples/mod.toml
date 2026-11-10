@@ -1,0 +1,54 @@
+# Example manifest: a level 2 mod (patches main itself, space taken from the registry).
+manifest = 1
+
+id       = "kabosune.first-person"
+name     = "First Person"
+version  = "1.2.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[build.E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348]      # 1.1.1
+ips    = "exefs/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips"
+cave   = ["0x3C46B00..0x3C46FB0"]          # code written into main's padding
+memory = ["0x4E9FC00..0x4E9FC40"]          # writable state (module offsets)
+hooks  = ["0x4C5068", "0x2C21720"]         # instructions replaced by a branch
+
+[input]                                     # actions and their default buttons
+toggle     = "R3"
+eye-down   = "key:,"
+eye-up     = "key:."
+eye-reset  = "key:/"
+show-link  = "key:;"
+
+[relations]
+conflicts  = []
+load-after = []
+
+# A romfs mod would add, for example:
+#
+# [romfs]
+# adds = ["Model/MyThing.bfres.zs"]
+#
+# [[romfs-patch]]
+# kind = "size-table"
+# path = "AS/Dm_Zora_0010_KingZora.root.asb"
+# at-least = 6368
+#
+# [[romfs-patch]]
+# kind   = "script"
+# run    = "build.py"
+# reads  = ["AS/Dm_Zora_0010_KingZora.root.asb", "Event/EventFlow/Dm_Zora_0010.bfevfl"]
+# writes = ["AS/Dm_Zora_0010_KingZora.root.asb", "Event/EventFlow/Dm_Zora_0010.bfevfl"]
+
+# A level 3 (core) mod has no [build.*] patches. Instead:
+#
+# [core]
+# api     = "1.0"
+# module  = "code/kabosune.first-person.nso"
+# library = "code/kabosune.first-person.a"
+# symbols = ["field:Actor.position", "function:IsChildLink"]
+# events  = ["view", "player_update", "input"]
