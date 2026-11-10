@@ -233,7 +233,7 @@ if a game update moves or splits the code behind `view`, Core adapts and mods do
 
 | Service | What it does |
 |---|---|
-| Input bindings | A mod registers actions with default buttons. Core detects two mods wanting the same buttons, and one shared settings screen lets the player rebind any action of any mod |
+| Input bindings | A mod registers actions with default buttons. Core detects two mods wanting the same buttons, and one shared settings screen lets the player rebind any action of any mod: the [Mods menu](MODS-MENU.md) |
 | Config | Typed settings per mod, saved to one file per mod, editable in the shared screen |
 | Log | One log for all mods, with the mod's ID on every line |
 | Symbols | `kae_sym`, `kae_field`, the build ID, the game version |
