@@ -1,7 +1,7 @@
 # What sloperinaGZ found (and what we can use)
 
 [sloperinaGZ](https://github.com/PracticeROM/sloperina) is PracticeROM's gz-style practice menu for
-this game. Its [`docs/FINDINGS.md`](https://github.com/PracticeROM/sloperina/blob/main/docs/FINDINGS.md)
+this game. Its [`docs/FINDINGS.md`](https://github.com/PracticeROM/sloperina/blob/master/docs/FINDINGS.md)
 is a long, careful record of how the game's data works, on the same build as this repo (E0F3CCFA).
 This page is our summary of the parts that matter for mods here, read from their repository at
 commit `cad5995` (9 November 2026, release 0.0.3).
