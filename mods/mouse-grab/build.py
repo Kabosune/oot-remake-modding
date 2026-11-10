@@ -21,7 +21,7 @@ import mknso  # noqa: E402
 TITLE_ID = "0400486024DEC000"
 SLOT = "subsdk1"
 SOURCES = [CORE / "crt0.S", CORE / "core.c", CORE / "log.c", CORE / "imports.c", CORE / "draw.c", CORE / "hooks.c", CORE / "memory.c",
-           HERE / "module" / "cursor.c", HERE / "module" / "ragdoll.c", HERE / "module" / "survey.c"]
+           HERE / "module" / "cursor.c", HERE / "module" / "ragdoll.c", HERE / "module" / "grab.c"]
 sys.path.insert(0, str(REPO / "tools"))
 import nxpatch  # noqa: E402
 BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"

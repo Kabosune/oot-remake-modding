@@ -128,6 +128,26 @@ Right click drops Link into ragdoll; right click again gets him up. All of it is
 - Mouse Probe is retired: the hook stubs use its code cave space, so the two can't be installed
   together.
 
+## Survey of the ragdoll (`module/survey.c`, 10 November)
+
+Run once a second after Link went down, following pointers from the ragdoll component. Found
+(holder = `[ragdoll + 0x10]`, the same object `f_80857620` returns):
+
+- `[holder + 8]` is the character controller, `[[holder + 8] + 0x20]` its body (as sloperina's notes say).
+- Arrays of positions near Link with a stride of 0x70 bytes: `[[holder + 0x18] + 0x1e0]` (10 entries),
+  `[[holder + 0x18] + 0x1f0]` (10), `[[holder + 0x48] + 0x88]` (9, from `+0x70`). Probably bone or
+  ragdoll body transforms; not known which.
+- Four more objects with the body vtable: `[[holder + 0x18] + 8]`, `+0x10`, `[[holder + 0xc8] + 0x30]`,
+  `+0x38`, `[[holder + 0xd0] + 0x30]`.
+
+## Grab test build (`module/grab.c`)
+
+Hold the left button on Link to pick him up (he ragdolls if he isn't already), move the mouse to
+carry him, let go to throw. The cursor is turned into a ray through the gameplay camera
+(sloperina's camera fields); he's held at the distance he was grabbed at. Moving puts his
+character controller at the held point; whether the ragdoll follows is what it tests, so it logs
+his position and the arrays above. Throwing sets the controller body's velocity.
+
 ## Plan
 
 1. Probe: what does the emulator feed the game (this step).

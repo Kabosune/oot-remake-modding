@@ -66,7 +66,6 @@ typedef struct {
     uint8_t pad[7];
 } ragdoll_end_t;
 
-void survey(void *actor, void *holder, void *ragdoll);
 static uint32_t down_frames;
 
 static bool held;
@@ -128,6 +127,17 @@ static void ragdoll_end(void *actor) {
     report(actor, ragdoll ? "ragdoll: end requested" : "ragdoll: no ragdoll component to end");
 }
 
+bool ragdoll_is_down(void *actor) {
+    void *r = ragdoll_of(actor);
+    return r && AT(r, RAGDOLL_STATE, int32_t) != 0;
+}
+
+void ragdoll_start(void *actor) {
+    ragdoll_down(actor);
+}
+
+void grab_move(void *actor);
+
 void ragdoll_move(void *actor) {
     if (actor != link) {
         if (!is_link(actor))
@@ -151,10 +161,10 @@ void ragdoll_move(void *actor) {
             ragdoll_end(actor);
     }
     held = right;
+    grab_move(actor);
     void *rd = ragdoll_of(actor);
     if (rd && AT(rd, RAGDOLL_STATE, int32_t) != 0) {
-        if (++down_frames == 60)
-            survey(actor, KP_FN(void *(*)(void *), F_HOLDER)(actor), rd);
+        ++down_frames;
     } else {
         down_frames = 0;
     }
