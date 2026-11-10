@@ -1,5 +1,7 @@
 # Mouse Grab (in progress)
 
+Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/releases/mouse-grab.zip
+
 A mouse cursor that grabs Link (and later other things), turns him into a ragdoll, and lets you
 move and throw him. The mouse gives two axes; the third, towards and away from the camera, comes
 from the controller's pitch.
