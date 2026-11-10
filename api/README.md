@@ -78,7 +78,9 @@ The first two need no game files. `--log` on the second prints the log of a full
 
 `releases/kaepora-test.zip` is Core in `subsdk1` and Hello in `subsdk2`, plus Core's `.ips`.
 
-1. Turn off any other mod folder that has an `exefs/subsdk1` (older Mouse Grab builds).
+1. Turn off any other mod folder that has an `exefs/subsdk1` (older Mouse Grab builds), and
+   sloperinaGZ (it takes the same drawing hook and doesn't pass calls on). Close the emulator
+   first: it locks a mod's exefs files while it runs.
 2. Copy the zip's `0400486024DEC000` folder into the emulator's `load` folder, close and reopen
    the emulator, start the game.
 3. What should happen: a small blue square near the top left corner, which turns green while A is
@@ -95,4 +97,13 @@ What each outcome means:
 | `input: 0 of 5 controller styles hooked` | The system's names for the controller functions aren't the ones Core guessed; the log line says which part is missing |
 
 The order of `Core 0.2 loaded` and the mod's first line also answers question 2 (who starts
-first); either order works.
+first); either order works. While the emulator runs its log is `eden_log.busy.txt`.
+
+### A mod without Core (open question 6)
+
+`releases/kaepora-hello-without-core.zip` is Hello's module alone. Install it with every other
+Kaepora folder off. Hoped for: the game starts as normal and logs `kaepora mod: Kaepora Core isn't
+loaded`. If the game stays at "starting...", the game's rtld refuses a module with a missing import
+even when it is weak. Then mods must not import Core at all: Core would publish a table of its
+functions at an agreed place and mods would look it up at start (the other option weighed on
+10 November), or mods are only ever installed linked into Core's module.
