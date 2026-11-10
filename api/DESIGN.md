@@ -1,6 +1,6 @@
 # Kaepora: a shared modding standard for the Ocarina of Time remake
 
-**Draft 0.1, 9 November 2026. A design, not yet software.** Nothing here is implemented or tested
+**Draft 0.2, 9 November 2026. A design, not yet software.** Nothing here is implemented or tested
 unless it says so. "Kaepora" is a working name (the game's reported codename is Owl).
 
 ## Why
@@ -12,17 +12,25 @@ Four days after release, mods for this game already step on each other:
 - FPV Drone toggles on L3. So does sloperinaGZ's levitate. Neither knows about the other.
 - Any romfs mod whose file grows needs its own copy of the resource size table. Two such mods
   overwrite each other's, and the table is a 1.4 MB game file nobody should be redistributing.
-- Every address in every mod is for one build. The next game update breaks all of them at once.
+- Every mod finds the game's functions and data again for itself, and hard-codes the addresses.
+  A wrong one is fixed in one mod and stays wrong in the others.
 
 Kaepora is a set of rules and shared pieces so that mods from different people can be installed
-together, keep working across game updates, and be checked for conflicts before the game starts.
+together, be checked for conflicts before the game starts, and share what is known about the game
+instead of each rediscovering it.
+
+**Working assumption (draft 0.2): update 1.1.1 is the game's last.** The standard targets that
+build. Nothing is built only to survive a future update. If one does arrive, the design still
+copes (everything build-specific is in one file per build), but the tools for porting are not
+planned. The original 1.0.0 build is optional.
 
 ## Goals
 
 1. **Coexistence.** Two mods that follow the standard either work together or are reported as
    conflicting before launch. Never a silent crash.
-2. **Longevity.** A game update should need one shared update (a symbol pack), not a new release
-   of every mod. The interface mods build against only ever grows.
+2. **Longevity.** A mod written against the interface today still loads years from now: the
+   interface only ever grows. What is learned about the game is recorded once, by name, for
+   every mod.
 3. **Works everywhere the game runs.** Emulators (Lichii family), static recompilations where
    possible, and real hardware. Nothing relies on one emulator's quirks.
 4. **No game files.** A mod package never contains Nintendo's data, only new code and
@@ -39,7 +47,7 @@ A mod can stop at any level.
 |---|---|---|---|
 | 1. Package | Ships a `mod.toml` manifest in a standard folder layout | Conflict checks, clean install / removal, merged shared files | No |
 | 2. Registered | Takes its code cave, memory and hook sites from the shared registry | Guaranteed not to overlap other registered mods | No |
-| 3. Core mod | Contains no patches to `main` at all; calls the Kaepora Core API | Survives game updates, shares hooks and input with other mods, unlimited code size | Yes |
+| 3. Core mod | Contains no patches to `main` at all; calls the Kaepora Core API | Shares hooks, input and the Mods menu with other mods; no code size limit; no addresses of its own | Yes |
 
 Levels 1 and 2 can be built and used now. Level 3 is where the long-term value is.
 
@@ -107,7 +115,7 @@ Rules:
 - Space is claimed by pull request, first come first served, in the smallest amount that works.
 - A hooked instruction belongs to one mod. If two mods need the same place, that place becomes a
   Core hook point (level 3) and both subscribe to it.
-- A claim is released when its mod drops the build or goes unmaintained for a full game update.
+- A claim is released when its author gives it up or the mod is withdrawn.
 - The memory map page is generated from the registry, not edited by hand.
 
 Raw patching doesn't scale: the cave is 3,632 bytes and the padding between functions comes in
@@ -160,7 +168,7 @@ By wrapping the game's imports, which are found by name:
   CPU-drawn panel into the frame, which avoids needing Switch 2 shader tools).
 - **Files** on the SD card through the system's file functions, for settings and logs.
 
-A mod that only needs these works on every past and future build of the game with no update.
+A mod that only needs these works on any build of the game.
 
 ### Symbol packs: everything build-specific in one place
 
@@ -172,7 +180,6 @@ Anything inside the game's own code or data is reached by **name**, never by add
 [function.CctChangePosition]
 offset = 0x6B2530
 args = "controller, float pos[4]"
-pattern = "7F 23 03 D5 ?? ?? ?? A9 ..."   # for finding it again in a new build
 source = "Hookshot; sloperina"
 
 [field."Actor.position"]
@@ -190,8 +197,9 @@ context = "x20 = view"
   a game structure layout into itself.
 - The manifest lists the names a mod needs. `kaepora check` says "this mod isn't supported on
   your game version yet" before launch; Core says it again at run time and leaves the mod off.
-- When the game updates, the pack is ported once (patterns find most entries automatically, the
-  rest by hand) and every core mod works again unchanged.
+- With one final game version, an address found once stays true. The pack only grows, and a
+  correction to it fixes every mod at once. Supporting another build (1.0.0) means writing its
+  pack; mods don't change.
 - Names are the shared vocabulary. Where a function has a Hookshot-style name (`f_806d2530`),
   that is kept as an alias.
 - This repo's `symbols/e0f3ccfa.ld` and the 5,238-entry script-command table are the seed.
@@ -226,8 +234,8 @@ an event when one exists:
 | `pause_change` | the game pauses or resumes | stop its own work |
 | `draw` | before the frame is shown | draw text and simple shapes |
 
-The first two and `draw` need no symbol pack. The rest are hook points with a stable meaning:
-if a game update moves or splits the code behind `view`, Core adapts and mods don't notice.
+The first two and `draw` need no symbol pack. The rest are hook points with a stable meaning,
+so a mod doesn't depend on where in the game's code they come from.
 
 ### Services
 
@@ -295,7 +303,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below |
 | M3 | Symbol packs, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main` |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
-| M5 | Second build (1.0.0) and a hardware test. Version 1.0 of the spec | Longevity |
+| M5 | A hardware test and a second author's mod. Version 1.0 of the spec. Optional: a pack for build 1.0.0 | It works outside our own setup |
 
 ## Open questions (each needs an experiment)
 
