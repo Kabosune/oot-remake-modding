@@ -1,14 +1,16 @@
-// Mouse Grab, step three (test): hold the left button on Link to pick him up (he ragdolls),
-// move the mouse to carry him, let go to throw him.
+// Mouse Grab, step three: hold the left button on Link to pick him up, move the mouse to carry
+// him, let go to throw him (he ragdolls as he flies).
 //
 // - The cursor becomes a ray through the gameplay camera: camera = [[CAMERA_SLOT]+0x68], position
 //   +0x38, look-at +0x44, tan(half vertical FOV) +0x13c, aspect +0x140 (sloperina's notes).
 // - Grabbing works when the ray passes within GRAB_RADIUS of Link's middle. He is held at the same
 //   distance along the ray, so the mouse moves him across the screen.
 // - Moving: his character controller is put at the held point every frame (ChangePosition, as
-//   FPV Drone's carry). Whether the ragdoll follows the controller is what this build tests; it
-//   logs Link's position and the first position of three arrays the survey found near him.
-// - Throwing: on release, the controller body gets the velocity the held point had.
+//   FPV Drone's carry), with its velocity zeroed so he doesn't build up a fall. A ragdoll doesn't
+//   follow the controller (tested: the game pulls the controller back to the ragdoll), so while
+//   he's held he is out of ragdoll.
+// - Throwing: on release the controller body gets the velocity the held point had, then he
+//   ragdolls.
 #include "core.h"
 #include "input.h"
 
@@ -26,6 +28,7 @@
 
 bool ragdoll_is_down(void *actor);
 void ragdoll_start(void *actor);
+void ragdoll_stop(void *actor);
 
 typedef struct { float x, y, z; } v3;
 static v3 add(v3 a, v3 b) { return (v3){ a.x + b.x, a.y + b.y, a.z + b.z }; }
@@ -81,20 +84,6 @@ static void log_v3(const char *what, v3 p) {
     kp_log_2("    height (cm), -", (int64_t)(p.y * 100), 0);
 }
 
-static void log_arrays(void *actor) {
-    void *holder = KP_FN(void *(*)(void *), F_HOLDER)(actor);
-    if (!holder)
-        return;
-    static const struct { uint16_t a, b, c; } paths[] = { { 0x18, 0x1e0, 0 }, { 0x18, 0x1f0, 0 }, { 0x48, 0x88, 0x70 } };
-    for (int i = 0; i < 3; i++) {
-        char *o = AT(holder, paths[i].a, char *);
-        char *arr = o && kp_readable((uintptr_t)o + paths[i].b, 8) ? AT(o, paths[i].b, char *) : 0;
-        if (arr && kp_readable((uintptr_t)arr + paths[i].c, 12))
-            log_v3(i == 0 ? "  array A[0] (cm x, z)" : i == 1 ? "  array B[0] (cm x, z)" : "  array C[1] (cm x, z)",
-                   AT(arr, paths[i].c, v3));
-    }
-}
-
 void grab_move(void *actor) {
     mouse_state_t m;
     m.buttons = 0;
@@ -120,8 +109,8 @@ void grab_move(void *actor) {
         float miss = root(dot(off, off));
         kp_log_2("grab: pressed. distance along ray, miss (cm):", (int64_t)(along * 100), (int64_t)(miss * 100));
         if (along > 0.3f && miss < GRAB_RADIUS) {
-            if (!ragdoll_is_down(actor))
-                ragdoll_start(actor);
+            if (ragdoll_is_down(actor))
+                ragdoll_stop(actor);
             g.grabbing = true;
             g.depth = along;
             g.point = g.last_point = middle;
@@ -136,14 +125,18 @@ void grab_move(void *actor) {
         g.velocity = add(mul(g.velocity, 0.5f), mul(v, 0.5f));   // smoothed over a few frames
         g.last_point = g.point;
         void *c = controller_of(actor);
+        void *body = c ? AT(c, 0x20, void *) : 0;
         if (c) {
             float to[4] = { g.point.x, g.point.y - MIDDLE, g.point.z, 0 };
             KP_FN(void (*)(void *, const float *), F_CHANGE_POS)(c, to);
         }
-        if (g.frames++ % 15 == 0) {
+        if (body && AT(body, 0, uintptr_t) == kp_main + BODY_VT) {
+            static const float still[3] = { 0, 0, 0 };
+            KP_FN(void (*)(void *, const float *), F_SET_VELOCITY)(body, still);
+        }
+        if (g.frames++ % 30 == 0) {
             log_v3("grab: held point (cm x, z)", g.point);
             log_v3("  Link's actor position", AT(actor, 0x31c, v3));
-            log_arrays(actor);
         }
     }
     if (g.grabbing && released) {
@@ -154,6 +147,7 @@ void grab_move(void *actor) {
             float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
             KP_FN(void (*)(void *, const float *), F_SET_VELOCITY)(body, v);
         }
-        log_v3("grab: let go, velocity (cm/s x, z)", g.velocity);
+        ragdoll_start(actor);
+        log_v3("grab: thrown, velocity (cm/s x, z)", g.velocity);
     }
 }

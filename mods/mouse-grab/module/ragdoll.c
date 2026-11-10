@@ -136,6 +136,10 @@ void ragdoll_start(void *actor) {
     ragdoll_down(actor);
 }
 
+void ragdoll_stop(void *actor) {
+    ragdoll_end(actor);
+}
+
 void grab_move(void *actor);
 
 void ragdoll_move(void *actor) {

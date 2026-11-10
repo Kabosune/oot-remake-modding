@@ -140,13 +140,18 @@ Run once a second after Link went down, following pointers from the ragdoll comp
 - Four more objects with the body vtable: `[[holder + 0x18] + 8]`, `+0x10`, `[[holder + 0xc8] + 0x30]`,
   `+0x38`, `[[holder + 0xd0] + 0x30]`.
 
-## Grab test build (`module/grab.c`)
+## Grab build (`module/grab.c`)
 
-Hold the left button on Link to pick him up (he ragdolls if he isn't already), move the mouse to
-carry him, let go to throw. The cursor is turned into a ray through the gameplay camera
-(sloperina's camera fields); he's held at the distance he was grabbed at. Moving puts his
-character controller at the held point; whether the ragdoll follows is what it tests, so it logs
-his position and the arrays above. Throwing sets the controller body's velocity.
+Hold the left button on Link to pick him up, move the mouse to carry him, let go to throw him; he
+ragdolls as he flies. The cursor is turned into a ray through the gameplay camera (sloperina's
+camera fields); he's held at the distance he was grabbed at.
+
+- First try (10 November): moving his character controller while he's a ragdoll doesn't move
+  him. The game pulls the controller back to the ragdoll every frame: he twitched and Navi, who
+  follows the controller, flew around. The ragdoll's own bodies are Havok's; not found yet.
+- So for now he comes out of ragdoll while held and is carried like FPV Drone carries him
+  (ChangePosition, velocity zeroed every frame). On release his controller body gets the throw
+  velocity and he ragdolls. Next: find the ragdoll's bodies and pull those, so he's limp while held.
 
 ## Plan
 
