@@ -1,0 +1,19 @@
+# A mod that exists only for tests/test_kaepora_modules.py: it uses every part of the API and
+# reports what it saw through the log.
+manifest = 1
+id       = "kaepora.test-probe"
+name     = "Kaepora Test Probe"
+version  = "1.2.3"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.2"
+sources = ["probe.c"]
+symbols = ["function:CctChangePosition", "function:f_806d2530", "function:vtable.Actor", "field:Actor.position"]
+
+[core.imports]
+_ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi = "sdk"

@@ -34,12 +34,25 @@ static bool logged_missing;
 
 void ragdoll_move(void *actor);
 
-void mod_init(void) {
-    kp_log("mouse grab: build 2026-11-10 f (gyro 5, AS face and voice)");
-    kp_hooks_start(ragdoll_move);
-    if (!kp_motion_start())
-        kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
+uintptr_t mg_main;
+
+static void on_draw(const KaeFrame *frame, void *user);
+static void on_actor_move(void *actor, void *user) {
+    (void)user;
+    ragdoll_move(actor);
 }
+
+static int start(void) {
+    kp_log("mouse grab: build 2026-11-10 g (on Kaepora Core 0.2)");
+    mg_main = kae_game_base();
+    if (kae_on_actor_move(on_actor_move, 0, 0) != KAE_OK)
+        kp_log("mouse grab: no movement hook (Core's .ips is missing): the cursor works, grabbing doesn't");
+    if (!kae_has("motion"))
+        kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
+    return kae_on_draw(on_draw, 0, 0);
+}
+
+KAE_MOD("kabosune.mouse-grab", "0.2.0", start, 0);
 
 // One rectangle for each run of the same kind of cell in a row.
 static void draw_arrow(int left, int top, int scale, uint32_t fill) {
@@ -57,7 +70,8 @@ static void draw_arrow(int left, int top, int scale, uint32_t fill) {
     }
 }
 
-void mod_draw(const kp_frame_t *frame) {
+static void on_draw(const KaeFrame *frame, void *user) {
+    (void)user;
     mouse_state_t m;
     m.attributes = 0;
     int got = _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(&m, 1);

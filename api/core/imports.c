@@ -56,3 +56,18 @@ uintptr_t *kp_import_slot(uintptr_t module, const char *name) {
     uintptr_t *slot = search(module, plt, plt_size, s, str, name);
     return slot ? slot : search(module, rela, rela_size, s, str, name);
 }
+
+void *kp_wrap_import(const char *name, void *wrapper, void *own) {
+    uintptr_t *slot = kp_import_slot(kp_main, name);
+    if (!slot)
+        return 0;
+    // The slot holds a pointer into main until the first call (the import is bound lazily): then
+    // the real function is the one rtld gave this module. Anything else in the slot is another
+    // module's hook, which stays in the chain.
+    uintptr_t now = *slot;
+    bool unbound = !now || (now >= kp_main && now < kp_main + kp_build->size);
+    if (unbound && !own)
+        return 0;   // nothing to call in its place
+    *slot = (uintptr_t)wrapper;
+    return unbound ? own : (void *)now;
+}

@@ -1,0 +1,22 @@
+# Mouse Grab's manifest: a core mod (no patches of its own; it runs on Kaepora Core).
+manifest = 1
+
+id       = "kabosune.mouse-grab"
+name     = "Mouse Grab"
+version  = "0.2.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.2"
+sources = ["module/*.c"]
+events  = ["draw", "actor_move"]
+# A research build: it still reaches into the game by raw offset through kae_game_base, so it
+# only supports game version 1.1.1. Its offsets move into the symbol pack as they settle.
+
+[core.imports]                # system functions the mod imports itself, and which module exports them
+_ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi = "sdk"

@@ -1,7 +1,9 @@
 # Kaepora: a shared modding standard for the Ocarina of Time remake
 
-**Draft 0.3, 9 November 2026. A design, not yet software.** Nothing here is implemented or tested
-unless it says so. "Kaepora" is a working name (the game's reported codename is Owl).
+**Draft 0.4, 10 November 2026. A design with a first implementation.** Core 0.2 exists
+([README.md](README.md) says what is written and what has run in the game); levels 1 and 2 are
+still design only. Nothing here is implemented or tested unless it says so. "Kaepora" is a working
+name (the game's reported codename is Owl).
 
 ## Why
 
@@ -157,6 +159,10 @@ memory, which hardware may refuse.
   standalone mods (sloperinaGZ) already use it. Every core mod also ships a static library, so a
   later version of the installer can link many mods into one slot and lift the limit of seven
   without mods changing.
+- *Implemented in 0.2:* `tools/kaemod.py` builds a mod either way from the same source: its own
+  module, or linked into Core's (`--bundle`), where each mod's own names are made private first so
+  two mods can't clash. A mod's imports from Core are weak, so a mod loaded without Core does
+  nothing.
 
 ### What Core gets without knowing any addresses
 
@@ -187,11 +193,15 @@ offset = 0x31C
 type = "f32[3]"
 
 [hookpoint."Camera.ViewMatrixDone"]
-offset = 0x4C5068
+site = 0x4C5068
+slot = 1
 replaces = "<instruction bytes>"
 context = "x20 = view"
 ```
 
+- *Implemented in 0.2* as `symbols/<build>.toml`, compiled into Core. The pack also holds what
+  Core needs to recognise the build (`[detect]`) and where its hook slots are (`[core]`).
+  Functions and globals share one set of names; vtables are `vtable.<Name>`.
 - A mod asks Core `kae_sym("CctChangePosition")` and gets a pointer, or null on a build where it
   isn't known. Field offsets are symbols too (`kae_field("Actor.position")`), so no mod compiles
   a game structure layout into itself.
@@ -232,13 +242,15 @@ an event when one exists:
 | `frame` | once per game frame | do anything |
 | `input` | controller state read | read it, change what the game sees |
 | `view` | the gameplay camera's matrix is final | read or replace it |
+| `actor_move` | every physics actor's movement update (a hook point; in 0.2) | read or move it |
 | `player_update` | Link's movement update | read or move him |
 | `scene_change` | a map starts loading / is ready | reset its state |
 | `pause_change` | the game pauses or resumes | stop its own work |
 | `draw` | before the frame is shown | draw text and simple shapes |
 
 The first two and `draw` need no symbol pack. The rest are hook points with a stable meaning,
-so a mod doesn't depend on where in the game's code they come from.
+so a mod doesn't depend on where in the game's code they come from. Core 0.2 has `frame`, `input`,
+`draw` and `actor_move`.
 
 ### Services
 
@@ -262,11 +274,13 @@ Helpers are added when two mods need the same thing, not before.
    meaning. A better version gets a new name.
 3. The API has a version, `major.minor`. Minor versions only add. A mod records the version it
    was built against; Core runs any mod with the same major version and an equal or lower minor.
+   Before 1.0 the versions must match exactly, since 0.x may still change.
 4. Every structure passed across starts with its own size, so it can grow at the end.
 5. A mod asks `kae_has("draw.text")` before using an optional feature and must cope with "no".
 6. A mod's init function does one thing: `kae_register(&descriptor)`. `kae_register` only adds to
    a list, so it is safe whichever module the system initialises first. Core calls each mod's
-   `start` once everything is loaded.
+   `start` once everything is loaded: in 0.2, the first time the game calls into Core, which is
+   when the game sets up its graphics. (`KAE_MOD` and the build write the init function.)
 7. Core never crashes the game on a mod's behalf: unknown build, missing symbol, failed byte
    check or version mismatch each switch off the affected mod, with a logged and on-screen reason.
 
@@ -303,7 +317,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 |---|---|---|
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods |
 | M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
-| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below |
+| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested outside the game (10 Nov); the in-game test is in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
 | M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
@@ -311,16 +325,21 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 ## Open questions (each needs an experiment)
 
 1. **Does `rtld` connect one added module's imports to another added module's exports?** It does
-   for `main`, `sdk` and `subsdk0`, and sloperinaGZ only imports from those. If not, mods find
-   Core through an agreed pointer in `main`'s unused memory instead; rule 6 already allows for it.
+   for `main`, `sdk` and `subsdk0`, and sloperinaGZ only imports from those. If not, mods are
+   linked into Core's module instead (`--bundle`, already built), with the installer doing the
+   linking.
 2. **In what order are added modules initialised?** Rule 6 makes the answer not matter, but it
    should be measured.
 3. **Does the import-table rewrite work on hardware**, where memory permissions are stricter than
-   in an emulator? If not, Core's base hooks become entries in the generated IPS.
+   in an emulator? If not, Core's base hooks become entries in the generated IPS. (In Fritchii it
+   works: drawing and motion were tested that way.)
 4. **Do several added modules load at once** in Lichii and on hardware, and is there a size or
    count limit?
 5. **Static recompilations** (Hookshot, NX2navi) don't run `rtld`. Supporting them means their
    runtime offering the same C API natively, which is their authors' decision.
-6. **How many hook points fit?** Each needs one padding slot of 24+ bytes within branch range.
+6. **What does the game's `rtld` do with an import nobody exports?** Core 0.2 leans on weak
+   imports being left empty (a mod without Core, Core on a system without a function it hopes
+   for). That is how ELF defines them, but it hasn't been seen in this game.
+7. **How many hook points fit?** Each needs one padding slot of 24+ bytes within branch range.
    There are thousands of such slots, so this should be comfortable, but the generator has to
    show it.

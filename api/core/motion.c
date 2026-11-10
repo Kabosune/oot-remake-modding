@@ -47,20 +47,19 @@ static int wrap(six_axis_state_t *states, int count, const uint32_t *handle) {
     return n;
 }
 
-uint64_t kp_motion_direction(float out[9]) {
+uint64_t kae_motion_direction(float out[9]) {
     for (int i = 0; i < 9; i++)
         out[i] = direction[i];
     return updates;
 }
 
+bool kp_motion_on;
+
 bool kp_motion_start(void) {
-    uintptr_t *slot = kp_import_slot(kp_main, NAME);
-    if (!slot)
+    void *r = kp_wrap_import(NAME, (void *)wrap, (void *)REAL);
+    if (!r)
         return false;
-    uintptr_t now = *slot;
-    bool unbound = now >= kp_main && now < kp_main + kp_build->size;
-    real = unbound || !now ? REAL : (int (*)(six_axis_state_t *, int, const uint32_t *))now;
-    *slot = (uintptr_t)wrap;
-    kp_log("motion: hooked");
+    real = (int (*)(six_axis_state_t *, int, const uint32_t *))r;
+    kp_motion_on = true;
     return true;
 }

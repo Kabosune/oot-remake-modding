@@ -98,7 +98,7 @@ static bool equal(const char *a, const char *b) {
     return false;
 }
 
-void kp_draw_rect(int x, int y, int w, int h, uint32_t rgb) {
+void kae_draw_rect(int x, int y, int w, int h, uint32_t rgb) {
     if (!in_draw || rect_count == MAX_RECTS)
         return;
     if (x < 0) { w += x; x = 0; }
@@ -153,10 +153,10 @@ static void draw(nvn_queue *queue, nvn_texture *target) {
     frame_height = nvn.texture_height(target);
     if (frame_number == 0)
         kp_log_2("first frame, picture size", frame_width, frame_height);
-    kp_frame_t frame = { frame_width, frame_height, frame_number };
+    KaeFrame frame = { sizeof frame, frame_width, frame_height, frame_number };
     rect_count = 0;
     in_draw = true;
-    mod_draw(&frame);
+    kp_fire_draw(&frame);
     in_draw = false;
     frame_number++;
     if (!rect_count)
@@ -235,6 +235,7 @@ static void *my_getproc(nvn_device *d, const char *name) {
 }
 
 static void *my_bootstrap(const char *name) {
+    kp_mods_ready();
     void *f = real_bootstrap(name);
     if (f && name && equal(name, "nvnDeviceGetProcAddress")) {
         real_getproc = f;
@@ -245,15 +246,10 @@ static void *my_bootstrap(const char *name) {
 }
 
 bool kp_draw_start(void) {
-    uintptr_t *slot = kp_import_slot(kp_main, "nvnBootstrapLoader");
-    if (!slot)
+    void *real = kp_wrap_import("nvnBootstrapLoader", (void *)my_bootstrap, (void *)nvnBootstrapLoader);
+    if (!real)
         return false;
-    // The slot holds a pointer into main until the first call (the import is bound lazily): then
-    // the real function is the one rtld gave this module. Anything else in the slot is another
-    // module's hook, which stays in the chain.
-    uintptr_t now = *slot;
-    bool unbound = now >= kp_main && now < kp_main + kp_build->size;
-    real_bootstrap = unbound || !now ? nvnBootstrapLoader : (void *(*)(const char *))now;
-    *slot = (uintptr_t)my_bootstrap;
+    real_bootstrap = (void *(*)(const char *))real;
+    kp_event_on[KP_EV_DRAW] = true;
     return true;
 }

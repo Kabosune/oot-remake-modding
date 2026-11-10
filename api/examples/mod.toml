@@ -44,11 +44,11 @@ load-after = []
 # reads  = ["AS/Dm_Zora_0010_KingZora.root.asb", "Event/EventFlow/Dm_Zora_0010.bfevfl"]
 # writes = ["AS/Dm_Zora_0010_KingZora.root.asb", "Event/EventFlow/Dm_Zora_0010.bfevfl"]
 
-# A level 3 (core) mod has no [build.*] patches. Instead:
+# A level 3 (core) mod has no [build.*] patches. Instead it has a [core] table: see
+# hello/mod.toml for a real one that tools/kaemod.py builds.
 #
 # [core]
-# api     = "1.0"
-# module  = "code/kabosune.first-person.nso"
-# library = "code/kabosune.first-person.a"
+# api     = "0.2"
+# sources = ["my_mod.c"]
 # symbols = ["field:Actor.position", "function:IsChildLink"]
-# events  = ["view", "player_update", "input"]
+# events  = ["frame", "input"]
