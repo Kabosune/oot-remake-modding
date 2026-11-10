@@ -18,7 +18,7 @@ import nxpatch  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
 BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
-REGIONS = [(0x3C46278, 0x3C46400, [".text.hook", ".text", ".rodata*"])]
+REGIONS = [(0x3C46310, 0x3C46400, [".text.hook", ".text", ".rodata*"])]
 SLOTS = REPO / "symbols" / "e0f3ccfa-slots.txt"
 FIRST_SLOT = 113   # FPV Drone's code takes slots 0-112
 BR_X17 = 0xD61F0220

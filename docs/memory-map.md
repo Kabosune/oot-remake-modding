@@ -7,12 +7,12 @@ then add yourself.
 
 | Range (module offset) | Used by |
 |---|---|
-| `0x3C46200..0x3C46278` | Lichii's built-in patches |
+| `0x3C46200..0x3C46310` | Lichii's built-in patches (Fritchii v5.6): Dynamic FPS's code at `0x3C46200..0x3C46278`, the experimental high refresh rate patch up to `0x3C46310` |
 | `0x3C46400..0x3C46610` | [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod) (Ultrawide) |
 | `0x3C46400..0x3C46410`, `0x3C46440..0x3C46454` | [sloperinaGZ](https://github.com/PracticeROM/sloperina) 0.0.3: an `OOTGZ` tag and the jump into its `subsdk9` module. **Inside Ultrawide's range**: don't expect those two to work together |
 | `0x3C46610..0x3C46B00` | FPV Drone (this repo): hooks + constant table (about 470 bytes used) |
 | `0x3C46B00..0x3C46FB0` | First Person (this repo) |
-| `0x3C46278..0x3C46400` | Mouse Grab's input probe (this repo; a test build, 116 bytes used) |
+| `0x3C46310..0x3C46400` | Mouse Grab's input probe (this repo; a test build, 116 bytes used) |
 | everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46FB0..0x3C47000` (80) |
 
 There's no dead code to use as a second cave: no function in `.text` is unreferenced (every
@@ -48,7 +48,8 @@ reference, relocation or data pointer reaches past it (checked by scanning all o
 |---|---|
 | `0x84ebfc00..0x84ebfc40` | First Person state |
 | `0x84ebfd00..0x84ebfe00` | FPV Drone state |
-| `0x84ebfe00..0x84ebff00` | Mouse Grab's input probe state |
+| `0x84ebfb00..0x84ebfc00` | Mouse Grab's input probe state |
+| `0x84ebfe00..0x84ec0000` | **Lichii's built-in patches** (Fritchii v5.6). Dynamic FPS keeps its last tick and smoothed frame time at `0x84ebfe00` / `+8`; the high refresh rate patch uses `0x84ebfe20` on. Writing here changes the game's speed |
 | everything else | free |
 
 ## Hook sites

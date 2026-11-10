@@ -41,4 +41,5 @@ HOOK_MOVE_RET    = 0x82c415e4;
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */
 DRONE_STATE      = 0x84ebfd00;  /* 0x100 bytes, FPV drone */
-PROBE_STATE      = 0x84ebfe00;  /* 0x100 bytes, mouse-grab's input probe */
+PROBE_STATE      = 0x84ebfb00;  /* 0x100 bytes, mouse-grab's input probe */
+/* 0x84ebfe00..0x84ec0000 belongs to Lichii's built-in patches (Dynamic FPS state): keep out */

@@ -43,12 +43,26 @@ What the game does with them:
 Guesses, not checked: "Jcms" is the Joy-Con 2's mouse sensor, and with it started the position
 arrives through `GetMouseStates`.
 
-## Emulators (9 November 2026)
+## Emulators (10 November 2026)
 
 - Fritchii v5.6 (Lichii) logs `SetMouseLibraryVersion: (STUBBED)` when the game starts, and has
   yuzu's emulated mouse (`mouse_enabled` in `qt-config.ini`). Its exe has no Nmouse or Jcms names.
 - A PokeDinner fork merged "hid: Switch 2 mouse (Nmouse), so Joy-Con 2 mouse mode works" on
   4 November 2026 (for Pokopia). Not read yet.
+
+Probe results in Fritchii v5.6 with `mouse_enabled` on (KaboWabo, 10 November):
+
+- `GetMouseStates` works from a mod. Position is in a 1280 x 720 space (seen: x 0..1260,
+  y 0..719) and follows the PC mouse over the game window; the left button is bit 0 of the
+  buttons; attributes are 2 (connected). Movement deltas are filled in too.
+- The game reads the motion sensor about 40 times a second and gets real values from the
+  controller: acceleration (about 1 g when still), angular velocity, and the direction matrix,
+  whose third row tilts with the controller. Enough to take pitch from.
+- Debug lines written with `svcOutputDebugString` appear in Fritchii's log at its default filter
+  (`Debug.Emulated <Info>`).
+- Not answered: whether the game itself reads the mouse every frame. The first probe's counters
+  shared memory with Fritchii's Dynamic FPS patch (see docs/memory-map.md) and were overwritten,
+  which also made the game run fast.
 
 ## The probe (`probe/`)
 
@@ -65,9 +79,8 @@ python3 mods/mouse-grab/probe/build.py --verify-main work/main.bin
 python3 tests/test_mouse_probe.py work/main.bin releases/mouse-probe.zip
 ```
 
-To see the lines in a yuzu-family emulator, the log filter has to let debug lines of the
-`Debug.Emulated` class through (`*:Info Debug.Emulated:Debug`), and `mouse_enabled` has to be on
-for the emulated mouse.
+The lines appear in Fritchii's log (`eden_log.txt`) as `Debug.Emulated <Info>`. `mouse_enabled`
+has to be on for the emulated mouse.
 
 ## Plan
 
