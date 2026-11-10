@@ -179,7 +179,11 @@ static void draw(nvn_queue *queue, nvn_texture *target) {
     nvn.queue_submit(queue, 1, &handle);
 }
 
+static int presents_seen;
+
 static void my_present(nvn_queue *queue, nvn_window *window, int index) {
+    if (presents_seen++ == 0)
+        kp_log_2("first present. device known, textures:", device != 0, texture_count);
     if (state == NOT_SET_UP && device && real_getproc)
         set_up();
     if (state == READY && index >= 0 && index < texture_count && textures[index])
@@ -189,6 +193,7 @@ static void my_present(nvn_queue *queue, nvn_window *window, int index) {
 
 static void my_set_textures(void *builder, int count, nvn_texture *const *list) {
     texture_count = count < 0 ? 0 : count > MAX_TEXTURES ? MAX_TEXTURES : count;
+    kp_log_2("swapchain textures set:", count, 0);
     for (int i = 0; i < texture_count; i++)
         textures[i] = list[i];
     real_set_textures(builder, count, list);
@@ -198,15 +203,18 @@ static bool my_device_init(nvn_device *d, const void *builder) {
     bool ok = real_device_init(d, builder);
     if (ok)
         device = d;
+    kp_log_2("device initialised:", ok, 0);
     return ok;
 }
 
-static void *my_getproc(nvn_device *d, const char *name) {
-    void *f = real_getproc(d, name);
+// The three functions Core wraps, whichever way the game asks for them (through
+// nvnDeviceGetProcAddress or straight from nvnBootstrapLoader).
+static void *wrap(const char *name, void *f) {
     if (!f || !name)
         return f;
     if (equal(name, "nvnQueuePresentTexture")) {
         real_present = f;
+        kp_log("wrapped nvnQueuePresentTexture");
         return my_present;
     }
     if (equal(name, "nvnWindowBuilderSetTextures")) {
@@ -220,6 +228,12 @@ static void *my_getproc(nvn_device *d, const char *name) {
     return f;
 }
 
+static void *my_getproc(nvn_device *d, const char *name) {
+    if (d && !device)
+        device = d;   // the game passes its device when it fetches device functions
+    return wrap(name, real_getproc(d, name));
+}
+
 static void *my_bootstrap(const char *name) {
     void *f = real_bootstrap(name);
     if (f && name && equal(name, "nvnDeviceGetProcAddress")) {
@@ -227,7 +241,7 @@ static void *my_bootstrap(const char *name) {
         kp_log("the game asked for NVN: drawing hooks in place");
         return my_getproc;
     }
-    return f;
+    return wrap(name, f);
 }
 
 bool kp_draw_start(void) {
