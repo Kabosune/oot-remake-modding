@@ -9,6 +9,7 @@ then add yourself.
 |---|---|
 | `0x3C46200..0x3C46278` | Lichii's built-in patches |
 | `0x3C46400..0x3C46610` | [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod) (Ultrawide) |
+| `0x3C46400..0x3C46410`, `0x3C46440..0x3C46454` | [sloperinaGZ](https://github.com/PracticeROM/sloperina) 0.0.3: an `OOTGZ` tag and the jump into its `subsdk9` module. **Inside Ultrawide's range**: don't expect those two to work together |
 | `0x3C46610..0x3C46B00` | FPV Drone (this repo): hooks + constant table (about 470 bytes used) |
 | `0x3C46B00..0x3C46FB0` | First Person (this repo) |
 | everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46278..0x3C46400` (392), `0x3C46FB0..0x3C47000` (80) |
@@ -49,7 +50,9 @@ reference, relocation or data pointer reaches past it (checked by scanning all o
 
 ## Hook sites
 
-Two mods can't hook the same instruction.
+Two mods can't hook the same instruction. sloperinaGZ's ranges and hook were read from its 0.0.3
+IPS for this build; none of its bytes overlap First Person or FPV Drone. Running all three
+together in game hasn't been tried (its levitate option toggles on L3, like the drone).
 
 | Site | Used by |
 |---|---|
@@ -61,3 +64,4 @@ Two mods can't hook the same instruction.
 | `main+0x805bd0` | Lichii built-in "Max Resolution" |
 | `main+0x4f1e8, 0x20c2b0, 0x23b9a8, 0x25d76c, 0x33b82c, 0x774368, 0x3485cc0, 0x3b5c758` | Ultrawide |
 | `main+0x6e0f04..`, `0x3af1920`, `0x3af1994`, `0x3b4ef90..` | TheCraZyDuDee's FPS mods |
+| `main+0x3b500dc` | sloperinaGZ 0.0.3 |

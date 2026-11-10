@@ -31,7 +31,8 @@ Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into t
 
 - [Getting started](docs/getting-started.md): from your dump to a flat `main` image you can read and patch.
 - [The engine](docs/engine.md): what the Tears of the Kingdom engine (ModuleSystem) means for modding this game.
-- [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, and how to look inside.
+- [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
+- [Animation graphs](docs/asb.md): the ASB format (version 0x41B), how a playback rate is attached, rules for editing by hand.
 - [Camera](docs/camera.md): the camera's parameter files, FOV, distances, and Link's heights.
 - [Script commands](docs/script-commands.md): all ~5,200 AI / logic commands mapped to their code in `main`.
 - [Address map](docs/address-map.md): functions, globals, vtables and imports we know about.
@@ -50,6 +51,8 @@ tools/nxpatch.py           assemble / compile C + link into the cave and padding
 tools/find_slots.py        find padding slots in a flat main
 tools/flatten_nso.py       uncompressed main -> flat module image
 tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
+tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
+tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main
 tools/ghidra_label_commands.py  name those functions in Ghidra
 mods/<mod>/                source (.S, .c), build.py, README
@@ -69,7 +72,7 @@ themselves to it.
 ## Credits
 
 - KaboWabo/Kabosune (me :3)
-- AI assistance (Claude Opus 5.5)
+- AI assistance (Claude Opus 5.5, Claude Fable 5.2)
 - [NotRexed/Hookshot](https://github.com/NotRexed/Hookshot): the gameplay camera, view and player
   findings that the first-person mod is built on, and the NUP / ZBIC tools used to get `main` out
   of a dump.

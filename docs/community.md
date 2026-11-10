@@ -20,7 +20,8 @@ page, which is where to check what's current.
 |---|---|
 | [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod) | ultrawide 21:9 / 32:9 (IPS32) |
 | [TheCraZyDuDee/Ocarina-of-Time-Remake-Mods](https://github.com/TheCraZyDuDee/Ocarina-of-Time-Remake-Mods) | fixed 30 / adaptive / variable FPS (IPS32) |
-| this repo | First Person |
+| [PracticeROM/sloperina](https://github.com/PracticeROM/sloperina) (sloperinaGZ) | a gz-style practice menu: warps, inventory, cheats, watches, memory viewer, frame advance. A `subsdk9` module plus a small IPS. Its `docs/FINDINGS.md` documents the game's data |
+| this repo | First Person, FPV Drone |
 
 ## Tools
 
