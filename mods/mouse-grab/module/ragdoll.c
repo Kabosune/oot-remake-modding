@@ -156,12 +156,14 @@ static void ragdoll_end(void *actor) {
 // The ragdoll's bodies, found in f_83237d70 (which the start request calls to hand the controller's
 // velocity to every ragdoll body): set = [ragdoll+0x40], count [set+0x60] - 1, entries of 0x138
 // bytes from [set+0x68], body (the same wrapper class as the controller's body) at entry+0x38.
-#define BODY_VT 0x4C34658
 int ragdoll_bodies(void *actor, void **out, int max) {
+    static int last_count = -2;
     char *r = ragdoll_of(actor);
     char *set = r ? AT(r, 0x40, char *) : 0;
-    if (!set || !kp_readable((uintptr_t)set, 0x70))
+    if (!set || !kp_readable((uintptr_t)set, 0x70)) {
+        if (last_count != -1) { last_count = -1; kp_log_hex("bodies: no body set; ragdoll+0x40 =", (uintptr_t)set); }
         return 0;
+    }
     int count = AT(set, 0x60, int32_t) - 1;
     char *entries = AT(set, 0x68, char *);
     int n = 0;
@@ -170,8 +172,16 @@ int ragdoll_bodies(void *actor, void **out, int max) {
         if (!kp_readable((uintptr_t)e + 0x38, 8))
             break;
         void *body = AT(e, 0x38, void *);
-        if (body && kp_readable((uintptr_t)body, 8) && AT(body, 0, uintptr_t) == kp_main + BODY_VT)
+        // f_83237d70 calls f_8014dbe0 on these, whatever their class; only check they're readable
+        if (body && kp_readable((uintptr_t)body, 0x180))
             out[n++] = body;
+    }
+    if (count != last_count) {
+        last_count = count;
+        kp_log_2("bodies: set count field, bodies found:", count + 1, n);
+        kp_log_hex("bodies: entries at", (uintptr_t)entries);
+        if (n)
+            kp_log_hex("bodies: first body's vtable (main offset)", AT(out[0], 0, uintptr_t) - kp_main);
     }
     return n;
 }
