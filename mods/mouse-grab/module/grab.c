@@ -30,7 +30,7 @@
 #define MAX_CANDIDATES 96
 // Depth works like a mouse: turning the controller moves him, holding it still keeps him where
 // he is, and slow turns below GYRO_DEAD don't count, so you can turn back slowly and flick again.
-#define DEPTH_PER_RAD  1.0f        // metres of depth per radian of pitch, at slow speed
+#define DEPTH_PER_RAD  1.5f        // metres of depth per radian of pitch, at slow speed
 #define GYRO_ACCEL     0.25f       // faster turns go further: gain * (1 + GYRO_ACCEL * rad/s)
 #define GYRO_DEAD      0.5f        // rad/s
 #define GYRO_SMOOTH    0.35f       // how much of a frame's turn counts at once (the rest follows)
@@ -45,6 +45,7 @@ void ragdoll_start(void *actor);
 void ragdoll_stop(void *actor);
 int ragdoll_bodies(void *actor, void **out, int max);
 void *actor_holder(void *actor);
+void link_voice(void *actor, const char *command);
 
 typedef struct { float x, y, z; } v3;
 static v3 add(v3 a, v3 b) { return (v3){ a.x + b.x, a.y + b.y, a.z + b.z }; }
@@ -182,6 +183,8 @@ void grab_move(void *actor) {
         if (best) {
             if (best == actor && !ragdoll_is_down(actor))
                 ragdoll_start(actor);
+            if (best == actor)
+                link_voice(actor, "VoiceDamageKidnapped");
             g.target = best;
             g.grabbing = true;
             g.throw_pending = false;
@@ -206,9 +209,10 @@ void grab_move(void *actor) {
                 turned = pitch - g.last_pitch;
                 float rate = (turned < 0 ? -turned : turned) / dt;
                 float step = rate > GYRO_DEAD ? turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate) : 0;
-                // pitch up (positive: the controller's face tilts towards you) brings him closer
+                // tilting the controller's face towards you brings him closer (KaboWabo, build f;
+                // the direction matrix's sign is the other way round from what the name says)
                 g.depth_velocity += (step - g.depth_velocity) * GYRO_SMOOTH;
-                g.depth -= g.depth_velocity;
+                g.depth += g.depth_velocity;
             }
             g.last_pitch = pitch;
             g.have_pitch = true;
@@ -252,6 +256,8 @@ void grab_move(void *actor) {
             float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
             for (int i = 0; i < n; i++)
                 KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(bodies[i], v, 0);
+            if (dot(g.velocity, g.velocity) > 4.0f * 4.0f)
+                link_voice(actor, "VoiceFallDanger");   // thrown hard
         } else {
             g.throw_pending = true;
         }

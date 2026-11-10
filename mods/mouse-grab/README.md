@@ -198,11 +198,15 @@ between pulling every body and pulling only the first. The throw gives every bod
   middle (position + 0.8 m) the ray passes closest to, Link included (Navi is left out, she'd
   steal clicks). Others have no ragdoll, so they're carried stiff by their controller in their own
   movement update and thrown with their controller body's velocity.
-- Pain face (`module/face.c`): `OneShotPersonalitySetOverwritePartialSlotFace` shows how scripts
-  change a face (an index into a name list of the actor's animation resource, written to the
-  personality component `[components + 0x340] + 0x3c`). The names aren't known, so the first time
-  Link is seen the list is logged, and while he's down the first name with "pain", "damage",
-  "hurt", ... in it is used.
+- Tested: picking up NPCs works.
+- Face and voice (`module/face.c`): the list the first try read is Link's partial slots (Lower,
+  Upper, RightArm, LeftArm, Face, Finger, Mouth, MaskChange, MaskEquip), not expressions, so
+  nothing changed. Expressions and voices are commands in `AS/Player_Child.root.asb` (471:
+  `FaceDamageL`, `FaceDown`, `FaceParalysis`, `VoiceDamageL`, `VoiceFallDanger`,
+  `VoiceDamageKidnapped`, ...). They're played the way the game's `OneShotASPlay` node does
+  (`f_802222a0` with a request; layout in `face.c`): `FaceDamageL` on the Face partial while he's
+  down, `FaceDefault` when he gets up, a voice on the Mouth partial when he's dropped, grabbed or
+  thrown hard.
 
 ## Plan
 

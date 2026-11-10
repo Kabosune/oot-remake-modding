@@ -35,7 +35,7 @@ static bool logged_missing;
 void ragdoll_move(void *actor);
 
 void mod_init(void) {
-    kp_log("mouse grab: build 2026-11-10 e (gyro 4, NPCs, face)");
+    kp_log("mouse grab: build 2026-11-10 f (gyro 5, AS face and voice)");
     kp_hooks_start(ragdoll_move);
     if (!kp_motion_start())
         kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");

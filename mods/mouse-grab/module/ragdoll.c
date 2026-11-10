@@ -204,6 +204,7 @@ void grab_move(void *actor);
 void actors_survey(void *actor);
 void face_update(void *actor, bool down);
 void grab_other(void *actor);
+void link_voice(void *actor, const char *command);
 
 void ragdoll_move(void *actor) {
     actors_survey(actor);
@@ -225,8 +226,10 @@ void ragdoll_move(void *actor) {
     if (right && !held) {
         void *ragdoll = ragdoll_of(actor);
         bool down = ragdoll && AT(ragdoll, RAGDOLL_STATE, int32_t) != 0;
-        if (!down)
+        if (!down) {
             ragdoll_down(actor);
+            link_voice(actor, "VoiceDamageL");
+        }
         else
             ragdoll_end(actor);
     }
