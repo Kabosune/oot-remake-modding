@@ -1,5 +1,4 @@
-// Mouse Grab, step two (test): right click drops Link into ragdoll, the next right click tries to
-// end it. Everything it does is logged, since none of it is known to work yet.
+// Mouse Grab, step two (test): right click drops Link into ragdoll, right click again gets him up.
 //
 // What the game's ExecuteEventPlayerImmediateRagdollDown node does on entering (f_826d3ec0), and
 // what is copied here:
@@ -7,6 +6,9 @@
 //   ragdoll = f_806188c0(holder)         a component of holder, looked up by type
 //   f_83238d30(ragdoll, &request)        request {actor, 1.0, 0, 0, 0, 0, 1, 2, 0, 0}; it builds the
 //                                        name "ImmediateDown" and starts that ragdoll
+// and on leaving (f_826d42c0):
+//   f_83239090(ragdoll, &{actor, false})  ends it (clears ragdoll+0x17c, which the start sets to 3)
+//   player[0x1c3e] |= 1                   player = [[actor+0x270]+0x358]
 // The node also changes Link's state (f_80953270 with "SlippingDown" / "SlippingDownLand") and runs
 // an update every frame (f_826d3fb0); neither is copied, so Link may not get up by himself.
 #include "core.h"
@@ -28,6 +30,8 @@ _Static_assert(sizeof(ragdoll_request_t) == 0x30, "request");
 #define F_HOLDER          0x837620    // f_80857620(actor)
 #define F_FIND_RAGDOLL    0x5F88C0    // f_806188c0(holder)
 #define F_RAGDOLL_DOWN    0x3218D30   // f_83238d30(ragdoll, request)
+#define F_RAGDOLL_END     0x3219090   // f_83239090(ragdoll, end request)
+#define RAGDOLL_STATE     0x17c       // in the ragdoll component: 3 while down, 0 otherwise
 #define F_REACTION        0x2C1D670   // f_82c3d670(actor): ragdoll reaction component, [components+0x390]
 #define F_REACTION_ACTIVE 0x2E94110   // f_82eb4110(reaction): QueryIsNowRagdoll's test
 #define F_REACTION_END    0x2E92F80   // f_82eb2f80(reaction): OneShotRagdollReactionEnd
@@ -56,8 +60,19 @@ static void *physics_of(void *actor) {
     return c ? AT(c, 0x20, void *) : 0;
 }
 
+typedef struct {
+    void *actor;
+    uint8_t flag;         // 0 in the node
+    uint8_t pad[7];
+} ragdoll_end_t;
+
 static bool held;
 static bool requested;
+static void *ragdoll_of(void *actor) {
+    void *holder = KP_FN(void *(*)(void *), F_HOLDER)(actor);
+    return holder ? KP_FN(void *(*)(void *), F_FIND_RAGDOLL)(holder) : 0;
+}
+
 static uint32_t frames;
 static int64_t last_rd_b0 = -1, last_rd_f0 = -1, last_reaction = -1;
 static void *link;
@@ -65,12 +80,13 @@ static void *link;
 static void report(void *actor, const char *why) {
     char *physics = physics_of(actor);
     char *rd = physics ? AT(physics, 0x1c8, char *) : 0;
-    int64_t b0 = rd ? AT(rd, 0xb0, int32_t) : -1, f0 = rd ? AT(rd, 0xf0, int32_t) : -1;
+    void *ragdoll = ragdoll_of(actor);
+    int64_t b0 = ragdoll ? AT(ragdoll, RAGDOLL_STATE, int32_t) : -1, f0 = rd ? AT(rd, 0xf0, int32_t) : -1;
     void *reaction = KP_FN(void *(*)(void *), F_REACTION)(actor);
     int64_t active = reaction ? (int64_t)KP_FN(bool (*)(void *), F_REACTION_ACTIVE)(reaction) : -1;
     if (why || b0 != last_rd_b0 || f0 != last_rd_f0 || active != last_reaction) {
         kp_log(why ? why : "ragdoll state changed");
-        kp_log_2("  physics ragdoll +0xb0, +0xf0:", b0, f0);
+        kp_log_2("  ragdoll state (3 = down), physics +0xf0:", b0, f0);
         kp_log_2("  reaction component present, active:", reaction != 0, active);
         last_rd_b0 = b0; last_rd_f0 = f0; last_reaction = active;
     }
@@ -96,11 +112,17 @@ static void ragdoll_down(void *actor) {
 }
 
 static void ragdoll_end(void *actor) {
-    void *reaction = KP_FN(void *(*)(void *), F_REACTION)(actor);
-    if (reaction)
-        KP_FN(void (*)(void *), F_REACTION_END)(reaction);
+    void *ragdoll = ragdoll_of(actor);
+    if (ragdoll) {
+        ragdoll_end_t e = { actor, 0, { 0 } };
+        KP_FN(void (*)(void *, ragdoll_end_t *), F_RAGDOLL_END)(ragdoll, &e);
+        char *components = AT(actor, 0x270, char *);
+        char *player = components ? AT(components, 0x358, char *) : 0;
+        if (player)
+            player[0x1c3e] |= 1;
+    }
     requested = false;
-    report(actor, reaction ? "ragdoll: reaction end called" : "ragdoll: no reaction component to end");
+    report(actor, ragdoll ? "ragdoll: end requested" : "ragdoll: no ragdoll component to end");
 }
 
 void ragdoll_move(void *actor) {
@@ -118,7 +140,9 @@ void ragdoll_move(void *actor) {
     int got = _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(&m, 1);
     bool right = got > 0 && (m.attributes & 2) && (m.buttons & 2);
     if (right && !held) {
-        if (!requested)
+        void *ragdoll = ragdoll_of(actor);
+        bool down = ragdoll && AT(ragdoll, RAGDOLL_STATE, int32_t) != 0;
+        if (!down)
             ragdoll_down(actor);
         else
             ragdoll_end(actor);

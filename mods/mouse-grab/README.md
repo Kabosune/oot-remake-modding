@@ -110,7 +110,11 @@ What it logs (lines start with `kaepora:`): `module loaded, main at ...`, `the g
 
 ## Ragdoll test build (`module/ragdoll.c`)
 
-Right click drops Link into ragdoll; the next right click tries to end it. All of it is logged.
+Right click drops Link into ragdoll; right click again gets him up. All of it is logged.
+
+- Tested 10 November: the ragdoll works (KaboWabo). The first try at ending it called the wrong
+  thing; ending now copies what the node does when it leaves (`f_83239090`, then
+  `player[0x1c3e] |= 1`). The ragdoll component's `+0x17c` is 3 while he is down.
 
 - Calls the same three functions the game's `ExecuteEventPlayerImmediateRagdollDown` node calls
   when it starts (`f_80857620`, `f_806188c0`, `f_83238d30` with the `ImmediateDown` request),
