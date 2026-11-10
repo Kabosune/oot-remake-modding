@@ -24,11 +24,12 @@ int _ZN2nn3hid22GetSixAxisSensorStatesEPNS0_18SixAxisSensorStateEiRKNS0_19SixAxi
 
 __attribute__((section(".text_nnmain"))) EXPORT void nnMain(void) {}
 
-static _Alignas(0x1000) uint8_t heap[0x40000];
+static _Alignas(0x1000) uint8_t heap[0x300000];
 static size_t heap_used;
+EXPORT size_t game_heap_limit = sizeof heap;   // a test lowers it to play a game short of memory
 EXPORT void *aligned_alloc(size_t align, size_t size) {
     size_t at = (heap_used + align - 1) / align * align;
-    if (at + size > sizeof heap)
+    if (at + size > game_heap_limit)
         return 0;
     heap_used = at + size;
     return heap + at;

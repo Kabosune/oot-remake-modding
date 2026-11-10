@@ -22,6 +22,7 @@ sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(HERE))
 import emu  # noqa: E402
 import kaemod  # noqa: E402
+import kaepora_font  # noqa: E402
 import kaepora_symbols  # noqa: E402
 
 PACK = kaepora_symbols.load_packs()[0]
@@ -179,15 +180,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaepora: Core 0.2 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaepora: Core 0.3 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
-    g.expect("kaepora: mod kaepora.hello 0.2.0 started", "kaepora: mod kaepora.test-probe 1.2.3 started")
+    g.expect("kaepora: mod kaepora.hello 0.3.0 started", "kaepora: mod kaepora.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaepora [kaepora.test-probe]: start: api 2 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaepora [kaepora.test-probe]: start: api 3 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaepora [kaepora.hello]: hello from its own start. Core API 0.2, game 1.1.1",
+             "kaepora [kaepora.hello]: hello from its own start. Core API 0.3, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -204,9 +205,27 @@ def check_full_run(g, style_set=1):
     assert struct.unpack("<Qi", p.read(g.main.exports["game_moved_actor"], 12)) == (0xABC000, 3)
     # drawing: hello's two squares, then the probe's (priority 10), flipped for a lower-left origin
     unit = 720 // 90
-    assert g.rects() == [(unit * 2 - 2, 720 - (unit * 2 - 2) - (unit * 3 + 4), unit * 3 + 4, unit * 3 + 4, 0x000000),
-                         (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060),   # green: A was held
-                         (10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], g.rects()
+    rects = g.rects()
+    assert rects[:2] == [(unit * 2 - 2, 720 - (unit * 2 - 2) - (unit * 3 + 4), unit * 3 + 4, unit * 3 + 4, 0x000000),
+                         (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
+    assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
+    assert g.sdk_int("sdk_overruns") == 0
+    # between them hello's text plate, its text ("Kaepora Core 0.3: A is held", white) and its picture
+    text_x, text_y = unit * 7, unit * 2
+    plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + 27 * 8]
+    assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
+    # the first glyph's cell, painted from the rectangles (flipped back), is the font's "K"
+    cell = [[0] * 8 for _ in range(16)]
+    for x, y, w, h, _ in text:
+        for yy in range(720 - y - h, 720 - y):
+            for xx in range(x, x + w):
+                if text_x <= xx < text_x + 8:
+                    cell[yy - text_y][xx - text_x] = 1
+    assert [sum(bit << (7 - i) for i, bit in enumerate(row)) for row in cell] == kaepora_font.read_bdf()[ord("K")]
+    assert all(text_x <= r[0] and r[0] + r[2] <= text_x + 27 * 8 and
+               text_y <= 720 - r[1] - r[3] and 720 - r[1] <= text_y + 16 for r in text), "text outside its line"
+    picture = [r for r in rects[3:-2] if r[4] in (0xFFD040,) ]
+    assert len(text) > 60 and len(picture) >= 6, (len(text), len(picture))
     assert g.sdk_int("sdk_presents") == 3 and g.sdk_int("sdk_submits") == 3
     # one frame per poll (the probe counts them), two controller reads per poll
     g.expect("report: frames 3 inputs 6 moves 3 draws 3 actor 0xabc000 size 1280x720",
@@ -245,11 +264,27 @@ def main():
         check_full_run(g, style_set=0)
         print("a system without three of the hoped-for functions: ok (those styles unhooked, frames from the states)")
 
+        # a game whose heap won't give Core the larger drawing memory: Core takes the small amount.
+        # With an NVN that reports free memory everything still fits; without, Core stops at the
+        # number of rectangles it is sure of and never writes past its memory.
+        for sdk, drawn in (("sdk", "all"), ("old-sdk", 128)):
+            g = Game(fakes, separate, sdk=sdk)
+            g.p.unresolved.clear()
+            g.p.write(g.main.exports["game_heap_limit"], struct.pack("<Q", 0x100000))
+            g.game("game_boot")
+            g.set_controller(1)   # A held
+            g.frame(style_set=1 if sdk == "sdk" else 0)
+            g.expect("the game's heap is short, taking the small amount of memory", "drawing ready")
+            count = g.sdk_int("sdk_rect_count")
+            assert g.sdk_int("sdk_overruns") == 0 and (count > 128 if drawn == "all" else count == 128), count
+            assert bool(g.logged("out of command memory")) == (drawn != "all")
+        print("a game short of memory: ok (small drawing memory; rectangles past it are left out, nothing overruns)")
+
         g = Game(fakes, separate, patched=False)
         g.expect("hook points off: main isn't patched")
         g.game("game_boot")
         g.expect("event.actor_move: no", "start: has 1110110", "start: subscribed 0 0 -3 0",
-                 "mod kaepora.hello 0.2.0 started", "mod kaepora.test-probe 1.2.3 started")
+                 "mod kaepora.hello 0.3.0 started", "mod kaepora.test-probe 1.2.3 started")
         for _ in range(3):
             g.frame()
         g.expect("report: frames 3 inputs 6 moves 0 draws 3")
@@ -271,8 +306,8 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.2: unknown game build, doing nothing",
-                 "mod kaepora.hello 0.2.0 is off: this build of the game isn't known to Core",
+        g.expect("Core 0.3: unknown game build, doing nothing",
+                 "mod kaepora.hello 0.3.0 is off: this build of the game isn't known to Core",
                  "mod kaepora.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
         g.set_controller(3)
@@ -280,7 +315,7 @@ def main():
             g.frame()
         assert g.states(0)[0][0] == 3 and g.rects() == [] and not g.logged("start:")
         g = Game(other, bundle, patched=False, lazy=False)
-        g.expect("unknown game build", "mod kaepora.hello 0.2.0 is off", "mod kaepora.test-probe 1.2.3 is off")
+        g.expect("unknown game build", "mod kaepora.hello 0.3.0 is off", "mod kaepora.test-probe 1.2.3 is off")
         print("a game build Core doesn't know: ok (nothing hooked, each mod reported off)")
         # Mouse Grab, the first real mod on Core: it loads, starts, draws its cursor at the (fake) mouse
         # and gets every actor's movement update. Grabbing itself needs the game.
@@ -290,7 +325,7 @@ def main():
             g.p.uc.mem_map(0x40000000, 0x10000)          # an actor that isn't Link: zeroed memory
             g.game("game_boot")
             g.expect("kaepora [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.2.0 started",
-                     "mod kaepora.hello 0.2.0 started")
+                     "mod kaepora.hello 0.3.0 started")
             for _ in range(3):
                 g.frame(actor=0x40000000)
             rects = g.rects()

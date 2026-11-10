@@ -9,7 +9,7 @@
 //   nvnQueuePresentTexture       to draw just before each frame is shown
 //
 // A rectangle is drawn as a clear with a scissor on the texture about to be presented: no shaders
-// and no pixel data. Function signatures and constants are NVN's as publicly documented for the
+// and no pixel data. Text and pictures (text.c) are made of rectangles too. Function signatures and constants are NVN's as publicly documented for the
 // first Switch; object storage is oversized in case the second one's objects are larger.
 #include "core.h"
 
@@ -43,6 +43,9 @@ static struct {
     int (*texture_height)(const nvn_texture *);
     int (*origin_mode)(const nvn_device *);
 } nvn;
+// Not needed to draw: how much room is left in the memory given to a command buffer.
+static size_t (*cmd_command_free)(const nvn_object *);
+static size_t (*cmd_control_free)(const nvn_object *);
 
 static const char *const nvn_names[] = {
     "nvnMemoryPoolBuilderSetDefaults", "nvnMemoryPoolBuilderSetDevice", "nvnMemoryPoolBuilderSetFlags",
@@ -64,10 +67,21 @@ enum {
 
 // Command memory is used in turns: a frame's commands sit in one part, and that part is only
 // written again SLOTS frames later, long after the GPU has run them.
+//
+// How much memory one rectangle's commands take isn't documented. 128 rectangles in 0x4000 bytes
+// of command memory and 0x1000 of control memory is what ran in the game, so that ratio is the
+// one Core counts on (SURE_RECTS). Past it Core asks NVN how much room is left before each
+// rectangle and stops when it runs low; if the game's NVN can't say, it stops at SURE_RECTS.
+// The memory comes from the game's heap. If it won't give the larger amount, Core takes the small
+// amount it has always used and draws fewer rectangles.
 #define SLOTS         8
-#define COMMAND_BYTES 0x4000
-#define CONTROL_BYTES 0x1000
-#define MAX_RECTS     128
+#define MAX_RECTS     8192
+static size_t command_bytes = 0x40000, control_bytes = 0x10000;   // each frame's share
+#define SMALL_COMMAND 0x4000
+#define SMALL_CONTROL 0x1000
+#define SURE_RECTS    ((int)(command_bytes / 128))
+#define LOW_COMMAND   0x400
+#define LOW_CONTROL   0x100
 #define MAX_TEXTURES  8
 
 static void *(*real_bootstrap)(const char *);
@@ -89,6 +103,7 @@ static uint64_t frame_number;
 static struct { int x, y, w, h; uint32_t rgb; } rects[MAX_RECTS];
 static int rect_count;
 static bool in_draw;
+static int most_rects;
 static int frame_width, frame_height;
 
 static bool equal(const char *a, const char *b) {
@@ -124,8 +139,16 @@ static void set_up(void) {
             return;
         }
     }
-    void *command_memory = aligned_alloc(0x1000, SLOTS * COMMAND_BYTES);
-    control_memory = aligned_alloc(0x1000, SLOTS * CONTROL_BYTES);
+    void *command_memory = aligned_alloc(0x1000, SLOTS * command_bytes);
+    control_memory = command_memory ? aligned_alloc(0x1000, SLOTS * control_bytes) : 0;
+    if (!command_memory || !control_memory) {
+        // nothing is given back: the game's free isn't among Core's imports, and this happens once
+        kp_log("drawing: the game's heap is short, taking the small amount of memory");
+        command_bytes = SMALL_COMMAND;
+        control_bytes = SMALL_CONTROL;
+        command_memory = aligned_alloc(0x1000, SLOTS * command_bytes);
+        control_memory = aligned_alloc(0x1000, SLOTS * control_bytes);
+    }
     if (!command_memory || !control_memory) {
         kp_log("drawing off: no memory");
         return;
@@ -134,7 +157,7 @@ static void set_up(void) {
     nvn.pool_builder_defaults(&builder);
     nvn.pool_builder_device(&builder, device);
     nvn.pool_builder_flags(&builder, POOL_CPU_UNCACHED | POOL_GPU_CACHED);
-    nvn.pool_builder_storage(&builder, command_memory, SLOTS * COMMAND_BYTES);
+    nvn.pool_builder_storage(&builder, command_memory, SLOTS * command_bytes);
     if (!nvn.pool_init(&pool, &builder)) {
         kp_log("drawing off: memory pool");
         return;
@@ -144,6 +167,10 @@ static void set_up(void) {
         return;
     }
     lower_left = nvn.origin_mode(device) == ORIGIN_LOWER_LEFT;
+    cmd_command_free = (size_t (*)(const nvn_object *))real_getproc(device, "nvnCommandBufferGetCommandMemoryFree");
+    cmd_control_free = (size_t (*)(const nvn_object *))real_getproc(device, "nvnCommandBufferGetControlMemoryFree");
+    kp_log_2("drawing: rectangles a frame for sure, and whether NVN reports free memory:", SURE_RECTS,
+             cmd_command_free && cmd_control_free);
     state = READY;
     kp_log_2("drawing ready. swapchain textures, origin lower left:", texture_count, lower_left);
 }
@@ -163,11 +190,16 @@ static void draw(nvn_queue *queue, nvn_texture *target) {
         return;
 
     int slot = (int)(frame_number % SLOTS);
-    nvn.cmd_add_command(&commands, &pool, (ptrdiff_t)slot * COMMAND_BYTES, COMMAND_BYTES);
-    nvn.cmd_add_control(&commands, control_memory + slot * CONTROL_BYTES, CONTROL_BYTES);
+    nvn.cmd_add_command(&commands, &pool, (ptrdiff_t)slot * (ptrdiff_t)command_bytes, command_bytes);
+    nvn.cmd_add_control(&commands, control_memory + (size_t)slot * control_bytes, control_bytes);
     nvn.cmd_begin(&commands);
     nvn.cmd_targets(&commands, 1, &target, 0, 0, 0);
-    for (int i = 0; i < rect_count; i++) {
+    bool can_ask = cmd_command_free && cmd_control_free;
+    int drawn = 0;
+    for (int i = 0; i < rect_count; i++, drawn++) {
+        if (i >= SURE_RECTS && (!can_ask || cmd_command_free(&commands) < LOW_COMMAND ||
+                                cmd_control_free(&commands) < LOW_CONTROL))
+            break;
         float rgba[4] = { (float)((rects[i].rgb >> 16) & 255) / 255.0f, (float)((rects[i].rgb >> 8) & 255) / 255.0f,
                           (float)(rects[i].rgb & 255) / 255.0f, 1.0f };
         int y = lower_left ? frame_height - rects[i].y - rects[i].h : rects[i].y;
@@ -175,6 +207,15 @@ static void draw(nvn_queue *queue, nvn_texture *target) {
         nvn.cmd_clear(&commands, 0, rgba, CLEAR_RGBA);
     }
     nvn.cmd_scissor(&commands, 0, 0, SCISSOR_EVERYTHING, SCISSOR_EVERYTHING);
+    if (rect_count > most_rects) {
+        // a new record: say how much it took, so the real cost of a rectangle is known
+        most_rects = rect_count;
+        if (can_ask)
+            kp_log_2("drawing: most rectangles in a frame so far, command bytes used:", rect_count,
+                     (int64_t)command_bytes - (int64_t)cmd_command_free(&commands));
+        if (drawn < rect_count)
+            kp_log_2("drawing: out of command memory. rectangles drawn, asked for:", drawn, rect_count);
+    }
     uint64_t handle = nvn.cmd_end(&commands);
     nvn.queue_submit(queue, 1, &handle);
 }

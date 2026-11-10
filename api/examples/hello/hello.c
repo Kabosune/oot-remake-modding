@@ -1,5 +1,5 @@
 // Hello: the smallest Kaepora mod. A small square in the top left corner that turns green while
-// A is held, and a log line every 300 frames. It is also Core's test mod: its log lines show
+// A is held, a line of text and a small picture next to it, and a log line every 300 frames. It is also Core's test mod: its log lines show
 // which parts of Core work in the running game.
 #include <kaepora.h>
 
@@ -28,17 +28,39 @@ static void actor_move(void *actor, void *user) {
     moves++;
 }
 
+// An 8 x 8 picture: a yellow diamond with a white middle. 0 is see-through.
+#define Y_ 0xFFFFD040
+#define W_ 0xFFFFFFFF
+static const uint32_t diamond[8 * 8] = {
+    0,  0,  0,  Y_, Y_, 0,  0,  0,
+    0,  0,  Y_, Y_, Y_, Y_, 0,  0,
+    0,  Y_, Y_, W_, W_, Y_, Y_, 0,
+    Y_, Y_, W_, W_, W_, W_, Y_, Y_,
+    Y_, Y_, W_, W_, W_, W_, Y_, Y_,
+    0,  Y_, Y_, W_, W_, Y_, Y_, 0,
+    0,  0,  Y_, Y_, Y_, Y_, 0,  0,
+    0,  0,  0,  Y_, Y_, 0,  0,  0,
+};
+
 static void draw(const KaeFrame *f, void *user) {
     (void)user;
     int unit = f->height / 90;
     kae_draw_rect(unit * 2 - 2, unit * 2 - 2, unit * 3 + 4, unit * 3 + 4, 0x000000);
     kae_draw_rect(unit * 2, unit * 2, unit * 3, unit * 3, a_held ? 0x40E060 : 0x40C0FF);
+    // text at about a 45th of the picture's height, on a dark plate so it reads over anything
+    int scale = f->height / 720 > 0 ? f->height / 720 : 1;
+    const char *text = a_held ? "Kaepora Core 0.3: A is held" : "Kaepora Core 0.3: hello!";
+    int x = unit * 7, y = unit * 2;
+    kae_draw_rect(x - 4, y - 4, kae_text_width(scale, text) + 8 * scale * 2 + 12, kae_text_height(scale, text) + 8, 0x101820);
+    x = kae_draw_text(x, y, scale, 0xFFFFFF, text);
+    kae_draw_image(x + 4 * scale, y + 4 * scale, 8, 8, diamond, scale);
 }
 
 static int start(void) {
     KAE_LOG("hello from its own start. Core API %u.%u, game %s", kae_api_version() >> 16,
             kae_api_version() & 0xFFFF, kae_game_version());
-    static const char *const features[] = { "event.frame", "event.input", "event.draw", "event.actor_move", "motion" };
+    static const char *const features[] = { "event.frame", "event.input", "event.draw", "event.actor_move", "motion",
+                                            "draw.text", "draw.image" };
     for (unsigned i = 0; i < sizeof features / sizeof *features; i++)
         KAE_LOG("  %s: %s", features[i], kae_has(features[i]) ? "yes" : "no");
     KAE_LOG("  CctChangePosition at %p, Actor.position at +0x%llx", kae_sym("CctChangePosition"),
@@ -54,4 +76,4 @@ static int start(void) {
     return 0;
 }
 
-KAE_MOD("kaepora.hello", "0.2.0", start, 0);
+KAE_MOD("kaepora.hello", "0.3.0", start, 0);

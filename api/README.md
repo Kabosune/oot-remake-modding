@@ -17,6 +17,7 @@ who patches what, and a small core module that mods call instead of patching the
 | Part | State |
 |---|---|
 | Core 0.2: mods register and start, events (`frame`, `input`, `draw`, `actor_move`), symbols by name, log, memory pool, motion | Written and tested in the game (10 November, Fritchii, game 1.1.1): Hello registered, started, drew and reacted to the A button. Also passes its tests on a PC, including the real AArch64 modules run in an emulator against a fake game |
+| API 0.3: text (`kae_draw_text`) and small pictures (`kae_draw_image`), on the branch `kaepora-draw-text` | Written, passes its tests on a PC. **Not tested in the game yet** |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaepora check / install / build`, the registry, romfs patches (levels 1 and 2) | Design only |

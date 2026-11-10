@@ -77,19 +77,30 @@ EXPORT int _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(mouse_state_t *out, in
 
 // ---- NVN: just enough to see what Core draws ----
 typedef struct { int x, y, w, h; uint32_t rgb; } rect_t;
-EXPORT rect_t sdk_rects[64];           // the clears of the newest frame, with their scissor
+EXPORT rect_t sdk_rects[1024];          // the clears of the newest frame, with their scissor
 EXPORT int sdk_rect_count, sdk_submits, sdk_presents, sdk_other_hook_calls;
 static int scissor[4];
 
 static void nothing(void) {}
 static int yes(void) { return 1; }
+// Command memory, counted the way NVN would: each clear with its scissor costs RECT_COST bytes.
+#define RECT_COST 72
+static size_t command_left;
+EXPORT int sdk_overruns;               // clears recorded with no command memory left: must stay 0
+static void add_command(void *cmd, const void *pool, long offset, size_t size) { (void)cmd; (void)pool; (void)offset; command_left = size; }
+__attribute__((unused)) static size_t command_free(const void *cmd) { (void)cmd; return command_left; }
+__attribute__((unused)) static size_t control_free(const void *cmd) { (void)cmd; return 0x800; }
 static void set_scissor(void *cmd, int x, int y, int w, int h) {
     (void)cmd;
     scissor[0] = x; scissor[1] = y; scissor[2] = w; scissor[3] = h;
 }
 static void clear(void *cmd, int index, const float *rgba, int mask) {
     (void)cmd; (void)index; (void)mask;
-    if (sdk_rect_count < 64)
+    if (command_left < RECT_COST)
+        sdk_overruns++;
+    else
+        command_left -= RECT_COST;
+    if (sdk_rect_count < 1024)
         sdk_rects[sdk_rect_count++] = (rect_t){ scissor[0], scissor[1], scissor[2], scissor[3],
             ((uint32_t)(rgba[0] * 255.0f + 0.5f) << 16) | ((uint32_t)(rgba[1] * 255.0f + 0.5f) << 8) | (uint32_t)(rgba[2] * 255.0f + 0.5f) };
 }
@@ -108,10 +119,13 @@ static void *getproc(void *device, const char *name) {
         { "nvnMemoryPoolBuilderSetDefaults", nothing }, { "nvnMemoryPoolBuilderSetDevice", nothing },
         { "nvnMemoryPoolBuilderSetFlags", nothing }, { "nvnMemoryPoolBuilderSetStorage", nothing },
         { "nvnMemoryPoolInitialize", yes }, { "nvnCommandBufferInitialize", yes },
-        { "nvnCommandBufferAddCommandMemory", nothing }, { "nvnCommandBufferAddControlMemory", nothing },
+        { "nvnCommandBufferAddCommandMemory", add_command }, { "nvnCommandBufferAddControlMemory", nothing },
         { "nvnCommandBufferBeginRecording", begin }, { "nvnCommandBufferEndRecording", end },
         { "nvnCommandBufferSetRenderTargets", nothing }, { "nvnCommandBufferSetScissor", set_scissor },
         { "nvnCommandBufferClearColor", clear }, { "nvnQueueSubmitCommands", submit },
+        #ifndef OLD_SDK
+        { "nvnCommandBufferGetCommandMemoryFree", command_free }, { "nvnCommandBufferGetControlMemoryFree", control_free },
+#endif
         { "nvnTextureGetWidth", width }, { "nvnTextureGetHeight", height }, { "nvnDeviceGetWindowOriginMode", origin },
     };
     for (size_t i = 0; i < sizeof table / sizeof *table; i++)

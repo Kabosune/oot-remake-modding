@@ -172,7 +172,7 @@ static void test_events(void) {
     CHECK(result == KAE_ERR_FULL);
     kp_event_on[KP_EV_ACTOR_MOVE] = false;                // Core's patch missing
     CHECK(kae_on_actor_move(actor_note, "m", 0) == KAE_ERR_UNAVAILABLE);
-    CHECK(kae_has("event.frame") && kae_has("draw.rect") && !kae_has("event.actor_move") && !kae_has("motion"));
+    CHECK(kae_has("event.frame") && kae_has("draw.rect") && kae_has("draw.text") && kae_has("draw.image") && !kae_has("event.actor_move") && !kae_has("motion"));
     CHECK(!kae_has("no.such.thing") && !kae_has(0) && kae_has("alloc") && kae_has("symbols"));
 }
 
@@ -232,10 +232,80 @@ static void test_alloc(void) {
     CHECK(kae_alloc(1) == p[0]);
 }
 
+// ---- text and pictures: text.c turns them into rectangles; here the rectangles are painted ----
+#include "font_gen.h"
+#define CANVAS 96
+static uint32_t canvas[CANVAS][CANVAS];   // 0 = untouched, else 0xFF000000 | rgb
+static int rect_calls;
+void kae_draw_rect(int x, int y, int w, int h, uint32_t rgb) {
+    rect_calls++;
+    CHECK(w > 0 && h > 0);
+    for (int yy = y; yy < y + h; yy++)
+        for (int xx = x; xx < x + w; xx++) {
+            CHECK(xx >= 0 && yy >= 0 && xx < CANVAS && yy < CANVAS);
+            CHECK(!canvas[yy][xx]);                       // nothing is painted twice
+            canvas[yy][xx] = 0xFF000000 | rgb;
+        }
+}
+static bool glyph_bit(uint32_t code, int col, int row) { return (kp_font_glyph(code)[row] >> (7 - col)) & 1; }
+// The canvas from (x, y) shows `code` at `scale` in `rgb`, and nothing else in that cell.
+static void check_glyph(int x, int y, int scale, uint32_t rgb, uint32_t code) {
+    for (int row = 0; row < 16 * scale; row++)
+        for (int col = 0; col < 8 * scale; col++)
+            CHECK(canvas[y + row][x + col] == (glyph_bit(code, col / scale, row / scale) ? 0xFF000000 | rgb : 0));
+}
+
+static void test_text(void) {
+    CHECK(kae_text_width(1, "abc") == 24 && kae_text_width(3, "ab\nabcd\na") == 96 && kae_text_width(1, "") == 0);
+    CHECK(kae_text_height(1, "abc") == 16 && kae_text_height(2, "a\nb\n") == 96 && kae_text_width(0, "a") == 0);
+    CHECK(kae_text_width(1, "\xC3\xA9t\xC3\xA9") == 24);          // "été": three characters, five bytes
+    // one line, then a second one under it; the pen comes back
+    CHECK(kae_draw_text(4, 2, 1, 0x112233, "Kp\n!") == 4 + 8);
+    check_glyph(4, 2, 1, 0x112233, 'K');
+    check_glyph(12, 2, 1, 0x112233, 'p');
+    check_glyph(4, 18, 1, 0x112233, '!');
+    CHECK(rect_calls < 40);                                         // runs, not single pixels
+    // scaled, Latin-1, and what the font doesn't have
+    memset(canvas, 0, sizeof canvas);
+    CHECK(kae_draw_text(0, 0, 2, 0xABCDEF, "\xC3\xA9") == 16);       // U+00E9
+    check_glyph(0, 0, 2, 0xABCDEF, 0xE9);
+    memset(canvas, 0, sizeof canvas);
+    CHECK(kae_draw_text(0, 0, 1, 1, "\xE2\x82\xAC\xFF\xC3") == 24);  // a euro sign, a stray byte, a cut-off sequence
+    for (int i = 0; i < 3; i++)
+        check_glyph(8 * i, 0, 1, 1, '?');
+    CHECK(kae_draw_text(5, 5, 0, 1, "x") == 5 && kae_draw_text(5, 5, 1, 1, 0) == 5);
+    // a space draws nothing
+    memset(canvas, 0, sizeof canvas);
+    rect_calls = 0;
+    CHECK(kae_draw_text(0, 0, 1, 1, "   ") == 24 && rect_calls == 0);
+}
+
+static void test_image(void) {
+    enum { R = 0xFFFF0000, G = 0x80008000, T = 0x7F123456, U = 0x00FFFFFF };   // T and U are see-through
+    static const uint32_t picture[4 * 4] = {
+        R, R, T, G,
+        R, R, U, G,
+        T, U, T, U,
+        G, R, R, R,
+    };
+    kae_draw_image(10, 20, 4, 4, picture, 3);
+    for (int row = 0; row < 4 * 3; row++)
+        for (int col = 0; col < 4 * 3; col++) {
+            uint32_t pixel = picture[(row / 3) * 4 + col / 3];
+            CHECK(canvas[20 + row][10 + col] == ((pixel >> 24) >= 0x80 ? 0xFF000000 | (pixel & 0xFFFFFF) : 0));
+        }
+    CHECK(rect_calls == 4);     // rows 0 and 1 as one (R block, G bar), row 2 nothing, row 3 two runs
+    kae_draw_image(0, 0, 0, 4, picture, 1);
+    kae_draw_image(0, 0, 4, 4, 0, 1);
+    kae_draw_image(0, 0, 4, 4, picture, 0);
+    CHECK(rect_calls == 4);
+}
+
 int main(int argc, char **argv) {
     static const struct { const char *name; void (*run)(void); } tests[] = {
         { "format", test_format }, { "mods", test_mods }, { "unknown-game", test_unknown_game },
         { "events", test_events }, { "symbols", test_symbols }, { "alloc", test_alloc },
+        { "text", test_text }, { "image", test_image },
     };
     for (size_t i = 0; i < sizeof tests / sizeof *tests; i++)
         if (argc == 2 && !strcmp(argv[1], tests[i].name)) {
