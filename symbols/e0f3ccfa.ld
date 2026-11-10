@@ -23,6 +23,9 @@ PLT_GETNPAD_JOYLEFT  = 0x83c62810; /* nn::hid::GetNpadStates for style bit 3 (Jo
 PLT_GETNPAD_JOYRIGHT = 0x83c62820; /* nn::hid::GetNpadStates for style bit 4 (Joy-Con right, by its use) */
 PLT_GETNPAD_HANDHELD = 0x83c62830; /* nn::hid::GetNpadStates(NpadHandheldState*, int, uint const&) */
 PLT_GETKEYBOARD      = 0x83c64810; /* nn::hid::GetKeyboardState(KeyboardState*): keys bitset at +0x10 */
+PLT_GETMOUSESTATES   = 0x83c64800; /* nn::hid::GetMouseStates(MouseState*, int): returns the number written */
+PLT_GETSIXAXIS       = 0x83c628a0; /* nn::hid::GetSixAxisSensorStates(SixAxisSensorState*, int, SixAxisSensorHandle const&) */
+GAME_MOUSE_READ_RET  = 0x83b487b0; /* where the game's one GetMouseStates call returns (in f_83b48780) */
 
 /* --- hook sites used by mods in this repo (resume = site + 4) --- */
 HOOK_VIEW        = 0x804e5068;  /* in f_804e48c0, right after the view matrix is written: ldr x8, [x19, #0x20] */
@@ -38,3 +41,4 @@ HOOK_MOVE_RET    = 0x82c415e4;
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */
 DRONE_STATE      = 0x84ebfd00;  /* 0x100 bytes, FPV drone */
+PROBE_STATE      = 0x84ebfe00;  /* 0x100 bytes, mouse-grab's input probe */
