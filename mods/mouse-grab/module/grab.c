@@ -30,9 +30,10 @@
 #define MAX_CANDIDATES 96
 // Depth works like a mouse: turning the controller moves him, holding it still keeps him where
 // he is, and slow turns below GYRO_DEAD don't count, so you can turn back slowly and flick again.
-#define DEPTH_PER_RAD  3.0f        // metres of depth per radian of pitch, at slow speed
-#define GYRO_ACCEL     0.6f        // faster turns go further: gain * (1 + GYRO_ACCEL * rad/s)
-#define GYRO_DEAD      0.35f       // rad/s
+#define DEPTH_PER_RAD  1.0f        // metres of depth per radian of pitch, at slow speed
+#define GYRO_ACCEL     0.25f       // faster turns go further: gain * (1 + GYRO_ACCEL * rad/s)
+#define GYRO_DEAD      0.5f        // rad/s
+#define GYRO_SMOOTH    0.35f       // how much of a frame's turn counts at once (the rest follows)
 #define MIN_DEPTH      0.8f
 #define MAX_DEPTH      40.0f
 #define TICK_HZ        19200000.0f
@@ -118,6 +119,7 @@ static struct {
     bool held_button, grabbing, held_middle, one_body;
     float depth;          // distance along the ray when grabbed
     float last_pitch;     // controller pitch last frame (radians)
+    float depth_velocity; // smoothed depth change per frame
     bool have_pitch;
     v3 point, last_point; // held point (Link's middle)
     v3 velocity;
@@ -188,6 +190,7 @@ void grab_move(void *actor) {
             g.velocity = (v3){ 0, 0, 0 };
             g.frames = 0;
             g.have_pitch = controller_pitch(&g.last_pitch);
+            g.depth_velocity = 0;
             if (best != actor) {
                 const char *name = AT(best, 0x20, const char *);
                 kp_log(name && kp_readable((uintptr_t)name, 1) ? name : "grab: holding a character");
@@ -202,8 +205,10 @@ void grab_move(void *actor) {
             if (g.have_pitch) {
                 turned = pitch - g.last_pitch;
                 float rate = (turned < 0 ? -turned : turned) / dt;
-                if (rate > GYRO_DEAD)
-                    g.depth -= turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate);   // sign: the opposite of the first build, as KaboWabo asked
+                float step = rate > GYRO_DEAD ? turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate) : 0;
+                // pitch up (positive) moves him away from the camera
+                g.depth_velocity += (step - g.depth_velocity) * GYRO_SMOOTH;
+                g.depth += g.depth_velocity;
             }
             g.last_pitch = pitch;
             g.have_pitch = true;

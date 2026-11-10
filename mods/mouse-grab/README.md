@@ -174,6 +174,11 @@ between pulling every body and pulling only the first. The throw gives every bod
   stick). KaboWabo asked for it reversed and mouse-like, so now only the turning counts: each
   frame's change of pitch moves him, faster turns go further, and turns slower than `GYRO_DEAD`
   are ignored so the controller can be brought back slowly.
+  Third try: the second was far too sensitive and still the wrong way round. Now pitch up moves
+  him away; gain is a third of before, the dead zone is wider and the depth change is smoothed.
+- Fritchii seems to read a mod's exefs files when the app starts, not when the game boots: a
+  build installed while the app was open didn't load until the app was closed and reopened. The
+  module logs a build name at start (`mouse grab: build ...`) to make this visible.
 - `module/actors.c` (survey 3): the first time each physics actor passes through the movement
   update, it logs its name (`char*` at `+0x20`) and whether it has a ragdoll component, with the
   number of bodies. Result (Castle Town, Market, Hyrule Field, 10 November): only `Player` has
