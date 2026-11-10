@@ -79,6 +79,7 @@ typedef struct {
 } ragdoll_end_t;
 
 static uint32_t down_frames;
+void survey2(void *actor, void *holder, int pass);
 
 static bool held;
 static bool requested;
@@ -152,6 +153,29 @@ static void ragdoll_end(void *actor) {
     report(actor, ragdoll ? "ragdoll: end requested" : "ragdoll: no ragdoll component to end");
 }
 
+// The ragdoll's bodies, found in f_83237d70 (which the start request calls to hand the controller's
+// velocity to every ragdoll body): set = [ragdoll+0x40], count [set+0x60] - 1, entries of 0x138
+// bytes from [set+0x68], body (the same wrapper class as the controller's body) at entry+0x38.
+#define BODY_VT 0x4C34658
+int ragdoll_bodies(void *actor, void **out, int max) {
+    char *r = ragdoll_of(actor);
+    char *set = r ? AT(r, 0x40, char *) : 0;
+    if (!set || !kp_readable((uintptr_t)set, 0x70))
+        return 0;
+    int count = AT(set, 0x60, int32_t) - 1;
+    char *entries = AT(set, 0x68, char *);
+    int n = 0;
+    for (int i = 0; i < count && n < max; i++) {
+        char *e = entries + 0x138 * i;
+        if (!kp_readable((uintptr_t)e + 0x38, 8))
+            break;
+        void *body = AT(e, 0x38, void *);
+        if (body && kp_readable((uintptr_t)body, 8) && AT(body, 0, uintptr_t) == kp_main + BODY_VT)
+            out[n++] = body;
+    }
+    return n;
+}
+
 bool ragdoll_is_down(void *actor) {
     void *r = ragdoll_of(actor);
     return r && AT(r, RAGDOLL_STATE, int32_t) != 0;
@@ -194,6 +218,8 @@ void ragdoll_move(void *actor) {
     void *rd = ragdoll_of(actor);
     if (rd && AT(rd, RAGDOLL_STATE, int32_t) != 0) {
         ++down_frames;
+        if (down_frames == 40 || down_frames == 50)
+            survey2(actor, KP_FN(void *(*)(void *), F_HOLDER)(actor), down_frames == 50);
     } else {
         down_frames = 0;
     }

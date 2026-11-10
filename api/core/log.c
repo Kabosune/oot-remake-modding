@@ -60,3 +60,15 @@ void kp_log_2(const char *text, int64_t a, int64_t b) {
     o = put_dec(put(o, end, " "), end, b);
     out(line, (size_t)(o - line));
 }
+
+// "text a b c ..." with each float printed in thousandths (1.5 -> 1500); up to 12 per line.
+void kp_log_floats(const char *text, const float *values, int count) {
+    char line[LINE], *end = line + LINE;
+    char *o = put(put(line, end, TAG), end, text);
+    for (int i = 0; i < count && i < 12; i++) {
+        float v = values[i];
+        int64_t m = v != v ? -999999999 : v > 9e6f ? 999999999 : v < -9e6f ? -999999999 : (int64_t)(v * 1000.0f);
+        o = put_dec(put(o, end, " "), end, m);
+    }
+    out(line, (size_t)(o - line));
+}

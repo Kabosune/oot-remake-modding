@@ -8,6 +8,7 @@
 void kp_log(const char *text);
 void kp_log_hex(const char *text, uint64_t value);                  // "text 0x1234"
 void kp_log_2(const char *text, int64_t a, int64_t b);              // "text 12 34"
+void kp_log_floats(const char *text, const float *values, int count); // in thousandths, up to 12
 
 // ---- memory ----
 bool kp_readable(uintptr_t address, size_t size);   // mapped and readable

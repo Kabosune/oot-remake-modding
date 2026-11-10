@@ -128,7 +128,7 @@ Right click drops Link into ragdoll; right click again gets him up. All of it is
 - Mouse Probe is retired: the hook stubs use its code cave space, so the two can't be installed
   together.
 
-## Survey of the ragdoll (`module/survey.c`, 10 November)
+## Survey of the ragdoll (first `module/survey.c`, 10 November; in git history)
 
 Run once a second after Link went down, following pointers from the ragdoll component. Found
 (holder = `[ragdoll + 0x10]`, the same object `f_80857620` returns):
@@ -155,6 +155,14 @@ camera fields); he's held at the distance he was grabbed at.
 - Tested: carry and throw work. Thrown, he only went limp when he landed (the request was
   accepted at once: state 3). Now the ragdoll start also runs the player preparation the game's
   node does first (see `ragdoll.c`), and the throw velocity is set after it.
+
+**The ragdoll's bodies (found 10 November).** `f_83237d70`, which the start request calls to hand the
+controller's velocity to the ragdoll, shows where they are: `set = [ragdoll + 0x40]`, count
+`[set + 0x60] - 1`, entries of 0x138 bytes from `[set + 0x68]`, and in each entry at `+0x38` a body of
+the same wrapper class as the controller's (`f_8014dbe0` sets its velocity). So the carry now
+keeps him a ragdoll and pulls the bodies toward the held point every frame; middle click switches
+between pulling every body and pulling only the first. The throw gives every body the velocity.
+`module/survey.c` now dumps the 0x70-byte arrays (survey 2) a second after he goes down.
 
 ## Plan
 
