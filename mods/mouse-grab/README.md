@@ -108,6 +108,22 @@ initialises last wins, so disable sloperinaGZ while testing this.
 What it logs (lines start with `kaepora:`): `module loaded, main at ...`, `the game asked for NVN`,
 `drawing ready`, `first frame, picture size W H`, and the cursor position every 300 frames.
 
+## Ragdoll test build (`module/ragdoll.c`)
+
+Right click drops Link into ragdoll; the next right click tries to end it. All of it is logged.
+
+- Calls the same three functions the game's `ExecuteEventPlayerImmediateRagdollDown` node calls
+  when it starts (`f_80857620`, `f_806188c0`, `f_83238d30` with the `ImmediateDown` request),
+  from Link's movement update. It doesn't copy the node's state change or its per-frame update.
+- Ending uses `OneShotRagdollReactionEnd`'s call (`f_82eb2f80` on the reaction component at
+  `[components + 0x390]`); not known to be the right one for this kind of ragdoll.
+- Game logic must run on the game's thread, so this build adds Kaepora's first **hook point**:
+  `api/core/hookpoints.S`, patched in by the mod's `.ips`, jumps from the movement update's second
+  instruction to a stub that calls the function the module put in `KP_HOOK_SLOTS`. It sits right
+  after FPV Drone's hook, so both work together. `tests/test_kaepora_hooks.py` checks the stub.
+- Mouse Probe is retired: the hook stubs use its code cave space, so the two can't be installed
+  together.
+
 ## Plan
 
 1. Probe: what does the emulator feed the game (this step).

@@ -12,7 +12,7 @@ then add yourself.
 | `0x3C46400..0x3C46410`, `0x3C46440..0x3C46454` | [sloperinaGZ](https://github.com/PracticeROM/sloperina) 0.0.3: an `OOTGZ` tag and the jump into its `subsdk9` module. **Inside Ultrawide's range**: don't expect those two to work together |
 | `0x3C46610..0x3C46B00` | FPV Drone (this repo): hooks + constant table (about 470 bytes used) |
 | `0x3C46B00..0x3C46FB0` | First Person (this repo) |
-| `0x3C46310..0x3C46400` | Mouse Grab's input probe (this repo; a test build, 116 bytes used) |
+| `0x3C46310..0x3C46400` | Mouse Grab (this repo): Kaepora's hook point stubs (Mouse Probe used it before; the probe is retired and can't be installed alongside) |
 | everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46FB0..0x3C47000` (80) |
 
 There's no dead code to use as a second cave: no function in `.text` is unreferenced (every
@@ -48,7 +48,7 @@ reference, relocation or data pointer reaches past it (checked by scanning all o
 |---|---|
 | `0x84ebfc00..0x84ebfc40` | First Person state |
 | `0x84ebfd00..0x84ebfe00` | FPV Drone state |
-| `0x84ebfb00..0x84ebfc00` | Mouse Grab's input probe state |
+| `0x84ebfb00..0x84ebfc00` | Kaepora hook slots (Mouse Grab): one function pointer per hook point |
 | `0x84ebfe00..0x84ec0000` | **Lichii's built-in patches** (Fritchii v5.6). Dynamic FPS keeps its last tick and smoothed frame time at `0x84ebfe00` / `+8`; the high refresh rate patch uses `0x84ebfe20` on. Writing here changes the game's speed |
 | everything else | free |
 
@@ -65,7 +65,8 @@ together in game hasn't been tried (its levitate option toggles on L3, like the 
 | `0x804e506c` | FPV Drone (view; runs after First Person's `0x804e5068`) |
 | `0x82c415e0` | FPV Drone (first instruction of the movement update: carrying Link) |
 | `0x83c627fc`, `0x83c6280c`, `0x83c6281c`, `0x83c6282c`, `0x83c6283c` | FPV Drone (the `br x17` of each `GetNpadStates` import stub) |
-| `0x83c627ec`, `0x83c628ac`, `0x83c6480c` | Mouse Grab's input probe (the `br x17` of the `GetNpadStyleSet`, `GetSixAxisSensorStates` and `GetMouseStates` import stubs) |
+| `0x82c415e4` | Mouse Grab / Kaepora: hook point "movement update" (the instruction after FPV Drone's) |
+| `0x83c627ec`, `0x83c628ac`, `0x83c6480c` | Mouse Probe (retired) (the `br x17` of the `GetNpadStyleSet`, `GetSixAxisSensorStates` and `GetMouseStates` import stubs) |
 | `main+0x805bd0` | Lichii built-in "Max Resolution" |
 | `main+0x4f1e8, 0x20c2b0, 0x23b9a8, 0x25d76c, 0x33b82c, 0x774368, 0x3485cc0, 0x3b5c758` | Ultrawide |
 | `main+0x6e0f04..`, `0x3af1920`, `0x3af1994`, `0x3b4ef90..` | TheCraZyDuDee's FPS mods |

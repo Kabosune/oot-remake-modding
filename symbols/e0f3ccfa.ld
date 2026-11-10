@@ -37,9 +37,11 @@ HOOK_VIEW2_RET   = 0x804e5070;
 HOOK_VIEW2_TAKEN = 0x804e5b78;  /* where that cbz goes */
 HOOK_MOVE        = 0x82c415e0;  /* f_82c415e0's first instruction: pacibsp; x0 = actor */
 HOOK_MOVE_RET    = 0x82c415e4;
+MOVE_SECOND_RET  = 0x82c415e8;  /* after the movement update's second instruction (str d10, [sp, #-0x80]!) */
 
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */
 DRONE_STATE      = 0x84ebfd00;  /* 0x100 bytes, FPV drone */
-PROBE_STATE      = 0x84ebfb00;  /* 0x100 bytes, mouse-grab's input probe */
+PROBE_STATE      = 0x84ebfb00;  /* 0x100 bytes, mouse-grab's input probe (retired; Kaepora's hook slots now) */
+KP_HOOK_SLOTS    = 0x84ebfb00;  /* Kaepora Core: one 8-byte function pointer per hook point, set by the module */
 /* 0x84ebfe00..0x84ec0000 belongs to Lichii's built-in patches (Dynamic FPS state): keep out */

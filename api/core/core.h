@@ -34,6 +34,14 @@ typedef struct {
 void kp_draw_rect(int x, int y, int w, int h, uint32_t rgb);
 bool kp_draw_start(void);            // hooks the game's NVN; false if main's import wasn't found
 
+// ---- hook points (need the mod's patch to main) ----
+// move(actor) runs on the game's thread for every physics actor, every frame.
+bool kp_hooks_start(void (*move)(void *actor));
+
+// ---- the game's own functions ----
+// The address of a function of main by its module offset (address in symbols/ minus 0x80020000).
+#define KP_FN(type, offset) ((type)(kp_main + (offset)))
+
 // ---- the mod linked into this module ----
 void mod_init(void);
 void mod_draw(const kp_frame_t *frame);

@@ -20,7 +20,14 @@ import mknso  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
 SLOT = "subsdk1"
-SOURCES = [CORE / "crt0.S", CORE / "core.c", CORE / "log.c", CORE / "imports.c", CORE / "draw.c", HERE / "module" / "cursor.c"]
+SOURCES = [CORE / "crt0.S", CORE / "core.c", CORE / "log.c", CORE / "imports.c", CORE / "draw.c", CORE / "hooks.c",
+           HERE / "module" / "cursor.c", HERE / "module" / "ragdoll.c"]
+sys.path.insert(0, str(REPO / "tools"))
+import nxpatch  # noqa: E402
+BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
+# Kaepora's hook point stubs live in the cave Mouse Probe used (it is retired).
+HOOK_REGIONS = [(0x3C46310, 0x3C46400, [".text.hook", ".text", ".data", ".bss"])]
+HOOK_SITES = [(0x82C415E4, 0xFC180FEA, "kp_hook_move")]   # str d10, [sp, #-0x80]!
 # What the module may import, and which of the game's modules exports it.
 IMPORTS = {
     "nnMain": "main",
@@ -33,8 +40,8 @@ CFLAGS = ["--target=aarch64-none-elf", "-O2", "-fPIC", "-ffreestanding", "-fno-b
           "-std=c11", f"-I{CORE}"]
 README = """Mouse Grab, cursor test build (Ocarina of Time, Switch 2, game version 1.1.1)
 
-Draws a cursor at the mouse position. In an emulator, turn on its emulated mouse.
-exefs/subsdk1 is the whole mod; it patches nothing in main.
+Draws a cursor at the mouse position. Right click: Link ragdolls (test). In an emulator, turn
+on its emulated mouse. exefs/subsdk1 is the mod; the .ips adds one hook point to main.
 """
 
 
@@ -64,8 +71,15 @@ def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--name", default="Mouse Grab", help="mod folder name inside the zip")
     p.add_argument("--out", type=Path, default=REPO / "releases" / "mouse-grab.zip")
+    p.add_argument("--verify-main", type=Path, help="flat main image to check the patch against")
     p.add_argument("--keep", type=Path, help="also keep module.elf and the NSO in this folder")
     a = p.parse_args()
+    records, used, _ = nxpatch.build_regions([CORE / "hookpoints.S"], REPO / "symbols" / "e0f3ccfa.ld", HOOK_REGIONS,
+                                             HOOK_SITES, {})
+    if a.verify_main:
+        nxpatch.verify(records, a.verify_main)
+        print("patch verified against", a.verify_main)
+    ips = nxpatch.ips32(records)
     with tempfile.TemporaryDirectory() as tmp:
         work = a.keep or Path(tmp)
         work.mkdir(parents=True, exist_ok=True)
@@ -74,10 +88,10 @@ def main():
         (work / SLOT).write_bytes(nso)
     a.out.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(a.out, "w", zipfile.ZIP_DEFLATED) as z:
-        for name, blob in ((f"exefs/{SLOT}", nso), ("README.txt", README.encode())):
+        for name, blob in ((f"exefs/{SLOT}", nso), (f"exefs/{BUILD_ID}.ips", ips), ("README.txt", README.encode())):
             info = zipfile.ZipInfo(f"{TITLE_ID}/{a.name}/{name}", date_time=(2026, 1, 1, 0, 0, 0))
             z.writestr(info, blob)
-    print(f"{SLOT}: {len(nso)} bytes -> {a.out}")
+    print(f"{SLOT}: {len(nso)} bytes, hook stubs {used[HOOK_REGIONS[0][0]]} bytes -> {a.out}")
 
 
 if __name__ == "__main__":

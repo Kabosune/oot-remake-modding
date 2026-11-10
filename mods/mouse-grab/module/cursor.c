@@ -1,18 +1,7 @@
 // Mouse Grab, step one: a cursor at the mouse position.
 #include "core.h"
 
-typedef struct {
-    int64_t sample;
-    int32_t x, y;            // 0..1279, 0..719
-    int32_t dx, dy;
-    int32_t wheel_x, wheel_y;
-    uint32_t buttons;        // bit 0 left, bit 1 right, bit 2 middle
-    uint32_t attributes;     // bit 1: a mouse is connected
-} mouse_state_t;
-_Static_assert(sizeof(mouse_state_t) == 0x28, "nn::hid::MouseState");
-
-// nn::hid::GetMouseStates(nn::hid::MouseState*, int), exported by sdk
-int _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(mouse_state_t *states, int count);
+#include "input.h"
 
 enum { MOUSE_WIDTH = 1280, MOUSE_HEIGHT = 720, MOUSE_CONNECTED = 2 };
 enum { BLACK = 0x000000, WHITE = 0xFFFFFF, HELD = 0xFFD040 };
@@ -43,8 +32,11 @@ static const char *const arrow[] = {
 
 static bool logged_missing;
 
+void ragdoll_move(void *actor);
+
 void mod_init(void) {
-    kp_log("mouse grab: cursor build");
+    kp_log("mouse grab: ragdoll test build");
+    kp_hooks_start(ragdoll_move);
 }
 
 // One rectangle for each run of the same kind of cell in a row.
