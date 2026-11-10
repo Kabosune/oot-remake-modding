@@ -1,5 +1,7 @@
 # First Person
 
+Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/releases/first-person.zip
+
 Press **R3** (click the right stick) to switch to Link's eyes. Press it again to switch back.
 
 - Right stick looks around, left stick walks in the direction you look. The game's own camera
