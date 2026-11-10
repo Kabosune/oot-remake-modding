@@ -1,6 +1,6 @@
 # Kaepora: a shared modding standard for the Ocarina of Time remake
 
-**Draft 0.2, 9 November 2026. A design, not yet software.** Nothing here is implemented or tested
+**Draft 0.3, 9 November 2026. A design, not yet software.** Nothing here is implemented or tested
 unless it says so. "Kaepora" is a working name (the game's reported codename is Owl).
 
 ## Why
@@ -19,10 +19,10 @@ Kaepora is a set of rules and shared pieces so that mods from different people c
 together, be checked for conflicts before the game starts, and share what is known about the game
 instead of each rediscovering it.
 
-**Working assumption (draft 0.2): update 1.1.1 is the game's last.** The standard targets that
-build. Nothing is built only to survive a future update. If one does arrive, the design still
-copes (everything build-specific is in one file per build), but the tools for porting are not
-planned. The original 1.0.0 build is optional.
+**Supported game versions: 1.0.0 and 1.1.1, both.** (1.0.0 is main build `33FA6C2C…`, 1.1.1 is
+`E0F3CCFA…`.) Working assumption: 1.1.1 is the game's last update, so nothing is built only to
+survive a future one. If one does arrive, the design still copes, since everything
+build-specific is in one file per build.
 
 ## Goals
 
@@ -198,8 +198,11 @@ context = "x20 = view"
 - The manifest lists the names a mod needs. `kaepora check` says "this mod isn't supported on
   your game version yet" before launch; Core says it again at run time and leaves the mod off.
 - With one final game version, an address found once stays true. The pack only grows, and a
-  correction to it fixes every mod at once. Supporting another build (1.0.0) means writing its
-  pack; mods don't change.
+  correction to it fixes every mod at once.
+- There is one pack per supported build, 1.0.0 and 1.1.1. A name only counts as part of the
+  standard once it is in both packs, so a core mod runs on both versions without changes.
+  Level 1 and 2 mods (their own patches) support whichever builds their author ports them to,
+  and say so in the manifest.
 - Names are the shared vocabulary. Where a function has a Hookshot-style name (`f_806d2530`),
   that is kept as an alias.
 - This repo's `symbols/e0f3ccfa.ld` and the 5,238-entry script-command table are the seed.
@@ -301,9 +304,9 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods |
 | M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below |
-| M3 | Symbol packs, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main` |
+| M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
-| M5 | A hardware test and a second author's mod. Version 1.0 of the spec. Optional: a pack for build 1.0.0 | It works outside our own setup |
+| M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
 
 ## Open questions (each needs an experiment)
 
