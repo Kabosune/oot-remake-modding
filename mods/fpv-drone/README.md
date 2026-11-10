@@ -1,5 +1,7 @@
 # FPV Drone
 
+Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/releases/fpv-drone.zip
+
 Fly a free camera or a first-person-view quadcopter around Hyrule, and take Link along if you
 like. Press **L3** (click the left stick) and the camera leaves from wherever the game camera is.
 Link stands still while you fly. Press L3 again to go back to the normal game.
