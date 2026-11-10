@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 3
+#define KAE_API_MINOR 4
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -79,7 +79,7 @@ KAE_API uint32_t    kae_api_version(void);         /* (major << 16) | minor of t
 KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in this game, else 0. Features:
                                                       "event.frame" "event.draw" "event.input" "event.actor_move"
                                                       "draw.rect" "draw.text" "draw.image" "motion" "symbols"
-                                                      "alloc" */
+                                                      "alloc" "menu" */
 KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -139,6 +139,42 @@ KAE_API int  kae_text_height(int scale, const char *text);
    pixels wide and high. For now a pixel is either drawn solid (alpha 0x80 and up) or left out:
    made for small pixel art such as cursors and icons. Only inside a draw function. */
 KAE_API void kae_draw_image(int x, int y, int w, int h, const uint32_t *argb, int scale);
+
+/* ---- settings and the Mods menu ------------------------------------------------------------ */
+
+/* Core draws one shared menu, "Mods", opened with - and + pressed together. Every mod is listed
+   there and can be switched off (it then gets no events). A mod that calls kae_settings gets a
+   page of settings in it. While the menu is open the game sees no buttons or sticks. */
+
+/* Controller buttons, the same bits as KaeInput.buttons. */
+enum {
+    KAE_A = 1 << 0, KAE_B = 1 << 1, KAE_X = 1 << 2, KAE_Y = 1 << 3, KAE_L3 = 1 << 4, KAE_R3 = 1 << 5,
+    KAE_L = 1 << 6, KAE_R = 1 << 7, KAE_ZL = 1 << 8, KAE_ZR = 1 << 9, KAE_PLUS = 1 << 10,
+    KAE_MINUS = 1 << 11, KAE_LEFT = 1 << 12, KAE_UP = 1 << 13, KAE_RIGHT = 1 << 14, KAE_DOWN = 1 << 15,
+};
+
+typedef enum { KAE_TOGGLE, KAE_CHOICE, KAE_NUMBER, KAE_BINDING, KAE_ACTION } KaeItemType;
+
+/* One line of a mod's page. The mod owns the array and reads `value` / `binding` whenever it
+   likes; Core changes them when the player does, then calls `changed` (on the game's thread). */
+typedef struct KaeItem KaeItem;
+struct KaeItem {
+    KaeItemType type;
+    const char *label;
+    const char *help;                 /* one line shown under the list; may be null */
+    int value, def;                   /* toggle 0/1, choice index, number */
+    int min, max, step;               /* number; for a choice, max = the last index */
+    const char *const *choices;       /* choice: `max + 1` names */
+    uint64_t binding, def_binding;    /* binding: button mask, 0 = unbound */
+    void (*changed)(KaeItem *item, void *user);   /* after any change; for an action, on A */
+    void *user;
+};
+
+/* Gives the calling mod its page: a display name and its settings. Only inside the mod's start;
+   `name` and `items` must stay valid. Settings are not saved between runs yet. */
+KAE_API int kae_settings(const char *name, KaeItem *items, int count);
+/* 1 while the Mods menu is open. A mod that reacts to buttons itself should hold still then. */
+KAE_API int kae_menu_open(void);
 
 /* actor_move: the movement update of every physics actor, every frame, on the game's thread,
    before the game moves it. Needs Core's patch to main (kae_has("event.actor_move")). */

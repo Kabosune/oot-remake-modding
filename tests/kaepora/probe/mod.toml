@@ -11,7 +11,7 @@ license  = "MIT"
 title = "0400486024DEC000"
 
 [core]
-api     = "0.3"
+api     = "0.4"
 sources = ["probe.c"]
 symbols = ["function:CctChangePosition", "function:f_806d2530", "function:vtable.Actor", "field:Actor.position"]
 

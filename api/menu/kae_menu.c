@@ -1,5 +1,7 @@
 #include "kae_menu.h"
+#ifndef KAE_MENU_ON_CORE
 #include "font.h"
+#endif
 
 enum { TAB_MODS, TAB_CONTROLS, TAB_ABOUT, TAB_COUNT };
 static const char *const tab_names[TAB_COUNT] = { "Mods", "Controls", "About" };
@@ -194,11 +196,13 @@ void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
 
 /* ---------------------------------------------------------------- drawing */
 
-typedef struct { uint8_t *px; int w, h, stride; float s; } Canvas;      /* s: scale from 1080p units */
-
 static const uint32_t C_PANEL = 0x16211c, C_HEAD = 0x0f1814, C_ROW = 0x243a30, C_SEL = 0xd9b45a,
                       C_TEXT = 0xeae6d8, C_DIM = 0x9aa79f, C_DARK = 0x16211c, C_WARN = 0xe8734a,
                       C_OFF = 0x6f7b74, C_LINE = 0x35503f;
+
+
+#ifndef KAE_MENU_ON_CORE
+typedef struct { uint8_t *px; int w, h, stride; float s; } Canvas;      /* s: scale from 1080p units */
 
 static void blend(Canvas *c, int x, int y, uint32_t rgb, int a)
 {
@@ -253,6 +257,39 @@ static float text(Canvas *c, float x, float y, const char *t, float size, uint32
     return x;
 }
 
+#else
+/* Inside Core: rectangles and Core's own 8 x 16 font at whole-number scales. */
+typedef struct { float s; } Canvas;                                     /* s: scale from 1080p units */
+static float canvas_scale = 1;
+
+static void rect(Canvas *c, float x, float y, float w, float h, uint32_t rgb)
+{
+    int x0 = (int)(x * c->s), y0 = (int)(y * c->s), x1 = (int)((x + w) * c->s), y1 = (int)((y + h) * c->s);
+    kae_draw_rect(x0, y0, x1 - x0, y1 - y0, rgb);
+}
+
+/* The font scale closest to a text height given in 1080p units. */
+static int font_scale(float size)
+{
+    int k = (int)(size * canvas_scale / 16.0f + 0.5f);
+    return k < 1 ? 1 : k;
+}
+
+static float text_width(const char *t, float size)
+{
+    return (float)kae_text_width(font_scale(size), t) / canvas_scale;
+}
+
+static float text(Canvas *c, float x, float y, const char *t, float size, uint32_t rgb)
+{
+    int k = font_scale(size);
+    /* the line the host font would fill is about 1.2 x size high: centre this font's 16 rows in it */
+    int px = (int)(x * c->s), py = (int)(y * c->s + (size * 1.2f * c->s - 16.0f * (float)k) / 2);
+    return (float)kae_draw_text(px, py, k, rgb, t ? t : "") / c->s;
+}
+
+#endif
+
 static void text_right(Canvas *c, float right, float y, const char *t, float size, uint32_t rgb)
 {
     text(c, right - text_width(t, size), y, t, size, rgb);
@@ -282,10 +319,8 @@ static void value_text(const KaeItem *it, char *out, int size)
     else if (it->type == KAE_BINDING) kae_binding_text(it->binding, out, size);
 }
 
-void kae_menu_draw(const KaeMenu *m, uint8_t *rgba, int width, int height, int stride)
+static void draw_menu(const KaeMenu *m, Canvas *c)
 {
-    if (!m->open) return;
-    Canvas cv = { rgba, width, height, stride, height / 1080.0f }, *c = &cv;
     char buf[96], buf2[96];
     const char *help = 0, *hints;
     uint32_t help_rgb = C_DIM;
@@ -361,3 +396,21 @@ void kae_menu_draw(const KaeMenu *m, uint8_t *rgba, int width, int height, int s
     text(c, PX + 40, PY + PH - 46, hints, 22, C_DIM);
     text_right(c, PX + PW - 40, PY + PH - 46, "Minus + Plus  Close", 22, C_DIM);
 }
+
+#ifdef KAE_MENU_ON_CORE
+void kae_menu_draw_core(const KaeMenu *m, int width, int height)
+{
+    (void)width;
+    if (!m->open) return;
+    Canvas cv = { (float)height / 1080.0f };
+    canvas_scale = cv.s;
+    draw_menu(m, &cv);
+}
+#else
+void kae_menu_draw(const KaeMenu *m, uint8_t *rgba, int width, int height, int stride)
+{
+    if (!m->open) return;
+    Canvas cv = { rgba, width, height, stride, (float)height / 1080.0f };
+    draw_menu(m, &cv);
+}
+#endif

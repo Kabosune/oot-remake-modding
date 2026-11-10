@@ -43,7 +43,7 @@ static void on_actor_move(void *actor, void *user) {
 }
 
 static int start(void) {
-    kp_log("mouse grab: build 2026-11-10 g (on Kaepora Core 0.3)");
+    kp_log("mouse grab: build 2026-11-10 g (on Kaepora Core 0.4)");
     mg_main = kae_game_base();
     if (kae_on_actor_move(on_actor_move, 0, 0) != KAE_OK)
         kp_log("mouse grab: no movement hook (Core's .ips is missing): the cursor works, grabbing doesn't");

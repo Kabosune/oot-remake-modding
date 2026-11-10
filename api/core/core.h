@@ -71,6 +71,16 @@ void kp_fire_draw(const KaeFrame *frame);
 void kp_fire_actor_move(void *actor);
 void kp_unsubscribe_mod(const KaeMod *mod);
 
+// ---- the Mods menu (menu.c) ----
+void kp_menu_start(void);                                   // after the other services
+void kp_menu_add_mod(const KaeMod *mod, const char *status); // status: null, or why the mod is off
+bool kp_mod_off(const KaeMod *mod);                         // switched off in the menu: gets no events
+bool kp_menu_on(void);
+void kp_menu_frame(void);
+void kp_menu_input(KaeInput *seen, const KaeInput *real);
+void kp_menu_input_done(KaeInput *seen);                    // after the mods' input functions
+void kp_menu_draw(int width, int height);
+
 // ---- services, each started once from kp_module_init; false = off in this game ----
 bool kp_draw_start(void);
 bool kp_motion_start(void);
