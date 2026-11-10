@@ -11,6 +11,10 @@ Branches and `adrp` are PC-relative, so the code works wherever the emulator or 
 
 ## Rules
 
+- A hook on an import stub's `br x17` must leave x16 and x17 as the stub set them: imports are
+  bound lazily, and rtld's resolver finds the symbol from x16. (Mouse Probe broke this once: the
+  game stuck at "starting...".) More in [modules.md](modules.md#rules-learned-the-hard-way).
+
 - **Keep every register the game uses.** At a hook site you rarely know which registers are live,
   so save what you touch. If you call a function, save all caller-saved registers (x0–x18, x30,
   q0–q7, q16–q31) and NZCV.

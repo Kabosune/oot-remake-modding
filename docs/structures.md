@@ -38,7 +38,8 @@ The object `f_82c415e0` moves.
 
 | Offset | Type | Field |
 |---|---|---|
-| `+0x270` | ptr | components |
+| `+0x20` | `char*` | actor name (`"Player"`, `"Npc_Kokiri_Mido_Child"`; sloperinaGZ) |
+| `+0x270` | ptr | components (`+0x320` movement, `+0x340` personality, `+0x358` player, `+0x390` ragdoll reaction; see [ragdoll-and-animation.md](ragdoll-and-animation.md)) |
 | `+0x31c` | f32[3] | position |
 | `+0x328` | f32[3][4] | rotation rows, 0xc apart (yaw = `atan2(+0x330, +0x348)`) |
 

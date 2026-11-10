@@ -46,6 +46,8 @@ together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what
 - [Structures](docs/structures.md): field layouts (camera view, camera manager, Link, controller state).
 - [Memory map](docs/memory-map.md): which code cave and free memory each mod uses, so mods don't collide.
 - [Writing a patch](docs/writing-a-patch.md): how `tools/nxpatch.py` works and the rules for hooks.
+- [Modules](docs/modules.md): mods as their own `subsdk` module (Kaepora Core), hooking from a module, drawing, mouse and motion input.
+- [Ragdoll, faces and voices](docs/ragdoll-and-animation.md): starting and ending Link's ragdoll, moving its bodies, playing AS commands.
 - [What sloperinaGZ found](docs/sloperina-findings.md): a summary of the practice menu's findings (save fields, pausing, physics controller, actors) in this repo's addresses, and what they open up for the mods here.
 - [Community projects](docs/community.md): emulators, recomps, other mods and tools.
 

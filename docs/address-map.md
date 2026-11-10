@@ -28,6 +28,15 @@ in game yet.
 | `0x82c415e0` | `f_82c415e0`'s first instruction (`pacibsp`). Arguments `x0..x3`, `x0` = actor. Hook site for FPV Drone's carry, which calls `f_806d2530` from here. | Disasm |
 | `f_806d2530` | Physics controller `ChangePosition(controller, float pos[4])` (vtable slot `+0xe8` of `0x84c54f10`; the 4th float is 0). Controller = `[[[[[actor+0x270]+80]+32]+16]+8]`, the chain `OneShotPhysicsCctChangePosition` follows. Hookshot's flight cheat and FPV Drone's carry call it to move Link. | Hookshot |
 | `f_804bd8c0` | Writes an actor's life (hearts) with a compare-and-swap. | Hookshot |
+| `f_80857620` | `holder(actor)` = `[[[[actor+0x270]+0x50]+0x20]+0x10]`, no null checks. | Disasm, tested |
+| `f_806188c0` | Finds a component of `holder` by type; with Link's holder it returns the ragdoll component. | Disasm, tested |
+| `f_83238d30` | Starts a ragdoll: `(ragdoll, request)`; see [ragdoll-and-animation.md](ragdoll-and-animation.md). | Disasm, tested |
+| `f_83239090` | Ends it: `(ragdoll, {actor, 0})`. | Disasm, tested |
+| `f_83237d70` | Hands the controller's velocity to every ragdoll body (shows where the bodies are). | Disasm |
+| `f_8014dbe0` | Sets a physics body's linear velocity `(body, f32[3], 0)`. | Disasm, tested |
+| `f_80142750` | Reads it `(body, f32 out[3], 1)`. | Disasm |
+| `f_802222a0` | Plays an AS command from a request (faces, voices, animations). | Disasm |
+| `f_80aed6d0` | Index of a partial slot by name (`actor, &name`). | Disasm, tested |
 | `f_80b1e140` | Steps a text pane's letter animation (text speed). | Hookshot |
 | `f_828d4a70` | `OneShotAddOrRemovePouchContent`: add / remove an inventory item by actor name. | Hookshot |
 | `f_831f3200` | Dynamic resolution apply block. | Hookshot |
