@@ -57,6 +57,9 @@ void actors_survey(void *actor) {
     char name[48];
     name_of(actor, name, sizeof name);
     int bodies = actor_ragdoll_bodies(actor, 0);
+    char *components = AT(actor, 0x270, char *);
+    bool reaction = components && kp_readable((uintptr_t)components + 0x390, 8) && AT(components, 0x390, void *);
     kp_log(name[0] ? name : "(no name)");
-    kp_log_2(bodies < 0 ? "  actor: no ragdoll. -" : "  actor: HAS A RAGDOLL, bodies:", bodies, seen_count);
+    kp_log_2(bodies < 0 ? "  actor: no ragdoll. ragdoll reaction component, #:" : "  actor: HAS A RAGDOLL. reaction component, bodies:",
+             reaction, bodies < 0 ? seen_count : bodies);
 }

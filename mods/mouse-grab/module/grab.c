@@ -21,8 +21,13 @@
 #define PULL           8.0f        // 1/s: how fast he catches up with the held point
 #define MAX_SPEED      25.0f       // m/s
 #define MAX_BODIES     32
-#define DEPTH_PER_RAD  6.0f        // metres of depth per radian of controller pitch
+// Depth works like a mouse: turning the controller moves him, holding it still keeps him where
+// he is, and slow turns below GYRO_DEAD don't count, so you can turn back slowly and flick again.
+#define DEPTH_PER_RAD  3.0f        // metres of depth per radian of pitch, at slow speed
+#define GYRO_ACCEL     0.6f        // faster turns go further: gain * (1 + GYRO_ACCEL * rad/s)
+#define GYRO_DEAD      0.35f       // rad/s
 #define MIN_DEPTH      0.8f
+#define MAX_DEPTH      40.0f
 #define TICK_HZ        19200000.0f
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
@@ -86,7 +91,7 @@ static bool mouse_ray(const mouse_state_t *m, v3 *from, v3 *dir) {
 static struct {
     bool held_button, grabbing, held_middle, one_body;
     float depth;          // distance along the ray when grabbed
-    float pitch0;         // controller pitch when grabbed (radians)
+    float last_pitch;     // controller pitch last frame (radians)
     bool have_pitch;
     v3 point, last_point; // held point (Link's middle)
     v3 velocity;
@@ -134,19 +139,30 @@ void grab_move(void *actor) {
                 ragdoll_start(actor);
             g.grabbing = true;
             g.depth = along;
-            g.have_pitch = controller_pitch(&g.pitch0);
+            g.have_pitch = controller_pitch(&g.last_pitch);
             g.point = g.last_point = middle;
             g.velocity = (v3){ 0, 0, 0 };
             g.frames = 0;
-            kp_log_2("grab: holding Link. pitch known, pitch (mrad):", g.have_pitch, (int64_t)(g.pitch0 * 1000));
+            kp_log_2("grab: holding Link. pitch known, pitch (mrad):", g.have_pitch, (int64_t)(g.last_pitch * 1000));
         }
     }
     if (g.grabbing && left && ray) {
-        float depth = g.depth, pitch;
-        if (g.have_pitch && controller_pitch(&pitch))
-            depth += (pitch - g.pitch0) * DEPTH_PER_RAD;
-        if (depth < MIN_DEPTH)
-            depth = MIN_DEPTH;
+        float pitch, turned = 0;
+        if (controller_pitch(&pitch)) {
+            if (g.have_pitch) {
+                turned = pitch - g.last_pitch;
+                float rate = (turned < 0 ? -turned : turned) / dt;
+                if (rate > GYRO_DEAD)
+                    g.depth -= turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate);   // sign: the opposite of the first build, as KaboWabo asked
+            }
+            g.last_pitch = pitch;
+            g.have_pitch = true;
+        }
+        if (g.depth < MIN_DEPTH)
+            g.depth = MIN_DEPTH;
+        if (g.depth > MAX_DEPTH)
+            g.depth = MAX_DEPTH;
+        float depth = g.depth;
         g.point = add(from, mul(dir, depth));
         v3 v = mul(sub(g.point, g.last_point), 1.0f / dt);
         g.velocity = add(mul(g.velocity, 0.5f), mul(v, 0.5f));   // smoothed over a few frames
@@ -167,8 +183,7 @@ void grab_move(void *actor) {
         if (g.frames++ % 30 == 0) {
             log_v3("grab: held point (cm x, z)", g.point);
             log_v3("  Link's actor position", AT(actor, 0x31c, v3));
-            kp_log_2("  depth (cm), pitch change (mrad):", (int64_t)(depth * 100),
-                     g.have_pitch && controller_pitch(&pitch) ? (int64_t)((pitch - g.pitch0) * 1000) : 0);
+            kp_log_2("  depth (cm), pitch (mrad):", (int64_t)(depth * 100), (int64_t)(g.last_pitch * 1000));
         }
     }
     if (g.grabbing && released) {

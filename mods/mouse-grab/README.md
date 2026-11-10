@@ -169,12 +169,19 @@ between pulling every body and pulling only the first. The throw gives every bod
 - Tested: carrying him limp works (18 ragdoll bodies found; their wrapper's vtable is main offset
   `0x4c378c0`, not the controller body's).
 - `api/core/motion.c` swaps main's GOT slot for `GetSixAxisSensorStates` and keeps the newest
-  direction matrix of the first sensor that moves. While Link is held, tilting the controller
-  changes the hold distance: `DEPTH_PER_RAD` metres per radian of pitch (from the direction
-  matrix's third row) relative to the pitch when he was grabbed. The sign isn't checked yet.
+  direction matrix of the first sensor that moves. While Link is held, turning the controller up
+  or down changes the hold distance. First build: distance followed the tilt angle (like a
+  stick). KaboWabo asked for it reversed and mouse-like, so now only the turning counts: each
+  frame's change of pitch moves him, faster turns go further, and turns slower than `GYRO_DEAD`
+  are ignored so the controller can be brought back slowly.
 - `module/actors.c` (survey 3): the first time each physics actor passes through the movement
   update, it logs its name (`char*` at `+0x20`) and whether it has a ragdoll component, with the
-  number of bodies.
+  number of bodies. Result (Castle Town, Market, Hyrule Field, 10 November): only `Player` has
+  one. No NPC (`Npc_Hylia_*`, soldiers), animal (cuccos, dogs) or Skulltula did. The romfs has
+  enemy ragdoll data (`Phive/Ragdoll/Structure/Enemy_Common`, `EnemyBase`, reaction lists) and
+  ragdoll landing sounds for Lizalfos, Dinolfos, Bubbles and Gohma larvae, so some enemies do have
+  ragdolls, maybe only once they die. The survey now also logs the ragdoll reaction component
+  (`[components + 0x390]`), which enemies may use instead.
 
 ## Plan
 
