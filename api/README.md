@@ -79,9 +79,12 @@ The first three need no game files. `--log` on the second prints the log of a fu
 
 **Result, 10 November 2026 (Fritchii, game 1.1.1): passed.** The square appeared and turned green
 while A was held, so the game links one added module to another and runs several at once. The
-log lines (how many controller styles were hooked, who started first) haven't been read yet.
+log of that run was overwritten before it was read (the emulator keeps two logs), so who starts
+first (question 2) is still unmeasured.
 `releases/mouse-grab.zip`, Core and Mouse Grab linked into one module, was tested the same day and
-works.
+works. Its log has `input: 5 of 5 controller styles hooked, frames from GetNpadStyleSet`, so
+the controller functions' names Core guessed are the right ones, and `hook point in place:
+Actor.MoveUpdate`. First Person and FPV Drone (patches to `main`) were on in the same run.
 
 `releases/kaepora-test.zip` is Core in `subsdk1` and Hello in `subsdk2`, plus Core's `.ips`.
 
@@ -108,8 +111,8 @@ first); either order works. While the emulator runs its log is `eden_log.busy.tx
 
 ### A mod without Core (open question 6)
 
-**Result, 10 November 2026: installed alone, nothing appeared on screen, as hoped.** The log line
-below hasn't been read yet, which is what would settle the question for good.
+**Result, 10 November 2026: installed alone, nothing appeared on screen, as hoped.** The log of that run was
+overwritten before it was read, so the line below wasn't seen.
 
 `releases/kaepora-hello-without-core.zip` is Hello's module alone. Install it with every other
 Kaepora folder off. Hoped for: the game starts as normal and logs `kaepora mod: Kaepora Core isn't
