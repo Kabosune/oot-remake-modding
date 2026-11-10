@@ -3,6 +3,15 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Not in a release build yet
+
+- The pack for 1.1.1 gains 38 symbols contributed by gleedgleed (the pouch, GameData, EventFlow,
+  event requests, dungeon items, actor position and transform, the framework's frame function).
+  Mods can ask for them with `kae_sym` from the next Core build on; the Core in today's release
+  zips, the one tested in the game, doesn't have them.
+- `tests/test_kaepora_symbols.py` checks that a pack and its linker file agree, and fails when the
+  linker file has a vtable, function or global the pack lacks.
+
 ## Draft 0.4, API 0.2 (10 November 2026)
 
 Core is now its own module with a public API, instead of a skeleton compiled together with one mod.

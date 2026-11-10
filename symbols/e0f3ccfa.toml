@@ -83,6 +83,253 @@ alias  = "f_802222a0"
 args   = "request"
 source = "disassembly"
 
+# ---- functions and globals contributed by gleedgleed (pull request 1; details in docs/address-map.md) ----
+
+[function.PouchAddContent]
+offset = 0x110D570
+alias  = "f_8112d570"
+ld     = "POUCH_ADD_CONTENT"
+note   = "adds a content (an item, ammo, rupees and so on) to the pouch"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.PouchGetContentNum]
+offset = 0x5963E0
+alias  = "f_805b63e0"
+ld     = "POUCH_GET_CONTENT_NUM"
+note   = "returns how many of a content the pouch holds, by the content's actor name"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.PouchInfoFind]
+offset = 0x58ED10
+alias  = "f_805aed10"
+ld     = "POUCH_INFO_FIND"
+note   = "finds a content's pouch info by its actor name"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.PouchCategoryFromString]
+offset = 0x13FDD0
+alias  = "f_8015fdd0"
+ld     = "POUCH_CATEGORY_FROM_STRING"
+note   = "converts a pouch category name to its number: bool (u32* out, const char** name)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.PouchPushPickedUp]
+offset = 0xC6F620
+alias  = "f_80c8f620"
+ld     = "POUCH_PUSH_PICKED_UP"
+note   = "pushes a picked-up item's content into the pouch"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.PickupHandler]
+offset = 0x2E8A1E0
+alias  = "f_82eaa1e0"
+ld     = "PICKUP_HANDLER"
+note   = "handles an item pickup"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.DropReadParams]
+offset = 0xBD1C00
+alias  = "f_80bf1c00"
+ld     = "DROP_READ_PARAMS"
+note   = "reads a placed actor's drop parameters (Drop__DropActor)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.QuerySetGetEventRequestArg]
+offset = 0x2AE0750
+alias  = "f_82b00750"
+ld     = "QUERY_SET_GET_EVENT_REQUEST_ARG"
+note   = "QuerySetGetEventRequestArg(node, request)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventFlowProcessContext]
+offset = 0x1228840
+alias  = "f_81248840"
+ld     = "EVFL_PROCESS_CONTEXT"
+note   = "processes an EventFlow flowchart context: runs its actions, queries and subflows"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventFlowBuildContext]
+offset = 0x122A0A0
+alias  = "f_8124a0a0"
+ld     = "EVFL_BUILD_CONTEXT"
+note   = "builds an EventFlow context"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventFlowMarkEntries]
+offset = 0x122ABE0
+alias  = "f_8124abe0"
+ld     = "EVFL_MARK_ENTRIES"
+note   = "marks the entries reachable from one EventFlow entry: bool (err*, flowcharts*, bitsets*, u32 flowchart, u64 entry)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventFlowBindAction]
+offset = 0xD3C9A0
+alias  = "f_80d5c9a0"
+ld     = "EVFL_BIND_ACTION"
+note   = "adds an action handler to an EventFlow binding, by the action's name"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventFlowBindQuery]
+offset = 0x122B4A0
+alias  = "f_8124b4a0"
+ld     = "EVFL_BIND_QUERY"
+note   = "adds a query handler to an EventFlow binding, by the query's name"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.BancLoad]
+offset = 0xBFBA50
+alias  = "f_80c1ba50"
+ld     = "BANC_LOAD"
+note   = "loads a Banc (an area's placements)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.WindowSetMessage]
+offset = 0xA6C460
+alias  = "f_80a8c460"
+ld     = "WINDOW_SET_MESSAGE"
+note   = "sets a talk window's message from a message file and label"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.DungeonAddSmallKey]
+offset = 0x3283160
+alias  = "f_832a3160"
+ld     = "DUNGEON_ADD_SMALL_KEY"
+note   = "adds small keys: (dungeon manager, int count)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.DungeonSetBossKey]
+offset = 0x32830E0
+alias  = "f_832a30e0"
+ld     = "DUNGEON_SET_BOSS_KEY"
+note   = "sets the boss key: (dungeon manager, bool)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.DungeonSetMap]
+offset = 0x3282FE0
+alias  = "f_832a2fe0"
+ld     = "DUNGEON_SET_MAP"
+note   = "sets the map: (dungeon manager, bool)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.DungeonSetCompass]
+offset = 0x3283060
+alias  = "f_832a3060"
+ld     = "DUNGEON_SET_COMPASS"
+note   = "sets the compass: (dungeon manager, bool)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.BoolExpEvaluate]
+offset = 0x3E29E0
+alias  = "f_804029e0"
+ld     = "BOOLEXP_EVALUATE"
+note   = "evaluates a GameData BoolExp (a condition expression)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.BoolExpCompareEnumOrder]
+offset = 0x4048F0
+alias  = "f_804248f0"
+ld     = "BOOLEXP_COMPARE_ENUM_ORDER"
+note   = "compares the order of two enum values for the BoolExp evaluators"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.ShopIsSoldOut]
+offset = 0xB988D0
+alias  = "f_80bb88d0"
+ld     = "SHOP_IS_SOLD_OUT"
+note   = "checks whether a shop's goods slot is sold out: (owner link, index, ...)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataFindStruct]
+offset = 0x9B3EB0
+alias  = "f_809d3eb0"
+ld     = "GAMEDATA_FIND_STRUCT"
+note   = "finds a GameData struct: (manager, Key* out, u32 struct hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataGetBool]
+offset = 0x179F70
+alias  = "f_80199f70"
+ld     = "GAMEDATA_GET_BOOL"
+note   = "gets a GameData bool: (manager, bool* out, Key*, u32 member hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataGetInt]
+offset = 0x17B3B0
+alias  = "f_8019b3b0"
+ld     = "GAMEDATA_GET_INT"
+note   = "gets a GameData int: (manager, int* out, Key*, u32 member hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataGetEnum]
+offset = 0x17BF90
+alias  = "f_8019bf90"
+ld     = "GAMEDATA_GET_ENUM"
+note   = "gets a GameData enum: (manager, u32* out, Key*, u32 member hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataSetBool]
+offset = 0x608A10
+alias  = "f_80628a10"
+ld     = "GAMEDATA_SET_BOOL"
+note   = "sets a GameData bool: (manager, bool value, Key*, u32 member hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataSetInt]
+offset = 0x9B39E0
+alias  = "f_809d39e0"
+ld     = "GAMEDATA_SET_INT"
+note   = "sets a GameData int: (manager, int value, Key*, u32 member hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataSetBoolByHash]
+offset = 0x682B20
+alias  = "f_806a2b20"
+ld     = "GAMEDATA_SET_BOOL_BY_HASH"
+note   = "sets a GameData bool by its hash: (manager, bool value, u32 hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.GameDataSetEnumByHash]
+offset = 0x3E0980
+alias  = "f_80400980"
+ld     = "GAMEDATA_SET_ENUM_BY_HASH"
+note   = "sets a GameData enum by its hash: (manager, u32 value, u32 hash)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventRequestInit]
+offset = 0xD79F10
+alias  = "f_80d99f10"
+ld     = "EVENT_REQUEST_INIT"
+note   = "constructs an EventRequest"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.EventRequest]
+offset = 0xD7A820
+alias  = "f_80d9a820"
+ld     = "EVENT_REQUEST"
+note   = "requests an event: bool (EventMgr*, EventRequest*)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.ActorSetPosition]
+offset = 0x944E70
+alias  = "f_80964e70"
+ld     = "ACTOR_SET_POSITION"
+note   = "sets an actor's position: (Actor*, const float pos[3], bool)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.ActorSetTransform]
+offset = 0xC6FD60
+alias  = "f_80c8fd60"
+ld     = "ACTOR_SET_TRANSFORM"
+note   = "sets an actor's transform: (Actor*, const float mtx[12], bool)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[function.FrameworkFrame]
+offset = 0x3B4EA90
+alias  = "f_83b6ea90"
+ld     = "FRAMEWORK_FRAME"
+note   = "runs one frame of the game framework (slot 28 of the vtable at 0x84c83f80)"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
 # ---- globals ----
 
 [global.CameraManagerSlot]
@@ -90,6 +337,24 @@ offset = 0x4C86BC0
 ld     = "CAMMGR_SLOT"
 note   = "[[slot]] = camera manager"
 source = "Hookshot"
+
+[global.PouchMgrPtr]
+offset = 0x4E78E28
+ld     = "POUCHMGR_PTR"
+note   = "the PouchMgr pointer variable"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[global.GameDataMgrPtr]
+offset = 0x4E842A8
+ld     = "GAMEDATAMGR_PTR"
+note   = "the GameDataMgr pointer variable"
+source = "gleedgleed (pull request 1): disassembly, in game"
+
+[global.EventMgrPtr]
+offset = 0x4E94840
+ld     = "EVENTMGR_PTR"
+note   = "the EventMgr pointer variable"
+source = "gleedgleed (pull request 1): disassembly, in game"
 
 # ---- vtables (asked for as "vtable.<Name>") ----
 

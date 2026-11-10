@@ -121,6 +121,61 @@ an empty starter and `OcarinaWarp_Arrive`.
   and layers are still listed.
 - Player debug move: the one lead that may still work (see the function table).
 
+## New in 0.0.4 and 0.0.4.1 (read 10 November 2026)
+
+0.0.4 draws its menu the way the game draws its own UI; 0.0.4.1 adds a dive test. Their write-up is
+`docs/NATIVE_UI.md`, plus sections 5.21 and 9.6 of `docs/FINDINGS.md`. The facts below are theirs,
+retold; their code is GPL-3.0, so it is read for understanding and not copied here. None of this
+has been checked by us.
+
+**Drawing with the game's own parts.** They draw on the GPU just before the game presents a frame
+(the same `nvnBootstrapLoader` hook Kaepora Core uses for its rectangles), with the game's UI
+shader, fonts and pictures read from the player's own RomFS at start. Nothing needs a game address,
+so one build serves 1.0.0 and 1.1.1, and it keeps drawing while the game is paused. They looked at
+driving the game's UI library (Layout2) and set it aside: no symbols, an address per version for
+every function, and it only draws inside the game's frame.
+
+| What | File in RomFS | Notes |
+|---|---|---|
+| UI font | `Font2/Scalable/ClarimoUDPE-Regular.Nin_Ounce_NVN2.bfotf.zs` (also `-DemiBold`, `-Light`) | OpenType (CFF) behind a scramble |
+| Button glyphs | `Font2/Scalable/External.Nin_Ounce_NVN2.bfotf.zs` | private use area: A to ZR are `U+E040` to `U+E047`, + `E04B`, - `E04C`, sticks `E050` to `E05F`, D-pad `E060` to `E065` |
+| UI shader | `Layout2Shader/MergeShader.Product.100.Nin_Ounce_NVN2.bfsha.zs` | BFSHA 9.1.1; 121 programs picked by 55 options; attributes `_p0`, `_u0` |
+| UI pictures | `UI/Layout2Archive/Common.Product.100.Nin_Ounce_NVN2.bntx.zs` | 878 textures, 65 MB packed, 244 MB unpacked, no dictionary |
+| Item icons | `UI/Tex/Icon/<name>.bntx.zs` | one ASTC 4x4 texture each, about 13 MB in all |
+| UI layouts | `UI/Layout2Archive/Common.Product.100.Nin_Ounce_NVN2.blarc.zs` | SARC of `.buil` files (`BFFH`), no public tools |
+
+- Font scramble: the file is `u32 magic, u32 size, font`, every big-endian word XORed with one key.
+  The key is word 1 XOR (file size - 8); for this game's fonts it is `0xA6018502`.
+- A BNTX texture record (`BRTI`): format `+0x1c`, size `+0x24`, packaged layout `+0x34`, channel
+  sources `+0x58`, name `+0x60`, level offsets `+0x70`. The data is block-linear, and the Switch 2
+  ("Ounc") orders the sectors inside a block differently from the Switch 1.
+- Memory is the limit. The game's heap gave them one block of about 10 MB and refused 15 MB, so big
+  pictures are decoded a piece at a time and shrunk into a small atlas.
+
+**The scene's depth (found on 1.0.0).** A Depth32F texture at the render resolution, a new texture
+object every frame or two. Right after its depth pre-pass the game copies it with
+`nvnCommandBufferCopyTextureToTexture`; that call is the place to read it, because HUD targets
+reuse its memory later in the frame. The camera's projection is at camera `+0x90` (near `+0x128` =
+0.1, far `+0x12C` = 25000, vertical FOV `+0x130`, aspect `+0x140`). They use it to hide health bars
+and collision lines behind the scenery and behind Link.
+
+**What writes Link's position (1.1.1).** A position written from outside doesn't hold because the
+game stores it again afterwards: the collision resolver at `main+0x18D2C18` and `+0x18D2C20`, and
+the body at `main+0x180EA24` (X and Y) and `+0x180EA2C` (Z). Link's body centre sits 0.585 above
+his drawn position. Their lock X / Y / Z options patch those four stores.
+
+**1.0.0.** Data slots they compared (frame counter, camera pointer, actor manager) sit `0x70460`
+lower than in 1.1.1, and the actor fields we use (`+0x270`, position at `+0x31C`) are the same in
+both versions. Useful when a symbol pack for 1.0.0 is made.
+
+**Dive test (0.0.4.1, their measurements on 1.1.1).** Gravity about 28 units/s², falling speed
+tops out at 60 units/s.
+
+What this means for Kaepora: text and pictures in Core (the Mods menu, Mouse Grab's fairy cursor)
+can follow the same route, a font read from the game's own files and blended quads drawn at
+present time, written from scratch. Whether to use the game's UI shader or a small shader of our
+own is still to decide.
+
 ## Working with Lichii
 
 - Lichii's GDB stub (Emulation > Configure > Debug, port 6543) gives read and write watchpoints.

@@ -69,10 +69,11 @@ What a mod can rely on:
 ```
 python3 tests/test_kaepora_unit.py       # Core's logic, built for the PC
 python3 tests/test_kaepora_modules.py    # the shipped modules in Unicorn with a fake game and system
+python3 tests/test_kaepora_symbols.py    # the symbol pack and symbols/<build>.ld agree
 python3 tests/test_kaepora_hooks.py main.bin releases/kaepora-test.zip    # the hook stub on your real main
 ```
 
-The first two need no game files. `--log` on the second prints the log of a full run.
+The first three need no game files. `--log` on the second prints the log of a full run.
 
 ## The in-game test (open questions 1, 2 and 4)
 

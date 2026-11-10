@@ -71,7 +71,7 @@ tools/kaepora_symbols.py   symbol packs (symbols/<build>.toml) -> the table comp
 tools/mknso.py             pack a linked module into an NSO
 mods/<mod>/                source (.S, .c), build.py, README
 tests/                     Unicorn tests that run the hooks on a patched main with fake game objects;
-                           Kaepora's tests (test_kaepora_unit.py, test_kaepora_modules.py) need no game files
+                           Kaepora's tests (test_kaepora_unit.py, test_kaepora_modules.py, test_kaepora_symbols.py) need no game files
 releases/                  built zips
 ```
 
