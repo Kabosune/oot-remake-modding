@@ -9,8 +9,14 @@
 // and on leaving (f_826d42c0):
 //   f_83239090(ragdoll, &{actor, false})  ends it (clears ragdoll+0x17c, which the start sets to 3)
 //   player[0x1c3e] |= 1                   player = [[actor+0x270]+0x358]
-// The node also changes Link's state (f_80953270 with "SlippingDown" / "SlippingDownLand") and runs
-// an update every frame (f_826d3fb0); neither is copied, so Link may not get up by himself.
+// Before the request the node also prepares Link's player object (player = [[actor+0x270]+0x358]):
+//   f_809539f0(player, 0.0)
+//   f_80992a40(player, ZERO, 0), f_8094fde0(player, ZERO, 0)    ZERO = [0x84c9ddc0], (0, 0, 0, 1)
+//   player+0x1030 = 0
+//   f_80953270(player, 0, NAMES, 15, 0)                        NAMES = [0x84c9f168]: "SlippingDown",
+//                                                               "SlippingDownLand"
+// Without that (first builds) a ragdoll started in the air only showed once he landed. The node's
+// per-frame update (f_826d3fb0) isn't copied: he stays down until right click.
 #include "core.h"
 #include "input.h"
 
@@ -30,6 +36,12 @@ _Static_assert(sizeof(ragdoll_request_t) == 0x30, "request");
 #define F_HOLDER          0x837620    // f_80857620(actor)
 #define F_FIND_RAGDOLL    0x5F88C0    // f_806188c0(holder)
 #define F_RAGDOLL_DOWN    0x3218D30   // f_83238d30(ragdoll, request)
+#define F_PREP_SPEED      0x9339F0    // f_809539f0
+#define F_PREP_A          0x972A40    // f_80992a40
+#define F_PREP_B          0x92FDE0    // f_8094fde0
+#define F_PREP_STATE      0x933270    // f_80953270
+#define G_ZERO            0x4C7DDC0   // [0x84c9ddc0]
+#define G_NAMES           0x4C7F168   // [0x84c9f168]
 #define F_RAGDOLL_END     0x3219090   // f_83239090(ragdoll, end request)
 #define RAGDOLL_STATE     0x17c       // in the ragdoll component: 3 while down, 0 otherwise
 #define F_REACTION        0x2C1D670   // f_82c3d670(actor): ragdoll reaction component, [components+0x390]
@@ -102,6 +114,19 @@ static void ragdoll_down(void *actor) {
     if (!ragdoll) {
         kp_log("ragdoll: no ragdoll component, nothing done");
         return;
+    }
+    char *components = AT(actor, 0x270, char *);
+    char *player = components ? AT(components, 0x358, char *) : 0;
+    if (player && AT(player, 0x18, void *) == actor) {
+        void *zero = AT(kp_main + G_ZERO, 0, void *);
+        void *names = AT(kp_main + G_NAMES, 0, void *);
+        KP_FN(void (*)(void *, float), F_PREP_SPEED)(player, 0.0f);
+        KP_FN(void (*)(void *, void *, int), F_PREP_A)(player, zero, 0);
+        KP_FN(void (*)(void *, void *, int), F_PREP_B)(player, zero, 0);
+        AT(player, 0x1030, uint32_t) = 0;
+        KP_FN(void (*)(void *, void *, void *, int, int), F_PREP_STATE)(player, 0, names, 15, 0);
+    } else {
+        kp_log("ragdoll: player object not as expected, skipping the preparation");
     }
     ragdoll_request_t r = { 0 };
     r.actor = actor;

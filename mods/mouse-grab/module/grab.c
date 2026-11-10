@@ -141,13 +141,13 @@ void grab_move(void *actor) {
     }
     if (g.grabbing && released) {
         g.grabbing = false;
+        ragdoll_start(actor);   // first: its preparation stops Link
         void *c = controller_of(actor);
         void *body = c ? AT(c, 0x20, void *) : 0;
         if (body && AT(body, 0, uintptr_t) == kp_main + BODY_VT) {
             float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
             KP_FN(void (*)(void *, const float *), F_SET_VELOCITY)(body, v);
         }
-        ragdoll_start(actor);
         log_v3("grab: thrown, velocity (cm/s x, z)", g.velocity);
     }
 }

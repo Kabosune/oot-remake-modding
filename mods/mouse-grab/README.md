@@ -152,6 +152,9 @@ camera fields); he's held at the distance he was grabbed at.
 - So for now he comes out of ragdoll while held and is carried like FPV Drone carries him
   (ChangePosition, velocity zeroed every frame). On release his controller body gets the throw
   velocity and he ragdolls. Next: find the ragdoll's bodies and pull those, so he's limp while held.
+- Tested: carry and throw work. Thrown, he only went limp when he landed (the request was
+  accepted at once: state 3). Now the ragdoll start also runs the player preparation the game's
+  node does first (see `ragdoll.c`), and the throw velocity is set after it.
 
 ## Plan
 
