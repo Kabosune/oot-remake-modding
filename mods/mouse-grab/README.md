@@ -175,7 +175,8 @@ between pulling every body and pulling only the first. The throw gives every bod
   frame's change of pitch moves him, faster turns go further, and turns slower than `GYRO_DEAD`
   are ignored so the controller can be brought back slowly.
   Third try: the second was far too sensitive and still the wrong way round. Now pitch up moves
-  him away; gain is a third of before, the dead zone is wider and the depth change is smoothed.
+  him away (no: KaboWabo meant the other way, so pitch up, the controller's face tilting towards
+  you, brings him closer); gain is a third of before, the dead zone is wider and the depth change is smoothed.
 - Fritchii seems to read a mod's exefs files when the app starts, not when the game boots: a
   build installed while the app was open didn't load until the app was closed and reopened. The
   module logs a build name at start (`mouse grab: build ...`) to make this visible.

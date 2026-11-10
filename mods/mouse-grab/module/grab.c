@@ -206,9 +206,9 @@ void grab_move(void *actor) {
                 turned = pitch - g.last_pitch;
                 float rate = (turned < 0 ? -turned : turned) / dt;
                 float step = rate > GYRO_DEAD ? turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate) : 0;
-                // pitch up (positive) moves him away from the camera
+                // pitch up (positive: the controller's face tilts towards you) brings him closer
                 g.depth_velocity += (step - g.depth_velocity) * GYRO_SMOOTH;
-                g.depth += g.depth_velocity;
+                g.depth -= g.depth_velocity;
             }
             g.last_pitch = pitch;
             g.have_pitch = true;
