@@ -202,12 +202,16 @@ void ragdoll_stop(void *actor) {
 void grab_move(void *actor);
 
 void actors_survey(void *actor);
+void face_update(void *actor, bool down);
+void grab_other(void *actor);
 
 void ragdoll_move(void *actor) {
     actors_survey(actor);
     if (actor != link) {
-        if (!is_link(actor))
+        if (!is_link(actor)) {
+            grab_other(actor);
             return;
+        }
         link = actor;
         kp_log_hex("found Link's actor", (uintptr_t)actor);
         report(actor, "ragdoll: state at start");
@@ -228,6 +232,7 @@ void ragdoll_move(void *actor) {
     }
     held = right;
     grab_move(actor);
+    face_update(actor, ragdoll_is_down(actor));
     void *rd = ragdoll_of(actor);
     if (rd && AT(rd, RAGDOLL_STATE, int32_t) != 0) {
         ++down_frames;

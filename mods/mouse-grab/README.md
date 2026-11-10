@@ -183,6 +183,19 @@ between pulling every body and pulling only the first. The throw gives every bod
   ragdolls, maybe only once they die. The survey now also logs the ragdoll reaction component
   (`[components + 0x390]`), which enemies may use instead.
 
+## Other characters and Link's face (10 November)
+
+- Picking up other characters (`grab_other` in `module/grab.c`): every physics actor with a
+  character controller (`CharacterProperty`) is a candidate; a click picks whichever character's
+  middle (position + 0.8 m) the ray passes closest to, Link included (Navi is left out, she'd
+  steal clicks). Others have no ragdoll, so they're carried stiff by their controller in their own
+  movement update and thrown with their controller body's velocity.
+- Pain face (`module/face.c`): `OneShotPersonalitySetOverwritePartialSlotFace` shows how scripts
+  change a face (an index into a name list of the actor's animation resource, written to the
+  personality component `[components + 0x340] + 0x3c`). The names aren't known, so the first time
+  Link is seen the list is logged, and while he's down the first name with "pain", "damage",
+  "hurt", ... in it is used.
+
 ## Plan
 
 1. Probe: what does the emulator feed the game (this step).

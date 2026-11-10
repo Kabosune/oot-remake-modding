@@ -9,6 +9,9 @@
 //   him to the held point (Link's actor position follows the ragdoll). Middle click switches
 //   between pulling every body (stiff) and pulling only the first one, so the rest dangles.
 // - Throwing: on release every ragdoll body gets the velocity the held point had.
+// - Other characters (no ragdoll; only Link has one): the cursor picks whichever character's middle
+//   the ray passes closest to. They're carried stiff by their character controller (ChangePosition
+//   with velocity zeroed, in their own movement update) and thrown by the controller body's velocity.
 #include "core.h"
 #include "input.h"
 
@@ -21,6 +24,10 @@
 #define PULL           8.0f        // 1/s: how fast he catches up with the held point
 #define MAX_SPEED      25.0f       // m/s
 #define MAX_BODIES     32
+#define F_CHANGE_POS   0x6B2530    // f_806d2530(controller, float pos[4])
+#define VT_CCT         0x4C34F10   // CharacterProperty, the character controller
+#define BODY_VT        0x4C34658   // the controller's body
+#define MAX_CANDIDATES 96
 // Depth works like a mouse: turning the controller moves him, holding it still keeps him where
 // he is, and slow turns below GYRO_DEAD don't count, so you can turn back slowly and flick again.
 #define DEPTH_PER_RAD  3.0f        // metres of depth per radian of pitch, at slow speed
@@ -36,6 +43,7 @@ bool ragdoll_is_down(void *actor);
 void ragdoll_start(void *actor);
 void ragdoll_stop(void *actor);
 int ragdoll_bodies(void *actor, void **out, int max);
+void *actor_holder(void *actor);
 
 typedef struct { float x, y, z; } v3;
 static v3 add(v3 a, v3 b) { return (v3){ a.x + b.x, a.y + b.y, a.z + b.z }; }
@@ -88,7 +96,25 @@ static bool mouse_ray(const mouse_state_t *m, v3 *from, v3 *dir) {
     return true;
 }
 
+// Characters seen in the last frames that can be carried: their controller and middle.
+static struct { void *actor; v3 middle; uint32_t frame; } candidates[MAX_CANDIDATES];
+static int next_candidate;
+
+static void *controller_of(void *actor) {
+    void *holder = actor_holder(actor);
+    void *c = holder ? AT(holder, 8, void *) : 0;
+    return c && kp_readable((uintptr_t)c, 0x28) && AT(c, 0, uintptr_t) == kp_main + VT_CCT ? c : 0;
+}
+
+static void *body_of(void *controller) {
+    void *b = controller ? AT(controller, 0x20, void *) : 0;
+    return b && kp_readable((uintptr_t)b, 8) && AT(b, 0, uintptr_t) == kp_main + BODY_VT ? b : 0;
+}
+
 static struct {
+    void *target;         // what's held: Link or another actor
+    void *link;
+    bool throw_pending;   // another actor was let go: throw it in its next update
     bool held_button, grabbing, held_middle, one_body;
     float depth;          // distance along the ray when grabbed
     float last_pitch;     // controller pitch last frame (radians)
@@ -96,7 +122,7 @@ static struct {
     v3 point, last_point; // held point (Link's middle)
     v3 velocity;
     uint64_t last_tick;
-    uint32_t frames;
+    uint32_t frames, frame;
 } g;
 
 static void log_v3(const char *what, v3 p) {
@@ -128,22 +154,46 @@ void grab_move(void *actor) {
     bool ray = got > 0 && mouse_ray(&m, &from, &dir);
     v3 middle = add(AT(actor, 0x31c, v3), (v3){ 0, MIDDLE, 0 });
 
+    g.link = actor;
+    g.frame++;
     if (pressed && ray) {
-        float along = dot(sub(middle, from), dir);
-        v3 closest = add(from, mul(dir, along));
-        v3 off = sub(middle, closest);
-        float miss = root(dot(off, off));
-        kp_log_2("grab: pressed. distance along ray, miss (cm):", (int64_t)(along * 100), (int64_t)(miss * 100));
-        if (along > 0.3f && miss < GRAB_RADIUS) {
-            if (!ragdoll_is_down(actor))
+        // the closest character to the ray, Link included
+        void *best = 0;
+        float best_miss = GRAB_RADIUS, best_along = 0;
+        v3 best_middle = middle;
+        for (int i = -1; i < MAX_CANDIDATES; i++) {
+            void *who = i < 0 ? actor : candidates[i].actor;
+            v3 mid = i < 0 ? middle : candidates[i].middle;
+            if (!who || (i >= 0 && g.frame - candidates[i].frame > 2))
+                continue;
+            float along = dot(sub(mid, from), dir);
+            v3 off = sub(mid, add(from, mul(dir, along)));
+            float miss = root(dot(off, off));
+            if (along > 0.3f && miss < best_miss) {
+                best = who;
+                best_miss = miss;
+                best_along = along;
+                best_middle = mid;
+            }
+        }
+        kp_log_2("grab: pressed. picked Link, miss (cm):", best == actor, best ? (int64_t)(best_miss * 100) : -1);
+        if (best) {
+            if (best == actor && !ragdoll_is_down(actor))
                 ragdoll_start(actor);
+            g.target = best;
             g.grabbing = true;
-            g.depth = along;
-            g.have_pitch = controller_pitch(&g.last_pitch);
-            g.point = g.last_point = middle;
+            g.throw_pending = false;
+            g.depth = best_along;
+            g.point = g.last_point = best_middle;
             g.velocity = (v3){ 0, 0, 0 };
             g.frames = 0;
-            kp_log_2("grab: holding Link. pitch known, pitch (mrad):", g.have_pitch, (int64_t)(g.last_pitch * 1000));
+            g.have_pitch = controller_pitch(&g.last_pitch);
+            if (best != actor) {
+                const char *name = AT(best, 0x20, const char *);
+                kp_log(name && kp_readable((uintptr_t)name, 1) ? name : "grab: holding a character");
+            } else {
+                kp_log_2("grab: holding Link. pitch known, pitch (mrad):", g.have_pitch, (int64_t)(g.last_pitch * 1000));
+            }
         }
     }
     if (g.grabbing && left && ray) {
@@ -167,6 +217,8 @@ void grab_move(void *actor) {
         v3 v = mul(sub(g.point, g.last_point), 1.0f / dt);
         g.velocity = add(mul(g.velocity, 0.5f), mul(v, 0.5f));   // smoothed over a few frames
         g.last_point = g.point;
+        if (g.target != actor)
+            goto logged;   // another actor: moved in its own update (grab_other)
         // velocity that closes the gap to the held point, on top of the point's own motion
         v3 gap = sub(g.point, middle);
         v3 pull = add(mul(gap, PULL), g.velocity);
@@ -180,6 +232,7 @@ void grab_move(void *actor) {
             KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(bodies[i], vel, 0);
         if (g.frames == 0)
             kp_log_2("grab: ragdoll bodies, pulling only the first:", n, g.one_body);
+    logged:
         if (g.frames++ % 30 == 0) {
             log_v3("grab: held point (cm x, z)", g.point);
             log_v3("  Link's actor position", AT(actor, 0x31c, v3));
@@ -188,11 +241,56 @@ void grab_move(void *actor) {
     }
     if (g.grabbing && released) {
         g.grabbing = false;
-        void *bodies[MAX_BODIES];
-        int n = ragdoll_bodies(actor, bodies, MAX_BODIES);
-        float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
-        for (int i = 0; i < n; i++)
-            KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(bodies[i], v, 0);
+        if (g.target == actor) {
+            void *bodies[MAX_BODIES];
+            int n = ragdoll_bodies(actor, bodies, MAX_BODIES);
+            float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
+            for (int i = 0; i < n; i++)
+                KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(bodies[i], v, 0);
+        } else {
+            g.throw_pending = true;
+        }
         log_v3("grab: thrown, velocity (cm/s x, z)", g.velocity);
     }
+}
+
+// Every other physics actor, in its own movement update.
+void grab_other(void *actor) {
+    if (g.target == actor && (g.grabbing || g.throw_pending)) {
+        void *c = controller_of(actor);
+        void *body = body_of(c);
+        if (g.grabbing && c) {
+            float to[4] = { g.point.x, g.point.y - MIDDLE, g.point.z, 0 };
+            KP_FN(void (*)(void *, const float *), F_CHANGE_POS)(c, to);
+            static const float still[3] = { 0, 0, 0 };
+            if (body)
+                KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(body, still, 0);
+        } else if (g.throw_pending) {
+            g.throw_pending = false;
+            float v[3] = { g.velocity.x, g.velocity.y, g.velocity.z };
+            if (body)
+                KP_FN(void (*)(void *, const float *, int), F_SET_VELOCITY)(body, v, 0);
+        }
+        return;
+    }
+    // remember carriable characters, at most once per frame each
+    for (int i = 0; i < MAX_CANDIDATES; i++)
+        if (candidates[i].actor == actor) {
+            if (candidates[i].frame != g.frame) {
+                candidates[i].frame = g.frame;
+                candidates[i].middle = add(AT(actor, 0x31c, v3), (v3){ 0, MIDDLE, 0 });
+            }
+            return;
+        }
+    if (!controller_of(actor))
+        return;
+    const char *name = AT(actor, 0x20, const char *);
+    if (name && kp_readable((uintptr_t)name, 9) && name[0] == 'N' && name[1] == 'p' && name[2] == 'c' &&
+        name[3] == '_' && name[4] == 'N' && name[5] == 'a' && name[6] == 'v' && name[7] == 'i' && !name[8])
+        return;   // Navi flies next to Link and would steal clicks meant for him
+    int i = next_candidate;
+    next_candidate = (next_candidate + 1) % MAX_CANDIDATES;
+    candidates[i].actor = actor;
+    candidates[i].frame = g.frame;
+    candidates[i].middle = add(AT(actor, 0x31c, v3), (v3){ 0, MIDDLE, 0 });
 }
