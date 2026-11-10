@@ -8,6 +8,9 @@
 //                it returned.
 //   mouse_wrap - GetMouseStates: counts the game's own calls (those returning to
 //                GAME_MOUSE_READ_RET), then goes on to the real function.
+//
+// x16 and x17 must reach the real function as the stub set them: imports are bound lazily, and on
+// a first call x17 is rtld's resolver, which finds the symbol from x16 (the GOT slot's address).
 
 #include "params.inc"
 
@@ -42,12 +45,12 @@ six_wrap:
 
     .global mouse_wrap
 mouse_wrap:
-    adrp    x16, GAME_MOUSE_READ_RET
-    add     x16, x16, :lo12:GAME_MOUSE_READ_RET
-    cmp     x30, x16
+    adrp    x9, GAME_MOUSE_READ_RET
+    add     x9, x9, :lo12:GAME_MOUSE_READ_RET
+    cmp     x30, x9
     b.ne    1f
-    adrp    x16, PROBE_STATE
-    ldr     w9, [x16, :lo12:PROBE_STATE + 0x0c]
-    add     w9, w9, #1
-    str     w9, [x16, :lo12:PROBE_STATE + 0x0c]
+    adrp    x9, PROBE_STATE
+    ldr     w10, [x9, :lo12:PROBE_STATE + 0x0c]
+    add     w10, w10, #1
+    str     w10, [x9, :lo12:PROBE_STATE + 0x0c]
 1:  br      x17

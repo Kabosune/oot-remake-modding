@@ -3,7 +3,8 @@
     python3 tests/test_mouse_probe.py <flat main image> <mouse-probe zip>
 
 The calls go through the game's real import stubs (their GOT slots point at fake functions), so
-the stub patches, the wrappers and the C code all run as they would in game. Checks: return values
+the stub patches, the wrappers and the C code all run as they would in game. Checks: x16 / x17
+reach the real function as the stub set them (rtld's lazy binding needs them), return values
 and callee-saved registers come back unchanged, the game's own mouse reads are counted, a line
 goes out twice a second and holds the mouse and motion values that the fake functions returned.
 """
@@ -50,10 +51,15 @@ class Game:
         for i, (name, (_, got)) in enumerate({"style": STYLE, "six": SIX, "mouse": MOUSE}.items()):
             fn = FAKE_HID + 0x10 * i
             u.mem_write(got, struct.pack("<Q", fn))
-            u.hook_add(UC_HOOK_CODE, self._hid, name, fn, fn)
+            u.hook_add(UC_HOOK_CODE, self._hid, (name, got), fn, fn)
         u.hook_add(UC_HOOK_INTR, self._svc)
 
-    def _hid(self, u, addr, size, name):
+    def _hid(self, u, addr, size, key):
+        # Imports are bound lazily: on a first call this would be rtld's resolver, which needs x16
+        # (the GOT slot's address) and x17 exactly as the import stub set them.
+        name, got = key
+        assert u.reg_read(UC_ARM64_REG_X16) == got, f"{name}: x16 isn't the GOT slot"
+        assert u.reg_read(UC_ARM64_REG_X17) == addr, f"{name}: x17 changed"
         x0, x1 = u.reg_read(UC_ARM64_REG_X0), u.reg_read(UC_ARM64_REG_X1)
         if name == "style":
             ret = 0x21
