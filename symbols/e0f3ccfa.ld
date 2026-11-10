@@ -11,9 +11,47 @@ VT_CCT           = 0x84c54f10;  /* Link's physics character controller: [[[[[act
 
 /* --- functions --- */
 CCT_CHANGE_POSITION = 0x806d2530; /* f_806d2530(controller, float pos[4]): moves a character controller (vtable slot +0xe8) */
+POUCH_ADD_CONTENT               = 0x8112d570; /* adds a content (an item, ammo, rupees and so on) to the pouch */
+POUCH_GET_CONTENT_NUM           = 0x805b63e0; /* returns how many of a content the pouch holds, by the content's actor name */
+POUCH_INFO_FIND                 = 0x805aed10; /* finds a content's pouch info by its actor name */
+POUCH_CATEGORY_FROM_STRING      = 0x8015fdd0; /* converts a pouch category name to its number: bool (u32* out, const char** name) */
+POUCH_PUSH_PICKED_UP            = 0x80c8f620; /* pushes a picked-up item's content into the pouch */
+PICKUP_HANDLER                  = 0x82eaa1e0; /* handles an item pickup */
+DROP_READ_PARAMS                = 0x80bf1c00; /* reads a placed actor's drop parameters (Drop__DropActor) */
+QUERY_SET_GET_EVENT_REQUEST_ARG = 0x82b00750; /* QuerySetGetEventRequestArg(node, request) */
+EVFL_PROCESS_CONTEXT            = 0x81248840; /* processes an EventFlow flowchart context: runs its actions, queries and subflows */
+EVFL_BUILD_CONTEXT              = 0x8124a0a0; /* builds an EventFlow context */
+EVFL_MARK_ENTRIES               = 0x8124abe0; /* marks the entries reachable from one EventFlow entry: bool (err*, flowcharts*, bitsets*, u32 flowchart, u64 entry) */
+EVFL_BIND_ACTION                = 0x80d5c9a0; /* adds an action handler to an EventFlow binding, by the action's name */
+EVFL_BIND_QUERY                 = 0x8124b4a0; /* adds a query handler to an EventFlow binding, by the query's name */
+BANC_LOAD                       = 0x80c1ba50; /* loads a Banc (an area's placements) */
+WINDOW_SET_MESSAGE              = 0x80a8c460; /* sets a talk window's message from a message file and label */
+DUNGEON_ADD_SMALL_KEY           = 0x832a3160; /* adds small keys: (dungeon manager, int count) */
+DUNGEON_SET_BOSS_KEY            = 0x832a30e0; /* sets the boss key: (dungeon manager, bool) */
+DUNGEON_SET_MAP                 = 0x832a2fe0; /* sets the map: (dungeon manager, bool) */
+DUNGEON_SET_COMPASS             = 0x832a3060; /* sets the compass: (dungeon manager, bool) */
+BOOLEXP_EVALUATE                = 0x804029e0; /* evaluates a GameData BoolExp (a condition expression) */
+BOOLEXP_COMPARE_ENUM_ORDER      = 0x804248f0; /* compares the order of two enum values for the BoolExp evaluators */
+SHOP_IS_SOLD_OUT                = 0x80bb88d0; /* checks whether a shop's goods slot is sold out: (owner link, index, ...) */
+GAMEDATA_FIND_STRUCT            = 0x809d3eb0; /* finds a GameData struct: (manager, Key* out, u32 struct hash) */
+GAMEDATA_GET_BOOL               = 0x80199f70; /* gets a GameData bool: (manager, bool* out, Key*, u32 member hash) */
+GAMEDATA_GET_INT                = 0x8019b3b0; /* gets a GameData int: (manager, int* out, Key*, u32 member hash) */
+GAMEDATA_GET_ENUM               = 0x8019bf90; /* gets a GameData enum: (manager, u32* out, Key*, u32 member hash) */
+GAMEDATA_SET_BOOL               = 0x80628a10; /* sets a GameData bool: (manager, bool value, Key*, u32 member hash) */
+GAMEDATA_SET_INT                = 0x809d39e0; /* sets a GameData int: (manager, int value, Key*, u32 member hash) */
+GAMEDATA_SET_BOOL_BY_HASH       = 0x806a2b20; /* sets a GameData bool by its hash: (manager, bool value, u32 hash) */
+GAMEDATA_SET_ENUM_BY_HASH       = 0x80400980; /* sets a GameData enum by its hash: (manager, u32 value, u32 hash) */
+EVENT_REQUEST_INIT              = 0x80d99f10; /* constructs an EventRequest */
+EVENT_REQUEST                   = 0x80d9a820; /* requests an event: bool (EventMgr*, EventRequest*) */
+ACTOR_SET_POSITION              = 0x80964e70; /* sets an actor's position: (Actor*, const float pos[3], bool) */
+ACTOR_SET_TRANSFORM             = 0x80c8fd60; /* sets an actor's transform: (Actor*, const float mtx[12], bool) */
+FRAMEWORK_FRAME                 = 0x83b6ea90; /* runs one frame of the game framework (slot 28 of the vtable at 0x84c83f80) */
 
 /* --- globals --- */
 CAMMGR_SLOT      = 0x84ca6bc0;  /* [[slot]] = camera manager; +0x20 count, +0x28 cameras; [cameras][0]+0x78 = gameplay view */
+POUCHMGR_PTR                    = 0x84e98e28; /* the PouchMgr pointer variable */
+GAMEDATAMGR_PTR                 = 0x84ea42a8; /* the GameDataMgr pointer variable */
+EVENTMGR_PTR                    = 0x84eb4840; /* the EventMgr pointer variable */
 
 /* --- imports (PLT stubs: adrp x16 / ldr x17 / add x16 / br x17, 16 bytes each) --- */
 PLT_GETNPAD_STYLESET = 0x83c627e0; /* nn::hid::GetNpadStyleSet(uint const&) (by its use in f_834893d0) */
