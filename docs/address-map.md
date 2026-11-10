@@ -41,6 +41,9 @@ in game yet.
 All ~5,200 script commands (`OneShot*`, `Query*`, `Execute*`, ...) and their functions are in
 [`symbols/e0f3ccfa-commands.csv`](../symbols/e0f3ccfa-commands.csv); see [script-commands.md](script-commands.md).
 
+More functions, globals and object layouts found by sloperinaGZ (GameData, pause manager, actor
+manager, controller collision and velocity, UI) are in [sloperina-findings.md](sloperina-findings.md).
+
 ## Globals
 
 | Address | What | Source |

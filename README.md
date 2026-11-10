@@ -39,6 +39,7 @@ Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into t
 - [Structures](docs/structures.md): field layouts (camera view, camera manager, Link, controller state).
 - [Memory map](docs/memory-map.md): which code cave and free memory each mod uses, so mods don't collide.
 - [Writing a patch](docs/writing-a-patch.md): how `tools/nxpatch.py` works and the rules for hooks.
+- [What sloperinaGZ found](docs/sloperina-findings.md): a summary of the practice menu's findings (save fields, pausing, physics controller, actors) in this repo's addresses, and what they open up for the mods here.
 - [Community projects](docs/community.md): emulators, recomps, other mods and tools.
 
 ## Layout
@@ -78,6 +79,8 @@ themselves to it.
   of a dump.
 - [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod): the IPS32 conventions for this
   build and the first use of the `.text` padding as a cave.
+- [PracticeROM/sloperina](https://github.com/PracticeROM/sloperina): its findings document, summarised in
+  [docs/sloperina-findings.md](docs/sloperina-findings.md).
 
 An unofficial fan project, not affiliated with or endorsed by Nintendo. The Legend of Zelda and
 Ocarina of Time are trademarks of Nintendo.

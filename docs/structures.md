@@ -66,6 +66,9 @@ vtables shows which slots are theirs.
 
 ## Player-type actor (vtable `0x84b6c460`)
 
+sloperinaGZ reads this vtable as the generic Life component, `[[actor+0x270]+0x2b8]`, which enemies
+have too (see [sloperina-findings.md](sloperina-findings.md#objects)). The offsets below agree either way.
+
 | Offset | Type | Field |
 |---|---|---|
 | `+0x10` | ptr | resource record (name at `+0x58`) |
