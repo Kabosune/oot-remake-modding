@@ -82,14 +82,40 @@ python3 tests/test_mouse_probe.py work/main.bin releases/mouse-probe.zip
 The lines appear in Fritchii's log (`eden_log.txt`) as `Debug.Emulated <Info>`. `mouse_enabled`
 has to be on for the emulated mouse.
 
+## The cursor build (`module/`, `build.py`)
+
+The first build that is a module of its own: Kaepora Core's first skeleton (`api/core/`) and the
+cursor (`module/cursor.c`) linked together into `exefs/subsdk1`. It patches nothing in `main`.
+
+```
+python3 mods/mouse-grab/build.py
+```
+
+- `api/core/crt0.S`, `module.ld`: the module header (MOD0) and layout rtld expects.
+- `api/core/core.c`: finds main from the exported `nnMain` and checks the build (1.1.1 only for
+  now), then starts drawing and the mod.
+- `api/core/draw.c`: swaps main's GOT slot for `nvnBootstrapLoader`, so it can wrap the NVN
+  functions the game fetches by name (`nvnDeviceInitialize`, `nvnWindowBuilderSetTextures`,
+  `nvnQueuePresentTexture`). Before each frame is shown it fills rectangles of the texture being
+  presented: a scissored clear per rectangle, no shaders. The same idea sloperinaGZ uses (learned
+  from its docs, code written from scratch).
+- `tools/mknso.py`: packs the linked ELF into an NSO.
+
+Known clash: sloperinaGZ 0.0.3 also takes over main's `nvnBootstrapLoader` slot and doesn't pass
+the call on to a hook that was there before it. With both installed, whichever module rtld
+initialises last wins, so disable sloperinaGZ while testing this.
+
+What it logs (lines start with `kaepora:`): `module loaded, main at ...`, `the game asked for NVN`,
+`drawing ready`, `first frame, picture size W H`, and the cursor position every 300 frames.
+
 ## Plan
 
 1. Probe: what does the emulator feed the game (this step).
 2. A module of its own (the code cave is too small): loads, runs every frame, reads input, draws a
-   cursor. This becomes the start of Kaepora Core (`api/`).
+   cursor. This becomes the start of Kaepora Core (`api/`). (Built, waiting for a test.)
 3. Link ragdolls on a button; then move him with the cursor; depth from pitch; throw; other things.
 
 ## Credits
 
 - KaboWabo/Kabosune (me :3): idea, design, in-game testing
-- AI assistance (Claude Fable 5.2)
+- AI assistance (Claude Fable 5.2, Claude Opus 5.5)
