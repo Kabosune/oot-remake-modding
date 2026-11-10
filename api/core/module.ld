@@ -1,4 +1,4 @@
-/* A module for a subsdk slot: position independent, three page-aligned segments
+/* A module for a subsdk slot (Core, or a mod built as its own module): position independent, three page-aligned segments
    (code, read-only data, data + bss), which is what an NSO holds. */
 OUTPUT_FORMAT(elf64-littleaarch64)
 ENTRY(__kp_module_start)
@@ -31,6 +31,7 @@ SECTIONS
 
   . = ALIGN(0x1000);
   .data     : { *(.data .data.*) } :rw
+  .kae_mods : { HIDDEN(__kae_mods_start = .); KEEP(*(.kae_mods)) HIDDEN(__kae_mods_end = .); } :rw
   .dynamic  : { HIDDEN(__kp_dynamic = .); *(.dynamic) } :rw :dyn
   .got      : { *(.got) } :rw
   .got.plt  : { *(.got.plt) } :rw

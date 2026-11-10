@@ -65,9 +65,13 @@ tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main
 tools/ghidra_label_commands.py  name those functions in Ghidra
-api/                       Kaepora, the proposed modding standard (design draft)
+api/                       Kaepora, the proposed modding standard: the design, Core (api/core), its API (api/include)
+tools/kaemod.py            build Kaepora Core and core mods into exefs modules
+tools/kaepora_symbols.py   symbol packs (symbols/<build>.toml) -> the table compiled into Core
+tools/mknso.py             pack a linked module into an NSO
 mods/<mod>/                source (.S, .c), build.py, README
-tests/                     Unicorn tests that run the hooks on a patched main with fake game objects
+tests/                     Unicorn tests that run the hooks on a patched main with fake game objects;
+                           Kaepora's tests (test_kaepora_unit.py, test_kaepora_modules.py) need no game files
 releases/                  built zips
 ```
 

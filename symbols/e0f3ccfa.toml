@@ -1,0 +1,132 @@
+# Kaepora symbol pack for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
+#
+# Everything Kaepora Core knows about this build of the game is in this file. Offsets are module
+# offsets (address in the docs minus 0x80020000). tools/kaepora_symbols.py turns the packs into
+# the table compiled into Core; mods ask for these by name (kae_sym, kae_field).
+#
+# `ld` names the same thing in symbols/e0f3ccfa.ld (the file the IPS mods link against);
+# tests/test_kaepora_symbols.py checks that the two agree. How each was found is in
+# docs/address-map.md and docs/structures.md.
+
+build   = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
+version = "1.1.1"
+
+[detect]                    # how Core recognises this build from inside the game
+nnmain = 0x1202CD0          # nnMain
+mod0   = 0x3C4705C          # main's MOD0 header
+size   = 0x4EA0000          # mapped size of main
+
+[core]
+hook-slots = 0x4E9FB00      # one 8-byte function pointer per hook point (docs/memory-map.md)
+
+# ---- hook points: places in main's code that Core's patch redirects ----
+
+[hookpoint."Actor.MoveUpdate"]
+site    = 0x2C215E4         # second instruction of the movement update, f_82c415e0
+slot    = 0
+context = "x0 = actor; runs for every physics actor every frame on the game's thread"
+
+# ---- functions ----
+
+[function.CctChangePosition]
+offset = 0x6B2530
+alias  = "f_806d2530"
+args   = "controller, float pos[4]"
+ld     = "CCT_CHANGE_POSITION"
+source = "Hookshot; sloperina"
+
+[function.ActorHolder]
+offset = 0x837620
+alias  = "f_80857620"
+args   = "actor"
+note   = "[[[[actor+0x270]+0x50]+0x20]+0x10], no null checks"
+source = "disassembly, tested"
+
+[function.IsChildLink]
+offset = 0x4B6DB0
+alias  = "f_804d6db0"
+args   = "actor"
+source = "disassembly"
+
+[function.SetActorLife]
+offset = 0x49D8C0
+alias  = "f_804bd8c0"
+source = "Hookshot"
+
+[function.BodySetLinearVelocity]
+offset = 0x12DBE0
+alias  = "f_8014dbe0"
+args   = "body, float v[3], 0"
+source = "disassembly, tested"
+
+[function.BodyGetLinearVelocity]
+offset = 0x122750
+alias  = "f_80142750"
+args   = "body, float out[3], 1"
+source = "disassembly"
+
+[function.RagdollStart]
+offset = 0x3218D30
+alias  = "f_83238d30"
+args   = "ragdoll, request"
+source = "disassembly, tested"
+
+[function.RagdollEnd]
+offset = 0x3219090
+alias  = "f_83239090"
+args   = "ragdoll, {actor, 0}"
+source = "disassembly, tested"
+
+[function.AsPlay]
+offset = 0x2022A0
+alias  = "f_802222a0"
+args   = "request"
+source = "disassembly"
+
+# ---- globals ----
+
+[global.CameraManagerSlot]
+offset = 0x4C86BC0
+ld     = "CAMMGR_SLOT"
+note   = "[[slot]] = camera manager"
+source = "Hookshot"
+
+# ---- vtables (asked for as "vtable.<Name>") ----
+
+[vtable.View]
+offset = 0x4BF8A88
+ld     = "VT_VIEW"
+
+[vtable.Actor]
+offset = 0x4B25E18
+ld     = "VT_ACTOR"
+
+[vtable.Player]
+offset = 0x4B4C460
+ld     = "VT_PLAYER"
+
+[vtable.Cct]
+offset = 0x4C34F10
+ld     = "VT_CCT"
+
+# ---- fields ----
+
+[field."Actor.position"]
+offset = 0x31C
+type   = "f32[3]"
+
+[field."Actor.rotation"]
+offset = 0x328
+type   = "f32[3][4]"
+
+[field."View.matrix"]
+offset = 0x08
+type   = "f32[3][4]"
+
+[field."View.eye"]
+offset = 0x60
+type   = "f64[3]"
+
+[field."View.target"]
+offset = 0x78
+type   = "f64[3]"

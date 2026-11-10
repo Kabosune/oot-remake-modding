@@ -2,7 +2,7 @@
 
 **Draft 0.1, 9 November 2026.** Part of [Kaepora](DESIGN.md). The menu's logic and drawing exist
 as portable C in [`menu/`](menu/) and pass their host tests. **It has not run inside the game**:
-that needs Kaepora Core, which doesn't exist yet.
+that needs text drawing and input bindings in Kaepora Core, which Core 0.2 doesn't have yet.
 
 One screen, called **Mods**, where a player sees every installed mod, switches mods on and off,
 changes their settings and rebinds their buttons.

@@ -1,0 +1,18 @@
+# A core mod's manifest: no patches to main, only what it asks of Kaepora Core.
+manifest = 1
+
+id       = "kaepora.hello"
+name     = "Kaepora Hello"
+version  = "0.2.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.2"                       # the Core API it is written for
+sources = ["hello.c"]                 # built by tools/kaemod.py
+events  = ["frame", "input", "draw", "actor_move"]
+symbols = ["function:CctChangePosition", "field:Actor.position"]   # checked against every game version's pack

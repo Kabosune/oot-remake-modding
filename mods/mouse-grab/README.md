@@ -86,16 +86,23 @@ has to be on for the emulated mouse.
 
 ## The cursor build (`module/`, `build.py`)
 
-The first build that is a module of its own: Kaepora Core's first skeleton (`api/core/`) and the
-cursor (`module/cursor.c`) linked together into `exefs/subsdk1`. It patches nothing in `main`.
+Mouse Grab is a core mod: it runs on [Kaepora Core](../../api/README.md) and patches nothing in
+`main` itself. The build links Core and the mod into `exefs/subsdk1` (add `--separate` to make the
+mod its own module in `subsdk2` instead) and adds Core's `.ips` for its hook point.
 
 ```
 python3 mods/mouse-grab/build.py
 ```
 
-- `api/core/crt0.S`, `module.ld`: the module header (MOD0) and layout rtld expects.
-- `api/core/core.c`: finds main from the exported `nnMain` and checks the build (1.1.1 only for
-  now), then starts drawing and the mod.
+- `mod.toml`: the mod's manifest; its `[core]` table lists the sources and the one system function
+  the mod imports itself (`GetMouseStates`).
+- `module/cursor.c` holds the mod's start (`KAE_MOD`): it subscribes to Core's `draw` and
+  `actor_move` events. `module/core.h` maps the names of Core's first skeleton (`kp_...`), which
+  the other files were written against, onto the public API in `api/include/kaepora.h`.
+- It is still a research build: it calls the game's functions by raw offset from `kae_game_base()`,
+  so it only supports game version 1.1.1.
+- `api/core/core.c`: finds main from the exported `nnMain` and recognises the build from the
+  symbol packs, then starts Core's services.
 - `api/core/draw.c`: swaps main's GOT slot for `nvnBootstrapLoader`, so it can wrap the NVN
   functions the game fetches by name (`nvnDeviceInitialize`, `nvnWindowBuilderSetTextures`,
   `nvnQueuePresentTexture`). Before each frame is shown it fills rectangles of the texture being
@@ -107,7 +114,8 @@ Known clash: sloperinaGZ 0.0.3 also takes over main's `nvnBootstrapLoader` slot 
 the call on to a hook that was there before it. With both installed, whichever module rtld
 initialises last wins, so disable sloperinaGZ while testing this.
 
-What it logs (lines start with `kaepora:`): `module loaded, main at ...`, `the game asked for NVN`,
+What it logs (Core's lines start with `kaepora:`, the mod's with `kaepora [kabosune.mouse-grab]:`):
+`Core 0.2 loaded, game 1.1.1, main at ...`, `the game asked for NVN`,
 `drawing ready`, `first frame, picture size W H`, and the cursor position every 300 frames.
 
 ## Ragdoll test build (`module/ragdoll.c`)
@@ -124,7 +132,7 @@ Right click drops Link into ragdoll; right click again gets him up. All of it is
 - Ending uses `OneShotRagdollReactionEnd`'s call (`f_82eb2f80` on the reaction component at
   `[components + 0x390]`); not known to be the right one for this kind of ragdoll.
 - Game logic must run on the game's thread, so this build adds Kaepora's first **hook point**:
-  `api/core/hookpoints.S`, patched in by the mod's `.ips`, jumps from the movement update's second
+  `api/core/hookpoints.S`, patched in by Core's `.ips`, jumps from the movement update's second
   instruction to a stub that calls the function the module put in `KP_HOOK_SLOTS`. It sits right
   after FPV Drone's hook, so both work together. `tests/test_kaepora_hooks.py` checks the stub.
 - Mouse Probe is retired: the hook stubs use its code cave space, so the two can't be installed
@@ -212,7 +220,7 @@ between pulling every body and pulling only the first. The throw gives every bod
 
 1. Probe: what does the emulator feed the game (this step).
 2. A module of its own (the code cave is too small): loads, runs every frame, reads input, draws a
-   cursor. This becomes the start of Kaepora Core (`api/`). (Built, waiting for a test.)
+   cursor. This became the start of Kaepora Core (`api/`). (Done.)
 3. Link ragdolls on a button; then move him with the cursor; depth from pitch; throw; other things.
 
 ## Credits
