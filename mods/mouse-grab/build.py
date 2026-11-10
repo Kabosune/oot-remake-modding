@@ -20,8 +20,8 @@ import mknso  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
 SLOT = "subsdk1"
-SOURCES = [CORE / "crt0.S", CORE / "core.c", CORE / "log.c", CORE / "imports.c", CORE / "draw.c", CORE / "hooks.c", CORE / "memory.c",
-           HERE / "module" / "cursor.c", HERE / "module" / "ragdoll.c", HERE / "module" / "grab.c", HERE / "module" / "survey.c"]
+SOURCES = [CORE / "crt0.S", CORE / "core.c", CORE / "log.c", CORE / "imports.c", CORE / "draw.c", CORE / "hooks.c", CORE / "memory.c", CORE / "motion.c",
+           HERE / "module" / "cursor.c", HERE / "module" / "ragdoll.c", HERE / "module" / "grab.c", HERE / "module" / "survey.c", HERE / "module" / "actors.c"]
 sys.path.insert(0, str(REPO / "tools"))
 import nxpatch  # noqa: E402
 BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
@@ -34,6 +34,7 @@ IMPORTS = {
     "aligned_alloc": "main",
     "nvnBootstrapLoader": "sdk",
     "_ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi": "sdk",
+    "_ZN2nn3hid22GetSixAxisSensorStatesEPNS0_18SixAxisSensorStateEiRKNS0_19SixAxisSensorHandleE": "sdk",
 }
 CFLAGS = ["--target=aarch64-none-elf", "-O2", "-fPIC", "-ffreestanding", "-fno-builtin", "-fno-plt", "-fvisibility=hidden",
           "-fno-stack-protector", "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wall", "-Wextra", "-Werror",

@@ -37,6 +37,8 @@ void ragdoll_move(void *actor);
 void mod_init(void) {
     kp_log("mouse grab: ragdoll test build");
     kp_hooks_start(ragdoll_move);
+    if (!kp_motion_start())
+        kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
 }
 
 // One rectangle for each run of the same kind of cell in a row.

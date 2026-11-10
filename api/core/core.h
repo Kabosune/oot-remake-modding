@@ -38,6 +38,11 @@ typedef struct {
 void kp_draw_rect(int x, int y, int w, int h, uint32_t rgb);
 bool kp_draw_start(void);            // hooks the game's NVN; false if main's import wasn't found
 
+// ---- motion sensor ----
+bool kp_motion_start(void);
+// The newest direction matrix (3x3, rows) of the controller; returns how many updates so far (0: none).
+uint64_t kp_motion_direction(float out[9]);
+
 // ---- hook points (need the mod's patch to main) ----
 // move(actor) runs on the game's thread for every physics actor, every frame.
 bool kp_hooks_start(void (*move)(void *actor));

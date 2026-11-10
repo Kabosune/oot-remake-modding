@@ -201,7 +201,10 @@ void ragdoll_stop(void *actor) {
 
 void grab_move(void *actor);
 
+void actors_survey(void *actor);
+
 void ragdoll_move(void *actor) {
+    actors_survey(actor);
     if (actor != link) {
         if (!is_link(actor))
             return;

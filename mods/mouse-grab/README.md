@@ -164,6 +164,18 @@ keeps him a ragdoll and pulls the bodies toward the held point every frame; midd
 between pulling every body and pulling only the first. The throw gives every body the velocity.
 `module/survey.c` now dumps the 0x70-byte arrays (survey 2) a second after he goes down.
 
+## Depth from controller pitch, and survey 3 (10 November)
+
+- Tested: carrying him limp works (18 ragdoll bodies found; their wrapper's vtable is main offset
+  `0x4c378c0`, not the controller body's).
+- `api/core/motion.c` swaps main's GOT slot for `GetSixAxisSensorStates` and keeps the newest
+  direction matrix of the first sensor that moves. While Link is held, tilting the controller
+  changes the hold distance: `DEPTH_PER_RAD` metres per radian of pitch (from the direction
+  matrix's third row) relative to the pitch when he was grabbed. The sign isn't checked yet.
+- `module/actors.c` (survey 3): the first time each physics actor passes through the movement
+  update, it logs its name (`char*` at `+0x20`) and whether it has a ragdoll component, with the
+  number of bodies.
+
 ## Plan
 
 1. Probe: what does the emulator feed the game (this step).

@@ -21,6 +21,8 @@
 #define PULL           8.0f        // 1/s: how fast he catches up with the held point
 #define MAX_SPEED      25.0f       // m/s
 #define MAX_BODIES     32
+#define DEPTH_PER_RAD  6.0f        // metres of depth per radian of controller pitch
+#define MIN_DEPTH      0.8f
 #define TICK_HZ        19200000.0f
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
@@ -38,6 +40,23 @@ static float dot(v3 a, v3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 static v3 cross(v3 a, v3 b) { return (v3){ a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x }; }
 static float root(float x) { float r; __asm__("fsqrt %s0, %s1" : "=w"(r) : "w"(x)); return r; }
 static v3 unit(v3 a) { float l = root(dot(a, a)); return l > 1e-6f ? mul(a, 1.0f / l) : a; }
+
+// The controller's pitch (radians, up positive) from its direction matrix; false without data.
+static float asin_approx(float x) {   // good to ~0.01 rad over -1..1
+    if (x > 1) x = 1;
+    if (x < -1) x = -1;
+    float ax = x < 0 ? -x : x;
+    float r = 1.5707963f - root(1 - ax) * (1.5707288f + ax * (-0.2121144f + ax * (0.0742610f - 0.0187293f * ax)));
+    return x < 0 ? -r : r;
+}
+
+static bool controller_pitch(float *pitch) {
+    float d[9];
+    if (!kp_motion_direction(d))
+        return false;
+    *pitch = asin_approx(d[7]);   // y of the third row (the axis out of the controller's face)
+    return true;
+}
 
 static uint64_t ticks(void) {
     register uint64_t x0 __asm__("x0");
@@ -66,7 +85,9 @@ static bool mouse_ray(const mouse_state_t *m, v3 *from, v3 *dir) {
 
 static struct {
     bool held_button, grabbing, held_middle, one_body;
-    float depth;          // distance along the ray
+    float depth;          // distance along the ray when grabbed
+    float pitch0;         // controller pitch when grabbed (radians)
+    bool have_pitch;
     v3 point, last_point; // held point (Link's middle)
     v3 velocity;
     uint64_t last_tick;
@@ -113,14 +134,20 @@ void grab_move(void *actor) {
                 ragdoll_start(actor);
             g.grabbing = true;
             g.depth = along;
+            g.have_pitch = controller_pitch(&g.pitch0);
             g.point = g.last_point = middle;
             g.velocity = (v3){ 0, 0, 0 };
             g.frames = 0;
-            kp_log("grab: holding Link");
+            kp_log_2("grab: holding Link. pitch known, pitch (mrad):", g.have_pitch, (int64_t)(g.pitch0 * 1000));
         }
     }
     if (g.grabbing && left && ray) {
-        g.point = add(from, mul(dir, g.depth));
+        float depth = g.depth, pitch;
+        if (g.have_pitch && controller_pitch(&pitch))
+            depth += (pitch - g.pitch0) * DEPTH_PER_RAD;
+        if (depth < MIN_DEPTH)
+            depth = MIN_DEPTH;
+        g.point = add(from, mul(dir, depth));
         v3 v = mul(sub(g.point, g.last_point), 1.0f / dt);
         g.velocity = add(mul(g.velocity, 0.5f), mul(v, 0.5f));   // smoothed over a few frames
         g.last_point = g.point;
@@ -140,6 +167,8 @@ void grab_move(void *actor) {
         if (g.frames++ % 30 == 0) {
             log_v3("grab: held point (cm x, z)", g.point);
             log_v3("  Link's actor position", AT(actor, 0x31c, v3));
+            kp_log_2("  depth (cm), pitch change (mrad):", (int64_t)(depth * 100),
+                     g.have_pitch && controller_pitch(&pitch) ? (int64_t)((pitch - g.pitch0) * 1000) : 0);
         }
     }
     if (g.grabbing && released) {
