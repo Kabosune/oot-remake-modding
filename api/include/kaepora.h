@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 2
+#define KAE_API_MINOR 3
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -78,7 +78,8 @@ KAE_API void kae_register(KaeMod *mod);
 KAE_API uint32_t    kae_api_version(void);         /* (major << 16) | minor of the running Core */
 KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in this game, else 0. Features:
                                                       "event.frame" "event.draw" "event.input" "event.actor_move"
-                                                      "draw.rect" "motion" "symbols" "alloc" */
+                                                      "draw.rect" "draw.text" "draw.image" "motion" "symbols"
+                                                      "alloc" */
 KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -126,6 +127,18 @@ typedef void (*KaeDrawFn)(const KaeFrame *frame, void *user);
 KAE_API int  kae_on_draw(KaeDrawFn fn, void *user, int priority);
 /* Fills a rectangle of the picture; (0, 0) is the top left. Only inside a draw function. */
 KAE_API void kae_draw_rect(int x, int y, int w, int h, uint32_t rgb);
+/* Text in Core's built-in font: 8 x 16 pixels a character, times `scale` (1, 2, 3...). (x, y) is the
+   top left of the first character; "\n" starts a new line under it. UTF-8; the font has ASCII and
+   Latin-1 (U+00A0 to U+00FF), anything else shows as "?". Returns the x where the next character
+   would go. Only inside a draw function. */
+KAE_API int  kae_draw_text(int x, int y, int scale, uint32_t rgb, const char *text);
+/* The size in pixels kae_draw_text would cover (the widest line; every line). Usable anywhere. */
+KAE_API int  kae_text_width(int scale, const char *text);
+KAE_API int  kae_text_height(int scale, const char *text);
+/* A picture of w x h pixels, each 0xAARRGGBB, rows from the top, drawn with every pixel `scale`
+   pixels wide and high. For now a pixel is either drawn solid (alpha 0x80 and up) or left out:
+   made for small pixel art such as cursors and icons. Only inside a draw function. */
+KAE_API void kae_draw_image(int x, int y, int w, int h, const uint32_t *argb, int scale);
 
 /* actor_move: the movement update of every physics actor, every frame, on the game's thread,
    before the game moves it. Needs Core's patch to main (kae_has("event.actor_move")). */

@@ -26,6 +26,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
+import kaepora_font  # noqa: E402
 import kaepora_symbols  # noqa: E402
 import mknso  # noqa: E402
 import nxpatch  # noqa: E402
@@ -39,7 +40,7 @@ CORE_SLOT = "subsdk1"
 MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]   # subsdk9 is left to standalone mods (sloperinaGZ)
 
 CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "symbols.c", "log.c", "format.c",
-                                   "platform.c", "alloc.c", "imports.c", "draw.c", "input.c", "input_wrap.S", "motion.c",
+                                   "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "input.c", "input_wrap.S", "motion.c",
                                    "hooks.c")]
 # What Core imports, and which of the game's modules exports it. The second group is imported
 # weakly: Core runs without them (the build can't check the system's exports, only the game can).
@@ -158,6 +159,7 @@ def build_core(work, bundled=()):
     work.mkdir(parents=True, exist_ok=True)
     packs = kaepora_symbols.load_packs()
     (work / "symbols_gen.h").write_text(kaepora_symbols.generate(packs))
+    (work / "font_gen.h").write_text(kaepora_font.generate())
     for mod in bundled:
         mod.check_symbols(packs)
     objs = compile_sources(CORE_SOURCES + [SDK / "libc.c"], work / "core", ["-DKAE_BUILDING_CORE", f"-I{work}"])

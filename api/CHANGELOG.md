@@ -3,14 +3,28 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
-## Not in a release build yet
+## Draft 0.5, API 0.3 (10 November 2026; on the branch `kaepora-draw-text`, not tested in the game yet)
 
+Text and small pictures.
+
+- **`kae_draw_text`, `kae_text_width`, `kae_text_height`**: text in a built-in 8 x 16 font
+  ([Spleen](https://github.com/fcambus/spleen) by Frederic Cambus, BSD 2-Clause, in
+  `core/font/`), at whole-number scales. UTF-8; the font carries ASCII and Latin-1.
+- **`kae_draw_image`**: a picture of 0xAARRGGBB pixels at a whole-number scale. A pixel is drawn
+  solid or left out (alpha below 0x80): made for pixel art such as cursors and icons.
+- Both are drawn as rectangles, the one kind of drawing proven in the game, so nothing new is asked
+  of the game's graphics library. Smooth text in the game's own font and pictures blended over the
+  game are a later step behind the same functions.
+- Core now takes up to 8192 rectangles a frame (128 before). It keeps to the amount of command
+  memory per rectangle that is proven in the game, asks NVN how much room is left beyond that, and
+  leaves rectangles out instead of overrunning. If the game's heap won't give the larger drawing
+  memory (2.5 MB), Core falls back to the old amount. The log says how many command bytes the
+  fullest frame took.
 - The pack for 1.1.1 gains 38 symbols contributed by gleedgleed (the pouch, GameData, EventFlow,
   event requests, dungeon items, actor position and transform, the framework's frame function).
-  Mods can ask for them with `kae_sym` from the next Core build on; the Core in today's release
-  zips, the one tested in the game, doesn't have them.
 - `tests/test_kaepora_symbols.py` checks that a pack and its linker file agree, and fails when the
   linker file has a vtable, function or global the pack lacks.
+- API 0.3: mods built for 0.2 need a rebuild (0.x versions don't mix).
 
 ## Draft 0.4, API 0.2 (10 November 2026)
 

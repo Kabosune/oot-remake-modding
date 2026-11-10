@@ -1,4 +1,4 @@
-"""Kaepora Core's portable parts (mod list, events, symbols, log format, memory pool), built for
+"""Kaepora Core's portable parts (mod list, events, symbols, log format, memory pool, text), built for
 this PC and run here. Also checks the symbol packs against symbols/*.ld.
 
     python3 tests/test_kaepora_unit.py
@@ -13,10 +13,11 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
+import kaepora_font  # noqa: E402
 import kaepora_symbols  # noqa: E402
 
 CORE = REPO / "api" / "core"
-SOURCES = [CORE / f for f in ("mods.c", "events.c", "symbols.c", "log.c", "format.c", "alloc.c")]
+SOURCES = [CORE / f for f in ("mods.c", "events.c", "symbols.c", "log.c", "format.c", "alloc.c", "text.c")]
 
 
 def packs_match_ld(packs):
@@ -45,6 +46,7 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         (tmp / "symbols_gen.h").write_text(kaepora_symbols.generate(packs))
+        (tmp / "font_gen.h").write_text(kaepora_font.generate())
         exe = tmp / "unit"
         command = ["clang", "-std=c11", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-DKAE_BUILDING_CORE",
                    "-DKP_POOL_BYTES=4096", f"-I{CORE}", f"-I{REPO / 'api' / 'include'}", f"-I{tmp}", *map(str, SOURCES),
