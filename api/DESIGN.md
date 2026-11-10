@@ -317,7 +317,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 |---|---|---|
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods |
 | M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
-| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1 and 4 answered yes, 6 very likely yes. Results in [README.md](README.md)** |
+| M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1, 4 and 6 answered. Results in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
 | M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
@@ -339,8 +339,8 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
    runtime offering the same C API natively, which is their authors' decision.
 6. **What does the game's `rtld` do with an import nobody exports?** Core 0.2 leans on weak
    imports being left empty (a mod without Core, Core on a system without a function it hopes
-   for). That is how ELF defines them. **10 Nov: Hello installed without Core showed nothing on
-   screen, as hoped; its log line hasn't been read yet.**
+   for). That is how ELF defines them. **Answered 10 Nov: left empty.** Hello installed
+   without Core loaded, logged that Core isn't there and did nothing; the game ran as normal.
 7. **How many hook points fit?** Each needs one padding slot of 24+ bytes within branch range.
    There are thousands of such slots, so this should be comfortable, but the generator has to
    show it.

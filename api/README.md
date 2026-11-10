@@ -111,8 +111,9 @@ first); either order works. While the emulator runs its log is `eden_log.busy.tx
 
 ### A mod without Core (open question 6)
 
-**Result, 10 November 2026: installed alone, nothing appeared on screen, as hoped.** The log of that run was
-overwritten before it was read, so the line below wasn't seen.
+**Result, 10 November 2026 (Fritchii v5.7, game 1.1.1): passed.** With only Hello's module on, the
+emulator loaded `subsdk2`, the game ran as normal, and the log has `kaepora mod: Kaepora Core isn't
+loaded (or this module wasn't linked to it); doing nothing`. A missing weak import is left empty.
 
 `releases/kaepora-hello-without-core.zip` is Hello's module alone. Install it with every other
 Kaepora folder off. Hoped for: the game starts as normal and logs `kaepora mod: Kaepora Core isn't
