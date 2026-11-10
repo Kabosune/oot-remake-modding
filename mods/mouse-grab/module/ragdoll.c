@@ -66,6 +66,9 @@ typedef struct {
     uint8_t pad[7];
 } ragdoll_end_t;
 
+void survey(void *actor, void *holder, void *ragdoll);
+static uint32_t down_frames;
+
 static bool held;
 static bool requested;
 static void *ragdoll_of(void *actor) {
@@ -148,6 +151,13 @@ void ragdoll_move(void *actor) {
             ragdoll_end(actor);
     }
     held = right;
+    void *rd = ragdoll_of(actor);
+    if (rd && AT(rd, RAGDOLL_STATE, int32_t) != 0) {
+        if (++down_frames == 60)
+            survey(actor, KP_FN(void *(*)(void *), F_HOLDER)(actor), rd);
+    } else {
+        down_frames = 0;
+    }
     if (requested || frames % 120 == 0)
         report(actor, 0);
 }

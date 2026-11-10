@@ -9,6 +9,9 @@ void kp_log(const char *text);
 void kp_log_hex(const char *text, uint64_t value);                  // "text 0x1234"
 void kp_log_2(const char *text, int64_t a, int64_t b);              // "text 12 34"
 
+// ---- memory ----
+bool kp_readable(uintptr_t address, size_t size);   // mapped and readable
+
 // ---- the game ----
 typedef struct {
     const char *name;        // "1.1.1"
