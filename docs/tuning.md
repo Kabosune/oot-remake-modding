@@ -126,8 +126,8 @@ with `MelodyType` and `NoteNumForNavi`. Song notes can be changed in data.
 2. **Changing them live from a module**: the parameter structs are loaded into memory; finding the
    loaded `PlayerGameParam` would allow a settings page without repacking anything.
 3. **Debug move** (section 2): find the selector's condition.
-4. **Warps and scene lists** from `GameBancInfo` and `AoC1/Banc/BancBasedResource/StartPos.byml`
-   (4,277 lines, not read in detail).
+4. **Warps and scene lists**: read in [warps.md](warps.md) (how a scene change is placed, and all 465 spawn points).
+   Next: try a warp from a module (`NextBancParamName` + `NextStartPosName` is the pair to request).
 
 Suggested first test: `GroundSpeedScale` 1 → 1.5 and `JumpHeight` 0.7 → 2.0 in `Player_Base`, as a
 romfs mod. It proves the edit → repack → load path for all of the above in one try. Build it with:

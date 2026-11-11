@@ -39,6 +39,7 @@ together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what
 - [Getting started](docs/getting-started.md): from your dump to a flat `main` image you can read and patch.
 - [The engine](docs/engine.md): what the Tears of the Kingdom engine (ModuleSystem) means for modding this game.
 - [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
+- [Scenes, scene changes and spawn points](docs/warps.md): how doors / exits name their destination, and all 465 spawn points with coordinates.
 - [Tuning data](docs/tuning.md): Link's movement, damage, healing, Epona, songs and the scene / item tables as data files; the script node catalogue; leftover debug modes; how enum hashes work.
 - [Animation graphs](docs/asb.md): the ASB format (version 0x41B), how a playback rate is attached, rules for editing by hand.
 - [Camera](docs/camera.md): the camera's parameter files, FOV, distances, and Link's heights.
