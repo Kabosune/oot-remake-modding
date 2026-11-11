@@ -60,6 +60,36 @@ Switch-Toolbox can open the models and textures once `Pack/ZsDic.pack.zs` is ext
 Link is split into `Player_Base`, `Player_Child`, `Player_Adult` and `Player_Event`. The camera that
 follows him is its own actor, `PlayerCamera` (see [camera.md](camera.md)).
 
+## Changing values: tools/zsmod.py
+
+[`tools/zsmod.py`](../tools/zsmod.py) changes plain numbers and bools in a BYML (float, int, uint, bool, 64-bit
+ones; also under arrays and hash maps) and writes the pack back as a `.zs`:
+
+```
+python tools/zsmod.py get Pack/Actor/Player_Base.pack.zs --dict Pack/ZsDic.pack.zs "Player/PlayerGameParam/Player.game__player__PlayerGameParam.bgyml:GroundSpeedScale"
+python tools/zsmod.py set Pack/Actor/Player_Base.pack.zs out/Pack/Actor/Player_Base.pack.zs --dict Pack/ZsDic.pack.zs "Player/PlayerGameParam/Player.game__player__PlayerGameParam.bgyml:GroundSpeedScale=1.5"
+python tools/zsmod.py check out/Pack/Actor/Player_Base.pack.zs --dict Pack/ZsDic.pack.zs
+```
+
+The field path is the BYML keys joined with `/` (array items by number, hash-map keys as `0x1234`). An edit
+overwrites the value where it sits, so the file keeps its size and every other byte, and no size table entry
+changes. Changing a string, adding a key or growing a file isn't supported.
+
+What was checked on build 1.1.1 (11 November 2026), from a dump of the game: 262 packs (all 12 packs outside
+`Pack/Actor` plus 250 actor packs) unpack, repack and recompress to the same data; in 8,880 BYML files, the first 25 fields of each
+(89,130 numeric ones in all) read back as `zstool.py` reads them, and setting a field to the value it has leaves the file
+unchanged. **Not checked: the game loading an edited pack** (see [tuning.md](tuning.md) for the first test).
+
+Facts it relies on:
+
+- A SARC's files are sorted by name hash (`h = h * 0x65 + c`, 32 bit); each file starts at an offset aligned
+  to a power of two that differs per file. The packer keeps each file's original alignment, and the data
+  section's. Unpack and repack gives back the same bytes for every pack tried.
+- The zstd frame says which dictionary it used (`dict_id`): `ZsDic.pack.zs` holds `zs` (ID 1), `bkprb` (2),
+  `bcett.byml` (3) and `pack` (4). Actor packs use 4; `ZsDic.pack.zs` itself uses none. `zsmod.py` compresses
+  with the same ID. The compressed bytes differ from Nintendo's (another zstd build); the unpacked bytes are
+  the same.
+
 ## Replacing files
 
 Replace a file by putting one at the same path in a romfs mod (`load/<title id>/<mod>/romfs/...`): the loader hands the game your file instead of its own (LayeredFS).

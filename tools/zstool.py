@@ -8,7 +8,8 @@
 <file> can be .zs or already decompressed. Files compressed with a dictionary need --dict pointing at the
 game's Pack/ZsDic.pack.zs (copied from your own dump). Only needs: pip install zstandard
 
-Read-only: this doesn't write game formats back. For editing, use a full tool (Switch-Toolbox, Totk-tools, etc.).
+Read-only: this doesn't write game formats back. To change numbers and repack, see tools/zsmod.py; for anything
+bigger, use a full tool (Switch-Toolbox, Totk-tools, etc.).
 """
 import argparse
 import struct

@@ -62,6 +62,7 @@ tools/nxpatch.py           assemble / compile C + link into the cave and padding
 tools/find_slots.py        find padding slots in a flat main
 tools/flatten_nso.py       uncompressed main -> flat module image
 tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
+tools/zsmod.py             change numbers in those files and write a .zs the game loads (tuning mods, no code)
 tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main
@@ -88,7 +89,7 @@ themselves to it.
 ## Credits
 
 - KaboWabo/Kabosune (me :3)
-- AI assistance (Claude Opus 5.5, Claude Fable 5.2)
+- AI assistance (Claude Opus 5.5, Claude Fable 5.2, Claude Sonnet 5.5)
 - [NotRexed/Hookshot](https://github.com/NotRexed/Hookshot): the gameplay camera, view and player
   findings that the first-person mod is built on, and the NUP / ZBIC tools used to get `main` out
   of a dump.

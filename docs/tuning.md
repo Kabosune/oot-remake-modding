@@ -120,8 +120,9 @@ with `MelodyType` and `NoteNumForNavi`. Song notes can be changed in data.
 
 1. **Tuning mods with no code**: moon jump, long hover boots, fast roll, no fall damage, stronger
    potions, faster Epona, different song notes. One edited bgyml inside a repacked
-   `Player_Base.pack.zs` (romfs mod). Needs a BYML **writer** and SARC repack (`tools/zstool.py` only
-   reads). Value-only edits keep the file size, so the resource size table shouldn't need touching.
+   `Player_Base.pack.zs` (romfs mod). [`tools/zsmod.py`](../tools/zsmod.py) now does the editing and the
+   repack ([romfs.md](romfs.md#changing-values-toolszsmodpy)). Value-only edits keep the file size, so the
+   resource size table shouldn't need touching.
 2. **Changing them live from a module**: the parameter structs are loaded into memory; finding the
    loaded `PlayerGameParam` would allow a settings page without repacking anything.
 3. **Debug move** (section 2): find the selector's condition.
@@ -129,4 +130,15 @@ with `MelodyType` and `NoteNumForNavi`. Song notes can be changed in data.
    (4,277 lines, not read in detail).
 
 Suggested first test: `GroundSpeedScale` 1 → 1.5 and `JumpHeight` 0.7 → 2.0 in `Player_Base`, as a
-romfs mod. It proves the edit → repack → load path for all of the above in one try.
+romfs mod. It proves the edit → repack → load path for all of the above in one try. Build it with:
+
+```
+F=Player/PlayerGameParam/Player.game__player__PlayerGameParam.bgyml
+python tools/zsmod.py set Pack/Actor/Player_Base.pack.zs  mod/romfs/Pack/Actor/Player_Base.pack.zs  --dict Pack/ZsDic.pack.zs "$F:GroundSpeedScale=1.5" "$F:JumpHeight=2.0"
+python tools/zsmod.py set Pack/Actor/Player_Child.pack.zs mod/romfs/Pack/Actor/Player_Child.pack.zs --dict Pack/ZsDic.pack.zs "$F:GroundSpeedScale=1.5" "$F:JumpHeight=2.0" "Player/PlayerGameParam/Player_Child.game__player__PlayerGameParam.bgyml:GroundSpeedScale=1.5"
+```
+
+`Player_Child.pack.zs` carries its own copy of the base `Player...bgyml` next to the child file, and the child
+file sets `GroundSpeedScale` itself (1.0) but not `JumpHeight`; which of the copies the game reads for child Link
+is not known, so the second command edits all three places. Each pack then differs from the original in 5–6
+bytes. **Not tried in game.**
