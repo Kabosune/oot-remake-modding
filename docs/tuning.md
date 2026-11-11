@@ -31,6 +31,17 @@ Fields by theme (adult / base values):
 Plain walk / run speed is not a field here (the walk action is one node, `ExecutePlayerMove`, with no
 inputs); it is either in code or comes from the animation. `GroundSpeedScale` is the first thing to try.
 
+Checked further on 11 November: `AI/Player.action.walk.module.ainb` (1,169 bytes) holds only the node
+`ExecutePlayerMove` (plus the shared `Player.action.common.module` it includes), with no parameter names in it,
+so walk speed is not set in the graph either. `AI/Player.scheduler.walk.module.ainb` is the top-level selector,
+`SelectorPlayerSchedulerWalk`, with one `ExecuteBSASetActionVerb` branch per action: Walk, Wait, Jump, Fall,
+LockOnMove, LockOnWait, BasicAttackCharge, Clamber, CliffHoldJump, PreLift, ThrowObject, PutObject, Slide, Climb,
+SideStep, Swim, ChargeAttack, ClimbLadder, WaterDive, Ride, OpenDoor, BackFlip, Rolling, Crawl, PlayMusic,
+BasicAttack, RangedAttack, GrabPushPull, UseItem, HookshotShoot, ShowItem, UseDinFire, BootsChange, UseWarpItem,
+UseNayruLove, Fishing, UseScrubBusinessSeed, CliffHold, StepOn, UseEmptyBottle, WalkBeforeRide. So the speed is in
+`main` (what `ExecutePlayerMove` does) or in the walk / run animation's root motion; reading the code is the way to
+tell (needs `main.bin`).
+
 Other files in the same pack:
 
 - `Life/DamageParameters/Player...bgyml`: fall damage (`FallDamageStartHeight` 10, `FallDamagePerMeter`
