@@ -10,6 +10,8 @@ who patches what, and a small core module that mods call instead of patching the
 - [examples/hello/](examples/hello/): the smallest core mod, also Core's in-game test.
 - [examples/mod.toml](examples/mod.toml): a manifest for a mod that patches `main` itself (levels 1 and 2).
 - [MODS-MENU.md](MODS-MENU.md): the shared in-game Mods menu (settings, button mapping), with menu code and host tests in `menu/`. Not connected to Core yet.
+- [MANIFEST.md](MANIFEST.md): the package format, `mod.toml`, the registry, and what `kaepora check` and
+  `kaepora install` do (levels 1 and 2). The registry itself is [`registry/`](../registry/).
 - [CHANGELOG.md](CHANGELOG.md): what changed between drafts and API versions.
 
 ## Status (10 November 2026)
@@ -20,7 +22,9 @@ who patches what, and a small core module that mods call instead of patching the
 | API 0.3: text (`kae_draw_text`) and small pictures (`kae_draw_image`), on the branch `kaepora-draw-text` | Written, passes its tests on a PC. **Not tested in the game yet** |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
-| `kaepora check / install / build`, the registry, romfs patches (levels 1 and 2) | Design only |
+| `kaepora check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
+| A core mod in its own folder, apart from Core's (`kaemod.py --no-core`), and the installer giving it a free module slot | Written, passes its tests on a PC. **Not tested in the game yet** |
+| `kaepora build`, romfs patches | Design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
 
@@ -63,11 +67,33 @@ What a mod can rely on:
 - If Core is missing, the build of the game is unknown, or the mod was built for another API
   version, the mod doesn't run and the log says why. Nothing crashes on its behalf.
 - Core's log lines start `kaepora:`, a mod's `kaepora [its.id]:`. In Fritchii they are in
-  `eden_log.txt` as `Debug.Emulated <Info>`.
+  `log\eden_log.txt` in its data folder (`%APPDATA%\fritchii` from v5.8, `%APPDATA%\eden` before) as
+  `Debug.Emulated <Info>`.
+
+## Checking and installing mods
+
+```
+python3 tools/kaepora.py check                     # the mods that are on in the emulator: can they run together?
+python3 tools/kaepora.py check my-mod.zip --with-installed
+python3 tools/kaepora.py install my-mod.zip        # check first, then copy; gives a core mod a free module slot
+python3 tools/kaepora.py list
+python3 tools/kaepora.py init "My Mod" --id me.my-mod   # write a mod.toml for an existing mod
+```
+
+It reads mods with and without a manifest, compares their patches byte by byte, and knows from
+the registry whose space a patch is in. [MANIFEST.md](MANIFEST.md) has the format and every finding
+it can report.
+
+A folder built by `tools/kaemod.py` now carries a `mod.toml` that names its modules. By default
+Core is in the folder with the mod, which installs by hand in one step but means two such mods
+can't be on together (both bring `subsdk1`). `--no-core` builds the mod alone; Core is then
+installed once from its own folder (`python3 tools/kaemod.py` with no mod), and any number of
+mods up to seven sit next to it.
 
 ## Tests
 
 ```
+python3 tests/test_kaepora_tools.py      # the manifest reader, the registry, check / install / init
 python3 tests/test_kaepora_unit.py       # Core's logic, built for the PC
 python3 tests/test_kaepora_modules.py    # the shipped modules in Unicorn with a fake game and system
 python3 tests/test_kaepora_symbols.py    # the symbol pack and symbols/<build>.ld agree

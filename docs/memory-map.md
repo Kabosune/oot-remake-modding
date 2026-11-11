@@ -1,7 +1,9 @@
 # Memory map: who uses what
 
 Mods that use the same bytes can't be enabled together. Before you claim space, check here, and
-then add yourself.
+then add yourself: to this page and to [`registry/e0f3ccfa.toml`](../registry/e0f3ccfa.toml), the
+same information in the form `tools/kaepora.py check` reads ([api/MANIFEST.md](../api/MANIFEST.md)).
+`python3 tools/kaepora.py registry` prints it with how much of each space is taken.
 
 ## Code cave: `.text` padding `0x3C461D0..0x3C47000` (3632 bytes, executable, zero)
 
@@ -12,6 +14,7 @@ then add yourself.
 | `0x3C46400..0x3C46410`, `0x3C46440..0x3C46454` | [sloperinaGZ](https://github.com/PracticeROM/sloperina) 0.0.3: an `OOTGZ` tag and the jump into its `subsdk9` module. **Inside Ultrawide's range**: don't expect those two to work together |
 | `0x3C46610..0x3C46B00` | FPV Drone (this repo): hooks + constant table (about 470 bytes used) |
 | `0x3C46B00..0x3C46FB0` | First Person (this repo) |
+| `0x3C46E00..` (extent not known) | Fritchii v5.8.3's built-in "Water ripples at any frame rate". **Inside First Person's range**: with First Person on, Fritchii leaves this fix out and says so in its log (`a user mod already patched main+0x3c46e00`) |
 | `0x3C46310..0x3C46400` | Kaepora Core (this repo): its hook point stubs, in every build made with `tools/kaemod.py` (Mouse Probe used it before; the probe is retired and can't be installed alongside) |
 | everything else | free: `0x3C461D0..0x3C46200` (48), `0x3C46FB0..0x3C47000` (80) |
 

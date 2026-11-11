@@ -3,6 +3,30 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Draft 0.7: the tools for levels 1 and 2 (11 November 2026; on the branch `kaepora-tools`)
+
+No change to Core or its API. Everything here runs on a PC.
+
+- **`tools/kaepora.py`**: `check` (which installed mods can't be on together, and why), `install`
+  (check first, then copy), `remove`, `list`, `inspect` (what a patch writes and whose space that
+  is), `init` (write a `mod.toml` for an existing mod), `registry`, `targets`.
+- **The manifest is specified**: [MANIFEST.md](MANIFEST.md). Changes from the draft example: the
+  ranges a patch fills are `code` (was `cave`, since padding slots count too); `[modules]` names
+  each `exefs/subsdkN`; `[relations] requires` takes a version (`"kaepora.core==0.3"`); romfs files
+  need no listing.
+- **The registry exists**: `registry/e0f3ccfa.toml` for 1.1.1, with the free spaces and every known
+  claim, including mods outside the standard and the emulators' built-in patches.
+  `registry/33fa6c2c.toml` for 1.0.0 holds the one claim known there.
+- First Person and FPV Drone have manifests, and their zips carry them (the patches are byte for
+  byte the same). `tools/kaemod.py` writes a manifest into every folder it builds.
+- **A mod without Core in its folder**: `tools/kaemod.py <mod> --no-core`. `kaepora install` gives
+  such a mod a free module slot. Not tried in the game yet.
+- The emulator's folder is no longer assumed to be `%APPDATA%\eden`: Fritchii v5.8 moved to
+  `%APPDATA%\fritchii`. The tools take `--target` or `--load-dir`; the docs name both.
+- Found by the first real `check`: Fritchii v5.8.3's built-in "Water ripples at any frame rate"
+  patch uses `main+0x3C46E00`, inside First Person's range. With First Person on, Fritchii leaves
+  its fix out (its log says so). Recorded in the registry and the memory map; not resolved.
+
 ## Draft 0.5, API 0.3 (10 November 2026; on the branch `kaepora-draw-text`, not tested in the game yet)
 
 Text and small pictures.
