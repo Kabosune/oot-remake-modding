@@ -65,6 +65,7 @@ tools/find_slots.py        find padding slots in a flat main
 tools/flatten_nso.py       uncompressed main -> flat module image
 tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
 tools/zsmod.py             change numbers in those files and write a .zs the game loads (tuning mods, no code)
+tools/msbtmod.py           read and change dialogue / menu text (MSBT in the Mals packs) and write a .zs
 tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main

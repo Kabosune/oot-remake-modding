@@ -90,6 +90,24 @@ Facts it relies on:
   with the same ID. The compressed bytes differ from Nintendo's (another zstd build); the unpacked bytes are
   the same.
 
+## Text: tools/msbtmod.py
+
+All dialogue and menu text is in `Mals/<lang>.Product.110.sarc.zs` (16 languages, 540 MSBT files each, 21,138
+messages in each; the label sets are identical across languages). Format: little-endian UTF-8 MSBT with only LBL1 and
+TXT2 sections. Control codes are `0x0E group(u16) type(u16) paramsize(u16) params`, closers `0x0F group type`.
+
+    python3 tools/msbtmod.py ls    Mals/USen.Product.110.sarc.zs --dict Pack/ZsDic.pack.zs
+    python3 tools/msbtmod.py cat   Mals/USen.Product.110.sarc.zs <msbt> --dict Pack/ZsDic.pack.zs
+    python3 tools/msbtmod.py set   <in.zs> <out.zs> "<msbt>:<label>=New text\\nline 2" --dict Pack/ZsDic.pack.zs
+    python3 tools/msbtmod.py check <in.zs> --dict Pack/ZsDic.pack.zs
+
+`check` round-trips every message file (unpack, rewrite, compare): 0 problems on all 16 languages. A rewritten pack is
+slightly larger or smaller than the original, but the resource size table entries for the Mals packs have headroom
+(USen unpacked 2,373,416 -> 2,373,432 against an entry of 2,373,752), so no table change was needed for small edits.
+
+Not tried in game: line breaks, text box sizes and fonts for edited text. See `tests/test_msbtmod.py` for the
+hand-built tests.
+
 ## Replacing files
 
 Replace a file by putting one at the same path in a romfs mod (`load/<title id>/<mod>/romfs/...`): the loader hands the game your file instead of its own (LayeredFS).
