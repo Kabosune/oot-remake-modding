@@ -154,15 +154,17 @@ def api_version():
     return tuple(int(re.search(rf"#define KAE_API_{k}\s+(\d+)", text).group(1)) for k in ("MAJOR", "MINOR"))
 
 
-def build_core(work, bundled=()):
-    """Core's module (ELF), with the mods in `bundled` linked into it."""
+def build_core(work, bundled=(), defines=()):
+    """Core's module (ELF), with the mods in `bundled` linked into it. `defines` are extra -D flags
+    for Core's sources only (the hardware test switches in core.h)."""
     work.mkdir(parents=True, exist_ok=True)
     packs = kaepora_symbols.load_packs()
     (work / "symbols_gen.h").write_text(kaepora_symbols.generate(packs))
     (work / "font_gen.h").write_text(kaepora_font.generate())
     for mod in bundled:
         mod.check_symbols(packs)
-    objs = compile_sources(CORE_SOURCES + [SDK / "libc.c"], work / "core", ["-DKAE_BUILDING_CORE", f"-I{work}"])
+    objs = compile_sources(CORE_SOURCES + [SDK / "libc.c"], work / "core", ["-DKAE_BUILDING_CORE", f"-I{work}",
+                                                                   *(f"-D{d}" for d in defines)])
     objs += [mod.as_object(work) for mod in bundled]
     elf = link_module(objs, work / "core.elf", "kp_module_init")
     allowed = set(CORE_IMPORTS)
@@ -184,7 +186,7 @@ def hook_patch(verify_main=None):
     return nxpatch.ips32(records), records
 
 
-def build(mods, bundle, work, verify_main=None):
+def build(mods, bundle, work, verify_main=None, defines=()):
     """{path inside the mod folder: bytes} for Core and the given mods."""
     work = Path(work)
     packs = kaepora_symbols.load_packs()
@@ -194,10 +196,10 @@ def build(mods, bundle, work, verify_main=None):
     assert len(ids) == len(set(ids)), "two mods have the same id"
     files = {}
     if bundle:
-        files[f"exefs/{CORE_SLOT}"] = mknso.pack(build_core(work, mods).read_bytes())
+        files[f"exefs/{CORE_SLOT}"] = mknso.pack(build_core(work, mods, defines).read_bytes())
     else:
         assert len(mods) <= len(MOD_SLOTS), f"only {len(MOD_SLOTS)} mods fit as separate modules: use --bundle"
-        core = build_core(work)
+        core = build_core(work, (), defines)
         files[f"exefs/{CORE_SLOT}"] = mknso.pack(core.read_bytes())
         exports = dynamic_symbols(core, "defined")
         for slot, mod in zip(MOD_SLOTS, mods):
@@ -238,12 +240,14 @@ def main(argv=None):
     p.add_argument("--out", type=Path, help="zip to write")
     p.add_argument("--verify-main", type=Path, help="flat main image to check Core's patch against")
     p.add_argument("--keep", type=Path, help="keep the ELF files and objects in this folder")
+    p.add_argument("--define", action="append", default=[], metavar="NAME",
+                   help="compile Core with -DNAME (repeatable): KAE_NO_DEBUG_OUT, KAE_LOAD_ONLY")
     a = p.parse_args(argv)
     mods = [Mod(folder) for folder in a.mods]
     name = a.name or (mods[0].name if len(mods) == 1 else "Kaepora Core")
     out = a.out or REPO / "releases" / (re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".zip")
     with tempfile.TemporaryDirectory() as tmp:
-        files = build(mods, a.bundle, a.keep or Path(tmp), a.verify_main)
+        files = build(mods, a.bundle, a.keep or Path(tmp), a.verify_main, a.define)
     write_zip(out, name, files, readme(mods, a.bundle, files))
     for rel, blob in sorted(files.items()):
         print(f"  {rel}: {len(blob)} bytes")

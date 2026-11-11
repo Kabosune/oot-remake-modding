@@ -2,6 +2,12 @@
 #include "core.h"
 
 void kp_debug_out(const char *s, size_t n) {
+#ifdef KAE_NO_DEBUG_OUT
+    // Hardware test build: no svcOutputDebugString at all, in case the game isn't allowed it.
+    (void)s;
+    (void)n;
+    return;
+#endif
     register const char *x0 __asm__("x0") = s;
     register uint64_t x1 __asm__("x1") = n;
     __asm__ volatile("svc #0x27" : "+r"(x0), "+r"(x1) : : "x2", "x3", "x4", "x5", "x6", "x7", "memory");

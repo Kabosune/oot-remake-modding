@@ -15,6 +15,8 @@ Still in progress. This folder holds the findings and the builds.
 | [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 with Kaepora Core 0.2, tested in Fritchii on 10 November 2026 | Playing around with the mod |
 | [`mouse-grab-test.zip`](../../releases/mouse-grab-test.zip) | Mouse Grab 0.2.0 with the newest Kaepora Core (0.3: text and small pictures), not tested in the game yet | Testing Kaepora Core |
 
+On a real Switch 2, use the [hardware test builds](#hardware-test-builds-11-november-2026) for now.
+
 Install one or the other, not both: each has its own `exefs/subsdk1`. `build.py` writes the test
 zip; `mouse-grab.zip` stays the tested build until a newer one has been tried in the game.
 
@@ -43,6 +45,32 @@ and whether Joy-Con 2 mouse mode arrives through `GetMouseStates` the way the em
 There is no log on a console, so a failure looks like nothing happening or the game hanging at boot.
 If you try it, please report how far it gets in
 [issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2).
+
+### Hardware test builds (11 November 2026)
+
+First report ([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2)): with
+ns2jb-modloader, `mouse-grab.zip` crashes the game during the Switch 2 logo at startup. The patch
+to `main` alone can't do that (without its module it does nothing, and First Person's patch loads
+fine on the same console), so the crash is the module: either loading it, or what Core does when it
+starts. The main suspect is Core's debug log: it calls `svcOutputDebugString` from the first line
+it writes, at startup. Emulators allow every system call. On a Switch 1 a game may only make the
+system calls its own permissions (in its `main.npdm`) list; Switch 2 likely works the same (not
+checked), and a shipped game may not list that one. The other suspects are
+`subsdk1` itself (an exefs file the game doesn't ship) and Core rewriting `main`'s import table.
+
+Two test builds, already in ns2jb-modloader's layout (copy the zip's `ns2jb-modloader` folder to
+the root of the microSD card):
+
+| Zip | What it does | Tells us |
+|---|---|---|
+| [`mouse-grab-load-only.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/hardware-test/mouse-grab-load-only.zip) | The module is loaded and does nothing at all; nothing changes in the game | If it boots: an extra `subsdk1` doesn't crash the console (loaded, or skipped by the loader) |
+| [`mouse-grab-no-debug-log.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/hardware-test/mouse-grab-no-debug-log.zip) | The Mouse Grab test build (Core 0.3) with Core's log switched off: no `svcOutputDebugString` | If it boots: the log was the crash |
+
+Try load-only first. Use one at a time, and take out the earlier attempt's files first:
+`ns2jb-modloader/exefs_patches/<its name>/` and `ns2jb-modloader/contents/0400486024DEC000/exefs/`.
+If load-only boots and no-debug-log still crashes, the next build leaves out the import table rewrite.
+`python3 tools/build_hw_tests.py` rebuilds these; the switches are `tools/kaemod.py --define
+KAE_LOAD_ONLY` and `--define KAE_NO_DEBUG_OUT` (see `api/core/core.h`).
 
 ## Input: what the game already imports
 

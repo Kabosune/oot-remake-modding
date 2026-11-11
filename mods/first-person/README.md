@@ -31,8 +31,8 @@ switch first person off and on, until the game restarts. The keys need the emula
 emulation on (Lichii / Eden: Controls → Advanced → Keyboard, or `keyboard_enabled=true` in
 `qt-config.ini`).
 
-Works on: Lichii / Fritchii (tested target). Should work anywhere exefs IPS32 patches load for
-this build, including real hardware through ns2jb-modloader, but that's untested.
+Works on: Lichii / Fritchii (tested target). On a real Switch 2 (ns2jb-modloader) the normal build
+boots but crashes when R3 is pressed; see [Real Switch 2](#real-switch-2-testing) below.
 
 Compatible with: FPV Drone (when both are on, the drone's view wins), Ultrawide, the FPS mods, and Lichii's built-ins (no shared bytes, see
 [memory-map](../../docs/memory-map.md)).
@@ -41,6 +41,28 @@ Compatible with: FPV Drone (when both are on, the drone's view wins), Ultrawide,
 
 Copy `0400486024DEC000` from `releases/first-person.zip` into `%APPDATA%\eden\load\` and restart
 the game.
+
+## Real Switch 2 (testing)
+
+Reported in [issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2) (11 November 2026):
+with ns2jb-modloader the normal build boots and plays, but the game crashes as soon as R3 is
+pressed. The patch loads and the controller is read (the press is seen), so the crash is in what
+switching on starts. Two things only run from then on: the keyboard read for the eye height keys
+(`nn::hid::GetKeyboardState`, which an emulator always answers but a console may not, with no
+keyboard set up), and hiding Link. The first is the main suspect.
+
+Two test builds, each leaving one of them out. They're already in ns2jb-modloader's layout: copy
+the zip's `ns2jb-modloader` folder to the root of the microSD card.
+
+| Zip | Leaves out | |
+|---|---|---|
+| [`first-person-no-keyboard.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/hardware-test/first-person-no-keyboard.zip) | the keyboard read (no `,` `.` `/` `;`; Link always hidden) | try this first |
+| [`first-person-no-keyboard-no-hide.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/hardware-test/first-person-no-keyboard-no-hide.zip) | the keyboard read and hiding Link (he stays visible) | only if the first one still crashes |
+
+Use one at a time, and take out the normal build's `exefs_patches` folder first: both patch the
+same places. If the first one works, the fix is for the mod to switch the keyboard on itself (the
+game imports `InitializeKeyboard`) or to leave the keys out of hardware builds.
+`python3 tools/build_hw_tests.py` rebuilds these.
 
 ## Tune it
 

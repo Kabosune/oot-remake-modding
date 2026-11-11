@@ -7,6 +7,10 @@
 
 #include "kaepora.h"
 
+// Hardware test switches (tools/kaemod.py --define NAME), off in normal builds:
+//   KAE_NO_DEBUG_OUT  the log writes nothing (no svcOutputDebugString)
+//   KAE_LOAD_ONLY     the module's start returns at once: Core and its mods do nothing
+
 // ---- log (svcOutputDebugString; shows up in an emulator's log) ----
 void kp_log(const char *text);
 void kp_logf(const char *format, ...) __attribute__((format(printf, 1, 2)));

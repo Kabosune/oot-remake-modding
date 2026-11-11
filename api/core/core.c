@@ -7,6 +7,9 @@ uintptr_t kp_main;
 const kp_build_t *kp_build;
 
 void kp_module_init(void) {
+#ifdef KAE_LOAD_ONLY
+    return;   // hardware test build: the module is loaded and does nothing at all
+#endif
     uintptr_t nnmain = (uintptr_t)&nnMain;
     for (unsigned i = 0; i < kp_build_count; i++) {
         uintptr_t base = nnmain - kp_builds[i].nnmain;
