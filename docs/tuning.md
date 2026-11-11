@@ -138,7 +138,10 @@ python tools/zsmod.py set Pack/Actor/Player_Base.pack.zs  mod/romfs/Pack/Actor/P
 python tools/zsmod.py set Pack/Actor/Player_Child.pack.zs mod/romfs/Pack/Actor/Player_Child.pack.zs --dict Pack/ZsDic.pack.zs "$F:GroundSpeedScale=1.5" "$F:JumpHeight=2.0" "Player/PlayerGameParam/Player_Child.game__player__PlayerGameParam.bgyml:GroundSpeedScale=1.5"
 ```
 
-`Player_Child.pack.zs` carries its own copy of the base `Player...bgyml` next to the child file, and the child
-file sets `GroundSpeedScale` itself (1.0) but not `JumpHeight`; which of the copies the game reads for child Link
-is not known, so the second command edits all three places. Each pack then differs from the original in 5–6
-bytes. **Not tried in game.**
+`Player_Adult.pack.zs` and `Player_Child.pack.zs` each carry their own copy of the base `Player...bgyml`
+(byte-identical to the one in `Player_Base`, checked 11 November; the 493 files `Player_Base` and `Player_Child`
+share are all identical), and the child file sets `GroundSpeedScale` itself (1.0) but not `JumpHeight`. Which copy
+the game reads is not known, so the test edits every copy (add a third command like the first for
+`Player_Adult.pack.zs`); each pack then differs from the original in 5–6 bytes. **Not tried in game.** If Link
+doesn't change, the cause is either the field (`GroundSpeedScale` may not be the global speed) or a copy that was
+left out; if only one age changes, the copies are read per age.
