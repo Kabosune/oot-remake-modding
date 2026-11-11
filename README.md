@@ -41,6 +41,7 @@ together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what
 - [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
 - [Scenes, scene changes and spawn points](docs/warps.md): how doors / exits name their destination, and all 465 spawn points with coordinates.
 - [Field enemy spawning](docs/enemy-spawning.md): Stalchildren, Leevers and Guay come from ten loose data files (counts, intervals, strong versions).
+- [Event flows](docs/event-flow.md): the 914 cutscene and dialogue scripts (BFEVFL), what actions and flag checks they use.
 - [Tuning data](docs/tuning.md): Link's movement, damage, healing, Epona, songs and the scene / item tables as data files; the script node catalogue; leftover debug modes; how enum hashes work.
 - [Animation graphs](docs/asb.md): the ASB format (version 0x41B), how a playback rate is attached, rules for editing by hand.
 - [Camera](docs/camera.md): the camera's parameter files, FOV, distances, and Link's heights.
