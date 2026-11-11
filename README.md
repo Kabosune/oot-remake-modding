@@ -41,7 +41,7 @@ together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what
 - [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
 - [Scenes, scene changes and spawn points](docs/warps.md): how doors / exits name their destination, and all 465 spawn points with coordinates.
 - [Field enemy spawning](docs/enemy-spawning.md): Stalchildren, Leevers and Guay come from ten loose data files (counts, intervals, strong versions).
-- [Event flows](docs/event-flow.md): the 914 cutscene and dialogue scripts (BFEVFL), what actions and flag checks they use.
+- [Event flows](docs/event-flow.md): the 914 cutscene and dialogue scripts (BFEVFL), what actions and flag checks they use, and a table of all 2,423 story flags.
 - [Tuning data](docs/tuning.md): Link's movement, damage, healing, Epona, songs and the scene / item tables as data files; the script node catalogue; leftover debug modes; how enum hashes work.
 - [Animation graphs](docs/asb.md): the ASB format (version 0x41B), how a playback rate is attached, rules for editing by hand.
 - [Camera](docs/camera.md): the camera's parameter files, FOV, distances, and Link's heights.
@@ -66,6 +66,7 @@ tools/find_slots.py        find padding slots in a flat main
 tools/flatten_nso.py       uncompressed main -> flat module image
 tools/zstool.py            look inside romfs files: .zs (with the game's dictionaries), SARC, BYML
 tools/zsmod.py             change numbers in those files and write a .zs the game loads (tuning mods, no code)
+tools/evflags.py           list the story flags the event scripts set and check (needs `pip install evfl`)
 tools/msbtmod.py           read and change dialogue / menu text (MSBT in the Mals packs) and write a .zs
 tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew

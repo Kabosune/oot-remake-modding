@@ -44,11 +44,25 @@ mention the name, not of uses):
 parameter names (`ActorName`, `InstanceName`, `MessageId`, `ChoiceLabel1..4`, `ASName`, `Event0..N`
 entry points), which are the argument names of those actions and queries.
 
+## Story flags (`docs/data/story-flags.tsv`, `tools/evflags.py`)
+
+A standard BFEVFL reader (the `evfl` Python package) reads all 914 scripts without error: 74,631 events in
+all. `tools/evflags.py` lists the flags they set (`EventTriggerSetGameDataBool` / `...Int`) and check
+(`...IsGameDataBool` / `...Int`): 2,423 names, of which 1,329 are both set and checked by scripts, 533 only set
+and 561 only checked (those are set or read by code or by other data, not by a script). The table gives
+each flag with the scripts that set it and those that check it.
+
+Flag names are grouped by place or person (`HaveTalked*` 404, `Npc*` 361, `MiniGame*` 197, `KakarikoVillage*`
+110, `NaviHint*` 100, `KokiriForest*` 68, `SubEvent*` 62, `GerudoFortress*` 61, `Market*` 53,
+`GetSwordBigGoron*` 43 ...). A few entries are not real names but placeholders a script passes on from its
+caller (`GameDataName`, `FlavorTalk_GameDataName`, `SimpleShop_Price`); the real names are in the scripts that
+call it. Checks written as expressions (`...BoolExp`) are not in the table. Which flag means what in play is not
+checked, except where the name says it.
+
 ## What it means for mods
 
-- A story flag is set by an action in a script, and its name is a string in the script. A tool that
-  lists every flag and which scripts set or check it is possible from this data alone (a full BFEVFL
-  reader would be needed; only the string tables were read so far).
+- A story flag is set by an action in a script and its name is in the script, so the table above says
+  where to look for a flag. How the game stores the flags (the save data side) is in code and not read.
 - Dialogue text changes need no script change (see Text in `docs/romfs.md`); changing what a
   script does means rewriting its BFEVFL, which no tool here does yet.
 - Not known: how the code runs the scripts, the exact binary layout beyond the section names, and
