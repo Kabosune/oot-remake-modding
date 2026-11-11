@@ -516,6 +516,8 @@ def _check_against_files(mod):
         if SLOT.fullmatch(name) and name not in m.modules:
             err("undeclared-module", f"exefs/{name} is a module the manifest's [modules] table doesn't list")
     for path_ in sorted(mod.romfs):
+        if m.id == "kaepora.built":
+            break       # the folder `kaepora build` writes: the merged table is the point of it
         if "ResourceSizeTable" in path_ and path_.endswith((".rsizetable", ".rsizetable.zs")):
             warn("ships-size-table", f"romfs/{path_} is a whole resource size table: a changed copy of a game file, "
                                      "and any two mods that ship one overwrite each other. Ask for the entries "

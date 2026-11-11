@@ -326,11 +326,72 @@ def test_built_package(work):
     ok("duplicate-id" in codes(kc.check([both, core], registries), "error"), "two folders with Core are an error")
 
 
+def fake_table(sizes, named=()):
+    """A RESTBL version 1 table: {path: size} as hashed entries, then (path, size) named entries."""
+    import struct
+    import zlib
+    rows = sorted((zlib.crc32(p.encode()), s) for p, s in sizes.items())
+    out = b"RESTBL" + struct.pack("<IIII", 1, 160, len(rows), len(named)) + b"".join(struct.pack("<II", h, s) for h, s in rows)
+    return out + b"".join(p.encode().ljust(160, b"\0") + struct.pack("<I", s) for p, s in named)
+
+
+def test_build(work):
+    try:
+        import zstandard  # noqa: F401
+    except ImportError:
+        print("  (no zstandard here: `kaepora build` was not tested)")
+        return
+    import kaepora_build as kb
+    game = fake_table({"AS/King.asb": 5344, "AS/Other.asb": 800, "Model/Big.bfres": 1 << 20}, [("Named/File.bin", 64)])
+    merged, changes, missing = kb.merge(game, {"AS/King.asb": 6361, "AS/Other.asb": 100, "Named/File.bin": 100, "Not/There.x": 5})
+    ok(changes == [("AS/King.asb", 5344, 6368), ("AS/Other.asb", 800, 800), ("Named/File.bin", 64, 104)] and missing == ["Not/There.x"],
+       f"raised to a multiple of 8, never lowered, named entries too, unknown paths reported: {changes} {missing}")
+    ok(kb.size_of(merged, "AS/King.asb") == 6368 and kb.size_of(merged, "Model/Big.bfres") == 1 << 20 and len(merged) == len(game),
+       "other entries and the table's size stay as they were")
+    for bad in (b"nope", game[:-4]):
+        try:
+            kb.unpack(bad)
+            ok(False, "a broken table should be refused")
+        except kb.TableError:
+            ok(True, "")
+
+    load = Path(work) / "emu" / "load"
+    table_file = Path(work) / "ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs"
+    table_file.write_bytes(kb.pack(game))
+    def asker(name, size):
+        return make(load / TITLE, name, manifest("x." + name.lower()) + f'[[romfs-patch]]\nkind = "size-table"\npath = "AS/King.asb"\nat-least = {size}\n',
+                    romfs={f"AS/{name}.txt": b"x"})
+    asker("Small", 6000)
+    code, text = run("check", "--load-dir", load)
+    ok(code == 0 and "size-table-not-built" in text, f"a request with no built table is a warning: {text}")
+    code, text = run("build", "--load-dir", load)
+    ok(code == 2 and "--game-table" in text, "build says what it needs")
+    code, text = run("build", "--load-dir", load, "--game-table", table_file, "--dry-run")
+    ok(code == 0 and "5344 -> 6000" in text and not (load / TITLE / kb.BUILT_NAME).exists(), f"a dry run writes nothing: {text}")
+    code, text = run("build", "--load-dir", load, "--game-table", table_file)
+    built = km.load_folder(load / TITLE / kb.BUILT_NAME)
+    ok(code == 0 and built.id == kb.BUILT_ID and not built.problems, f"build writes a folder the checker accepts: {text} {[str(p) for p in built.problems]}")
+    ok(kb.size_of(kb.built_table(built), "AS/King.asb") == 6000, "with the entry raised")
+    code, text = run("check", "--load-dir", load)
+    ok(code == 0 and "size-table" not in text, f"then the check is quiet: {text}")
+    asker("Large", 7000)
+    code, text = run("check", "--load-dir", load)
+    ok(code == 1 and "size-table-stale" in text, "a new, larger request makes the built table stale: an error")
+    code, text = run("build", "--load-dir", load, "--game-table", table_file)
+    ok(code == 0 and kb.size_of(kb.built_table(km.load_folder(load / TITLE / kb.BUILT_NAME)), "AS/King.asb") == 7000,
+       f"building again merges both, the largest wins: {text}")
+    ok(run("check", "--load-dir", load)[0] == 0, "and the check passes again")
+    shipper = make(load / TITLE, "Shipper", romfs={"System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs": b"x"})
+    code, text = run("check", "--load-dir", load)
+    ok(code == 1 and "romfs-clash" in text, "a mod that ships its own table clashes with the built one")
+    shutil.rmtree(shipper)
+
+
 def main():
     test_values()
     test_ips()
     test_registry()
-    for test in (test_manifest_against_files, test_conflicts, test_install, test_init, test_built_package):
+    for test in (test_manifest_against_files, test_conflicts, test_install, test_init, test_build, test_built_package):
         with tempfile.TemporaryDirectory() as work:
             test(work)
     print(f"all kaepora tool tests passed ({count} checks)")

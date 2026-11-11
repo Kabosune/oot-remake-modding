@@ -6,6 +6,7 @@
     python3 tools/kaepora.py list
     python3 tools/kaepora.py install my-mod.zip
     python3 tools/kaepora.py remove "My Mod"
+    python3 tools/kaepora.py build --game-table <the game's size table>   # shared files, from your own dump
     python3 tools/kaepora.py inspect my-mod             # what a patch writes, and whose space that is
     python3 tools/kaepora.py init my-mod --id me.my-mod # write a mod.toml for an existing mod
     python3 tools/kaepora.py registry                   # who has claimed what
@@ -29,6 +30,7 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import kaepora_build as kb  # noqa: E402
 import kaepora_check as kc  # noqa: E402
 import kaepora_manifest as km  # noqa: E402
 
@@ -341,6 +343,47 @@ def cmd_install(args):
     return 0
 
 
+def cmd_build(args):
+    place = find_place(args)
+    with tempfile.TemporaryDirectory() as work:
+        mods = [km.load_folder(r) for n, s in enumerate(args.mods) for r in unpack(s, Path(work) / str(n))]
+        names = {m.name for m in mods}
+        mods += [m for m in installed(place)[0] if m.name not in names]
+        mods = [m for m in mods if m.id != kb.BUILT_ID]
+        dest = Path(args.out) if args.out else place.title_dir / kb.BUILT_NAME
+        requests = kb.collect(mods)
+        if not requests:
+            print("no installed mod asks for anything to be built"
+                  + (f"; {dest} is no longer needed and can be removed" if dest.exists() else ""))
+            return 0
+        if not args.game_table:
+            raise Stop("these mods ask for resource size table entries: " + ", ".join(sorted(requests))
+                       + "\ngive the game's own table with --game-table: romfs/System/Resource/"
+                         "ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs from your dump (docs/romfs.md)")
+        staging = Path(work) / "built"
+        try:
+            changes, missing, _ = kb.write_folder(staging, TITLE_ID, args.game_table, mods)
+        except (kb.TableError, OSError) as e:
+            raise Stop(f"{args.game_table}: {e}") from e
+        for path, old, new in changes:
+            print(f"  {path}: {old} -> {new}  ({', '.join(requests[path][1])})" if new != old
+                  else f"  {path}: stays {old}, already enough  ({', '.join(requests[path][1])})")
+        for path in missing:
+            print(f"  {path}: the game's table has no entry for it, left out  ({', '.join(requests[path][1])})")
+        if args.dry_run:
+            print("dry run: nothing was written")
+            return 0
+        try:
+            if dest.exists():
+                shutil.rmtree(dest)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(staging, dest)
+        except PermissionError as e:
+            raise Stop(f"couldn't write {dest}: {e}\nClose the emulator and try again") from e
+        print(f"wrote {dest}\nIt holds a changed copy of a game file: keep it on this machine.")
+    return 1 if missing else 0
+
+
 def cmd_remove(args):
     place = find_place(args)
     for name in args.names:
@@ -499,6 +542,13 @@ def main(argv=None):
     c.add_argument("--force", action="store_true", help="install even when the check finds errors")
     c.add_argument("--dry-run", action="store_true", help="check only, copy nothing")
     c.set_defaults(run=cmd_install)
+
+    c = sub.add_parser("build", parents=[where], help="make the files several mods share (the resource size table) from your dump")
+    c.add_argument("mods", nargs="*", help="more mod folders or zips to count, besides the installed ones that are on")
+    c.add_argument("--game-table", type=Path, help="the game's own resource size table, from your dump")
+    c.add_argument("--out", type=Path, help=f"where to write the folder (default: '{kb.BUILT_NAME}' in the load folder)")
+    c.add_argument("--dry-run", action="store_true", help="say what would change, write nothing")
+    c.set_defaults(run=cmd_build)
 
     c = sub.add_parser("remove", parents=[where], help="delete an installed mod folder")
     c.add_argument("names", nargs="+", help="folder names, as `list` shows them")

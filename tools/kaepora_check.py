@@ -16,6 +16,7 @@ except ImportError:          # Python 3.10: pip install tomli
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import kaepora_build
 from kaepora_manifest import (BUILD_ID, HOOK_SIZE, ID, SLOT, Problem, byte_map, fmt_range, merge_ranges, overlap,
                               parse_int, parse_range, relation_holds, runs)
 
@@ -391,15 +392,28 @@ def _check_size_table(mods):
         if mod.manifest:
             for path, size in mod.manifest.size_table.items():
                 asks.setdefault(path, []).append((mod, size))
-    shipping = [m for m in mods if any("ResourceSizeTable" in p for p in m.romfs)]
-    if asks and shipping:
+    built = [m for m in mods if m.id == kaepora_build.BUILT_ID]
+    shipping = [m for m in mods if m.id != kaepora_build.BUILT_ID and any(kaepora_build.is_size_table(p) for p in m.romfs)]
+    if not asks:
+        return out
+    if shipping:
         out.append(Problem("warning", "size-table", "ships a whole resource size table while other mods ask for entries "
-                                                    f"in it ({', '.join(sorted(asks))}): their requests are lost unless the "
-                                                    "table is rebuilt with `kaepora build`", tuple(m.name for m in shipping)))
-    if asks:
-        n = sum(len(v) for v in asks.values())
-        out.append(Problem("note", "size-table", f"{n} resource size table request(s) for {len(asks)} file(s): "
-                                                 "they are merged, the largest wins"))
+                                                    f"in it ({', '.join(sorted(asks))}): their requests are lost",
+                           tuple(m.name for m in shipping)))
+    wanted = {path: max(size for _, size in users) for path, users in asks.items()}
+    table = kaepora_build.built_table(built[0]) if built else None
+    if table is None:
+        who = tuple(sorted({m.name for users in asks.values() for m, _ in users}))
+        out.append(Problem("warning", "size-table-not-built", f"asks for {len(wanted)} resource size table entr"
+                           f"{'y' if len(wanted) == 1 else 'ies'}, and no built table is installed: run `kaepora build` "
+                           "(the game may not load the larger files without it)", who))
+        return out
+    for path, size in sorted(wanted.items()):
+        have = kaepora_build.size_of(table, path)
+        if have is None or have < size:
+            who = tuple(m.name for m, _ in asks[path])
+            out.append(Problem("error", "size-table-stale", f"needs {path} to be at least {size} in the resource size "
+                               f"table; the built table has {have}. Run `kaepora build` again", who + (built[0].name,)))
     return out
 
 
