@@ -367,6 +367,48 @@ def main():
             assert len(rects) > 20 and (640, 720 - 360 - 1, 1, 1, 0) in rects, rects[:6]   # the arrow's tip
             assert not g.p.unresolved, g.p.unresolved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors)")
+        # Super Sloperina, the first mod written against the public API only. A Link is built in memory
+        # the way the game lays him out (actor -> components -> movement inside the player object, whose
+        # resource is "Player"; components -> ... -> character controller), and main gets a stand-in
+        # for ChangePosition that copies the position it is given into the controller at +0x100.
+        sloperina = kaemod.Mod(REPO / "mods" / "super-sloperina")
+        g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), sloperina], False, tmp / "sloperina"))
+        LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, PLAYER = (0x40000000 + i * 0x1000 for i in range(8))
+        MOVEMENT = PLAYER + 0x1D50
+        g.p.uc.mem_map(0x40000000, 0x10000)
+        for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                          (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                          (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                          (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                          (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"])):
+            g.p.write(at, struct.pack("<Q", value))
+        g.p.write(RESOURCE + 0x58, b"Player\0")
+        # ldr q0, [x1] ; str q0, [x0, #0x100] ; ret
+        g.p.write(MAIN_BASE + PACK["function"]["CctChangePosition"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D804000, 0xD65F03C0))
+        position = LINK + PACK["field"]["Actor.position"]["offset"]
+
+        def link_frame(buttons, at=None):
+            if at:
+                g.p.write(position, struct.pack("<3f", *at))
+            g.set_controller(buttons)
+            g.frame(actor=LINK)
+            return g.states(0)[-1][0], struct.unpack("<3f", g.p.read(CCT + 0x100, 12))
+        L, LEFT, UP, RIGHT = 1 << 6, 1 << 12, 1 << 13, 1 << 14
+        g.game("game_boot")
+        g.expect("mod kabosune.super-sloperina 0.1.0 started")
+        assert link_frame(0, (1.0, 2.0, 3.0)) == (0, (0.0, 0.0, 0.0))               # nothing asked: Link isn't moved
+        assert link_frame(L | LEFT)[0] == 0, "the game saw the save combination"    # saved at (1, 2, 3)
+        link_frame(0, (50.0, 60.0, 70.0))
+        seen, moved = link_frame(L | RIGHT)
+        assert seen == 0 and moved == (1.0, 2.0, 3.0), (seen, moved)                # loaded
+        seen, moved = link_frame(L | UP, (5.0, 6.0, 7.0))
+        assert seen == 0 and moved[0] == 5.0 and abs(moved[1] - 6.1) < 1e-5 and moved[2] == 7.0, moved   # levitate: 10 cm
+        assert link_frame(1)[0] & 1                                                 # other buttons reach the game
+        g.frame(actor=0xABC000)                                                     # an actor that isn't Link
+        hud = [r for r in g.rects() if r[4] == 0x101820 and r[0] == 720 // 45]
+        assert len(hud) == 1 and hud[0][1] == 720 // 45, hud                        # bottom left (origin lower left)
+        assert not g.p.unresolved, g.p.unresolved
+        print("Super Sloperina: ok (finds Link, saves / loads his position, levitates, hides its combinations, draws its display)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
