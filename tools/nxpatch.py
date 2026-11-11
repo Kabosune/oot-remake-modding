@@ -244,7 +244,8 @@ def ips32(records):
     return bytes(out + b"EEOF")
 
 
-def write_zip(path, title_id, mod_name, build_id, patch, readme=None):
+def write_zip(path, title_id, mod_name, build_id, patch, readme=None, manifest=None):
+    """manifest: the mod's mod.toml (a path), put in the mod folder so `kaepora check` knows the mod."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
@@ -255,3 +256,5 @@ def write_zip(path, title_id, mod_name, build_id, patch, readme=None):
         add(f"{title_id}/{mod_name}/exefs/{build_id}.ips", patch)
         if readme:
             add(f"{title_id}/{mod_name}/README.txt", readme)
+        if manifest and Path(manifest).exists():
+            add(f"{title_id}/{mod_name}/mod.toml", Path(manifest).read_bytes())
