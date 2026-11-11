@@ -16,7 +16,8 @@ folder. With neither, the tool looks for the emulators it knows and uses the one
 finds more than one, it asks you to choose). KAEPORA_TARGET and KAEPORA_LOAD_DIR set a default.
 
 `check` changes nothing. `install` runs the check first and refuses when it finds an error.
-The manifest format and the registry are described in api/MANIFEST.md. Needs Python 3.11+.
+The manifest format and the registry are described in api/MANIFEST.md. Needs Python 3.11+ (or
+3.10 with `pip install tomli`).
 """
 import argparse
 import os

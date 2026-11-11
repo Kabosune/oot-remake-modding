@@ -5,12 +5,15 @@ The format is described in api/MANIFEST.md. This module has no opinion about oth
 says whether one folder is a well-formed package and whether its manifest tells the truth about
 its own patch. tools/kaepora_check.py compares folders with each other.
 
-Needs Python 3.11+ (tomllib). Offsets everywhere are module offsets: the address in this repo's
+Needs Python 3.11+ (or 3.10 with `pip install tomli`). Offsets everywhere are module offsets: the address in this repo's
 docs minus 0x80020000, which is also the offset in an IPS32 patch minus the 0x100-byte NSO header.
 """
 import re
 import struct
-import tomllib
+try:
+    import tomllib
+except ImportError:          # Python 3.10: pip install tomli
+    import tomli as tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 

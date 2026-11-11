@@ -9,7 +9,10 @@ manifest are checked by their bytes and files.
 Levels: an error means the set of mods should not be started as it is; a warning means something
 may not work as the player expects; a note is information.
 """
-import tomllib
+try:
+    import tomllib
+except ImportError:          # Python 3.10: pip install tomli
+    import tomli as tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
