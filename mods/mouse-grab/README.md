@@ -6,11 +6,21 @@ A mouse cursor that grabs Link (and later other things), turns him into a ragdol
 move and throw him. The mouse gives two axes; the third, towards and away from the camera, comes
 from the controller's pitch.
 
-Nothing playable yet. This folder holds the findings and the test builds.
+Still in progress. This folder holds the findings and the builds.
+
+## Which zip
+
+| Zip | What it is | For |
+|---|---|---|
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 with Kaepora Core 0.2, tested in Fritchii on 10 November 2026 | Playing around with the mod |
+| [`mouse-grab-test.zip`](../../releases/mouse-grab-test.zip) | Mouse Grab 0.2.0 with the newest Kaepora Core (0.3: text and small pictures), not tested in the game yet | Testing Kaepora Core |
+
+Install one or the other, not both: each has its own `exefs/subsdk1`. `build.py` writes the test
+zip; `mouse-grab.zip` stays the tested build until a newer one has been tried in the game.
 
 ## What's in the zip, and real hardware
 
-The zip has two files under `0400486024DEC000/Mouse Grab/exefs/`:
+Both zips have two files under `0400486024DEC000/Mouse Grab/exefs/`:
 
 - `subsdk1`: the mod itself (Kaepora Core and Mouse Grab in one module). The game's loader loads it
   next to `main`.

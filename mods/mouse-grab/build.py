@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build Mouse Grab with Kaepora Core.
 
-    python3 mods/mouse-grab/build.py              # releases/mouse-grab.zip: Core and the mod in exefs/subsdk1
+    python3 mods/mouse-grab/build.py              # releases/mouse-grab-test.zip: Core and the mod in exefs/subsdk1
     python3 mods/mouse-grab/build.py --separate   # Core in subsdk1, the mod its own module in subsdk2
 
 This is tools/kaemod.py with Mouse Grab's defaults; see it for the other options
@@ -22,5 +22,5 @@ if __name__ == "__main__":
     else:
         args.append("--bundle")
     if "--out" not in args:
-        args += ["--out", str(REPO / "releases" / "mouse-grab.zip")]
+        args += ["--out", str(REPO / "releases" / "mouse-grab-test.zip")]
     kaemod.main([str(HERE), *args])
