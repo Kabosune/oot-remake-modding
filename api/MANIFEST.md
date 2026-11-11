@@ -138,9 +138,37 @@ path are an error.
 
 `[[romfs-patch]]` tables describe changes to game files without shipping them (DESIGN.md, "Changes
 to game files without shipping game files"). The kinds `size-table`, `byml`, `text`, `binary` and
-`script` are read and checked for their required keys. Only `size-table` requests are acted on so
-far (they are merged, the largest wins); applying them needs `kaepora build`, which is not written
-yet. A folder that ships a whole resource size table gets a warning.
+`script` are read and checked for their required keys. Only `size-table` is acted on so far:
+
+```toml
+[[romfs-patch]]
+kind     = "size-table"
+path     = "AS/Dm_Zora_0010_KingZora.root.asb"     # the romfs path, without .zs
+at-least = 6368                                    # bytes; rounded up to a multiple of 8
+```
+
+A mod whose file grows asks for its entry this way instead of shipping the table (a changed copy
+of a 1.4 MB game file, and any two mods that ship one overwrite each other). A folder that does
+ship a whole table gets a warning.
+
+## Building the shared files
+
+`kaepora build --game-table <file>` collects the size table requests of every installed mod that
+is on, raises those entries in a copy of the game's own table (the largest request wins, nothing
+is ever lowered) and writes the result as a mod folder, `Kaepora Built Files`, in the load folder.
+The game's table is
+`romfs/System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs` from your own
+dump ([docs/romfs.md](../docs/romfs.md)). Needs `pip install zstandard`.
+
+- Run it again after installing or removing a mod that asks for entries. `check` warns when
+  requests have no built table (`size-table-not-built`) and fails when the built table is too
+  small for a request (`size-table-stale`).
+- The folder holds a changed copy of a game file: it stays on the player's machine.
+- A path the game's table has no entry for is reported and left out: adding entries is not
+  implemented.
+- Checked against a real dump (11 November): for Slow King Zora's one request, the built table is
+  byte for byte the table made by hand with `tools/rstb_set.py`. Whether the game needs the raised
+  entry at all is still untested in the game.
 
 ## The registry
 
@@ -198,6 +226,8 @@ the way the player expects. Notes are information. The name in brackets is stabl
 | `builtin-clash` | warning | The patch uses bytes an emulator's built-in patch also uses (a note on other emulators) |
 | `unregistered`, `outside-claim` | warning | A mod that patches main has no claim in the registry, or writes outside it |
 | `ships-size-table` | warning | The folder ships a whole resource size table |
+| `size-table-not-built` | warning | Mods ask for resource size table entries and `kaepora build` hasn't been run |
+| `size-table-stale` | error | The built table is too small for a request: run `kaepora build` again |
 | `registered-to-other` | note | The patch uses space registered to a mod that isn't installed |
 | `recognised`, `unknown-patch`, `unnamed-core`, `empty` | note | What a folder without a manifest turned out to be |
 
@@ -250,7 +280,8 @@ works on any set of folders today.
 
 ## Not done yet
 
-- `kaepora build` (roadmap M1): applying `[[romfs-patch]]` tables to the player's own dump.
+- The rest of `kaepora build` (roadmap M1): the `byml`, `text`, `binary` and `script` kinds, and adding
+  size table entries for files the game doesn't have.
 - Reading `.pchtxt` patches (they are reported and skipped).
 - Generating the memory map page from the registry.
 - A registry survey for 1.0.0 (needs a 1.0.0 dump).

@@ -24,7 +24,7 @@ who patches what, and a small core module that mods call instead of patching the
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaepora check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
 | A core mod in its own folder, apart from Core's (`kaemod.py --no-core`), and the installer giving it a free module slot | Written, passes its tests on a PC. **Not tested in the game yet** |
-| `kaepora build`, romfs patches | Design only |
+| `kaepora build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
 

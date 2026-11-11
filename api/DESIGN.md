@@ -329,7 +329,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 | Step | Delivers | Proves |
 |---|---|---|
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods. **Written (11 Nov): `check` run on a real Fritchii mod folder; it also found that a Fritchii built-in patch now sits inside First Person's range** |
-| M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
+| M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped. **Size table merge written (11 Nov), same result as the hand-made table; the rest is open** |
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1, 4 and 6 answered. Results in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |

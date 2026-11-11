@@ -21,6 +21,9 @@ No change to Core or its API. Everything here runs on a PC.
   byte the same). `tools/kaemod.py` writes a manifest into every folder it builds.
 - **A mod without Core in its folder**: `tools/kaemod.py <mod> --no-core`. `kaepora install` gives
   such a mod a free module slot. Not tried in the game yet.
+- **`kaepora build`** makes one resource size table from the requests in every mod's manifest
+  (`[[romfs-patch]] kind = "size-table"`), from the player's own dump, as a mod folder of its own.
+  On a real dump it reproduces the table Slow King Zora v4 was given by hand.
 - The emulator's folder is no longer assumed to be `%APPDATA%\eden`: Fritchii v5.8 moved to
   `%APPDATA%\fritchii`. The tools take `--target` or `--load-dir`; the docs name both.
 - Found by the first real `check`: Fritchii v5.8.3's built-in "Water ripples at any frame rate"
