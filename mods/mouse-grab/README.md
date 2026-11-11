@@ -8,6 +8,32 @@ from the controller's pitch.
 
 Nothing playable yet. This folder holds the findings and the test builds.
 
+## What's in the zip, and real hardware
+
+The zip has two files under `0400486024DEC000/Mouse Grab/exefs/`:
+
+- `subsdk1`: the mod itself (Kaepora Core and Mouse Grab in one module). The game's loader loads it
+  next to `main`.
+- `E0F3CCFA....ips`: a 141-byte patch to `main` that jumps from one spot in the game to the module.
+  On its own it does nothing: without `subsdk1` the game runs as normal.
+
+Both are needed, and only game version 1.1.1 is supported.
+
+**Real Switch 2: untested.** Everything here has only run in Fritchii.
+[ns2jb-modloader](https://github.com/SebaaMG/ns2jb-modloader) takes exefs files and IPS patches, so
+going by its README the layout would be:
+
+```
+ns2jb-modloader/contents/0400486024DEC000/exefs/subsdk1
+ns2jb-modloader/exefs_patches/Mouse Grab/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips
+```
+
+Not known: whether that loader loads an exefs file the game doesn't ship (`subsdk1` is an extra one),
+and whether Joy-Con 2 mouse mode arrives through `GetMouseStates` the way the emulator's mouse does.
+There is no log on a console, so a failure looks like nothing happening or the game hanging at boot.
+If you try it, please report how far it gets in
+[issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2).
+
 ## Input: what the game already imports
 
 `main` (build `E0F3CCFA`) imports all the input functions this mod needs, so the mod can call them
