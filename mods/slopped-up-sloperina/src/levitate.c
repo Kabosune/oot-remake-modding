@@ -891,7 +891,7 @@ static void handle_l3(bool menu_open)
 {
   if (!levitate_enabled) {
     drop();
-  } else if (!menu_open && (input_pressed() & BTN_LSTICK)) {
+  } else if (!menu_open && action_pressed(ACT_LEVITATE)) {
     if (floating) {
       drop();
       gfx_notice("levitate off");
@@ -1084,7 +1084,7 @@ void levitate_frame(bool menu_open)
     cct_noclip_end();
   /* Update after toggles, failed searches and scene changes as well as normal steps.
    * Our input reads remain raw; only the game's HID wrappers mask these buttons. */
-  input_hide_from_game = (levitate_enabled ? BTN_LSTICK : 0) |
+  input_hide_from_game = (levitate_enabled ? action_buttons_held(ACT_LEVITATE) : 0) |
                          (floating ? BTN_RSTICK | BTN_X | BTN_B : 0);
 }
 

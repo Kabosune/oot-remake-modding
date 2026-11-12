@@ -5,7 +5,7 @@ manifest = 1
 
 id       = "kabosune.slopped-up-sloperina"
 name     = "Slopped Up Sloperina"
-version  = "0.3.0"
+version  = "0.4.0"
 authors  = ["KaboWabo/Kabosune", "PracticeROM and sloperinaGZ's contributors"]
 license  = "GPL-3.0-or-later"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
@@ -15,7 +15,7 @@ ship     = ["LICENSE", "SOURCE.txt"]   # in the zip: GPL-3.0 and where the sourc
 title = "0400486024DEC000"
 
 [core]
-api     = "0.5"
+api     = "0.7"
 sources = ["src/*.c"]
 events  = ["frame", "input", "draw"]
 cflags  = ["-std=gnu11", "-Wno-unused-parameter"]
@@ -47,3 +47,6 @@ _ZN2nn2fs9WriteFileENS0_10FileHandleElPKvmRKNS0_11WriteOptionE = "sdk"
 _ZN2nn3hid6detail13GetNpadStatesEPiPNS0_16NpadFullKeyStateEiRKj = "sdk"
 _ZN2nn3hid6detail13GetNpadStatesEPiPNS0_16NpadJoyDualStateEiRKj = "sdk"
 _ZN2nn3hid6detail13GetNpadStatesEPiPNS0_17NpadHandheldStateEiRKj = "sdk"
+# the keyboard in gz's menu (src/input.c): set up before it's read, and only while Core's is on
+_ZN2nn3hid18InitializeKeyboardEv = "sdk"
+_ZN2nn3hid16GetKeyboardStateEPNS0_13KeyboardStateE = "sdk"

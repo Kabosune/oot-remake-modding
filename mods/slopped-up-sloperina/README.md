@@ -10,10 +10,11 @@ draws for it, so it sits next to other KaeGae mods instead of taking the game's 
 **Licence: GPL-3.0-or-later** ([LICENSE](LICENSE)), because sloperinaGZ is. This folder is the only
 part of the repository under the GPL; KaeGae Core and the other mods stay MIT.
 
-**Status, 11 November 2026: version 0.3.0, the first port. Works in the real game** (Fritchii
-v5.8.4, game 1.1.1, on KaeGae Core 0.6: KaboWabo, 20:46 PT), and its PC emulator test passes (it
-starts on game 1.1.1, opens and draws its menu, hides the controller from the game while the menu is
-open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
+**Status, 12 November 2026: version 0.4.0. Works in the real game** (Fritchii v5.8.4, game 1.1.1,
+on KaeGae Core 0.7), with its shortcuts rebindable on Core's page, keyboard keys and the button
+prompts under its menu. 0.3.0, the first port, worked the same way on Core 0.6 (11 November). Its PC
+emulator test passes too (it starts on game 1.1.1, opens and draws its menu, hides the controller
+from the game while the menu is open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
 offsets for 1.0.0 too, but KaeGae Core doesn't start mods on a game version it has no symbol pack for,
 and it has none for 1.0.0 yet.
 
@@ -26,7 +27,13 @@ upgrades, story flags and dungeon items, cheats, Link's age, save / load positio
 the air walls and enemies' health shown in the world, the dive tests, translations of the menu.
 
 - **Open the menu:** R + right stick down (gz's R + C-down). Same again to close it; B goes back.
-- **Move:** D-pad up / down; change a value: D-pad left / right; **select: L**.
+- **Move:** D-pad up / down; change a value: D-pad left / right; **select: L**. The prompts under the
+  menu show select, return and close as they're bound now. On a keyboard (from
+  0.4.0, in an emulator): the arrow keys, Enter to select, Backspace to go back.
+- **Rebind its shortcuts, or give them keyboard keys** (from 0.4.0): KaeGae Core's Mods menu (- and
+  + together) → Slopped Up Sloperina. Twelve of them: open / close the menu, back, save / load
+  position (R + D-up / down), levitate (L3), frame advance (L) and run (L + L3), the timer, the lag
+  counter, the jump height and showing the watches.
 - KaeGae Core's own Mods menu (- and + together) lists it and can switch it off; while that menu is
   open this one holds still.
 
@@ -50,7 +57,7 @@ the air walls and enemies' health shown in the world, the dive tests, translatio
 
 ## Install
 
-Needs KaeGae Core 0.5.2 or later, installed once from its own download. Install both:
+Needs KaeGae Core 0.7 or later (0.3.0 needed 0.5.2), installed once from its own download. Install both:
 
 ```
 python3 tools/kaegae.py install releases/kaegae-core.zip releases/slopped-up-sloperina.zip
@@ -72,7 +79,9 @@ The GPL asks that changes are marked. `src/` is sloperinaGZ's `src/ootgz/` at re
   `platform_extra.c` (`sqrtf`, and `gameimage_lost` for the left-out pictures), `build_info.h`
   (versions, made by their Makefile there).
 - **Changed:** `ootgz.c` (start and frame from Core's events; no patch checks), `input.c` / `input.h`
-  (the game's copy of the controller edited in Core's input event instead of through main's GOT),
+  (the game's copy of the controller edited in Core's input event instead of through main's GOT;
+  gz's shortcuts as bindings on Core's page, with keys, and the keyboard in the menu),
+  `position.c` / `levitate.c` / `watches.c` (the shortcuts read as those bindings),
   `lock.c` (locks off), `gfx.c` / `settings.c` / `menus.c` (gz's style only; the text size choices),
   `sdfs.h` (the SD card folder), `menus.c` / `settings.c` / `sys.c` / `memview.c` (the mod's name in
   titles and the log).

@@ -78,6 +78,7 @@ def test_core_runs():
     ok(kc.core_runs("0.5", "0.6") and kc.core_runs("0.6", "0.6"), "Core 0.6 runs mods built for 0.5 and 0.6")
     ok(not kc.core_runs("0.4", "0.6"), "but not for 0.4")
     ok(not kc.core_runs("0.6", "0.5"), "a mod for a newer API than Core's isn't run")
+    ok(kc.core_runs("0.5", "0.7") and kc.core_runs("0.6", "0.7") and not kc.core_runs("0.7", "0.6"), "Core 0.7 runs 0.5 and 0.6 mods; 0.6 doesn't run 0.7 ones")
     ok(not kc.core_runs("0.6", "1.0") and not kc.core_runs("1.0", "0.6"), "major versions don't mix")
 
 

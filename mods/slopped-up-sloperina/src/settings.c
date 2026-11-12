@@ -16,6 +16,7 @@
  * console this needs SD card access in the game's permissions (main.npdm); Lichii allows it. If the
  * mount fails the menu works as before, without saving. */
 #include "settings.h"
+#include "input.h"
 
 #include "cheats.h"
 #include "enemyhp.h"
@@ -209,7 +210,12 @@ static void apply_snapshot(const snapshot_t *s)
   frame_advance = s->frame_advance != 0;
   frame_advance_in_pause = s->frame_advance_in_pause != 0;
   pause_display = s->pause_display != 0;
-  frame_advance_button = s->frame_advance_button == 1;
+  /* gz's L / R: only when Core's binding is still the default (Core's saved bindings come first) */
+  if (s->frame_advance_button == 1 && action_buttons(ACT_FRAME_ADVANCE) == BTN_L) {
+    action_set_buttons(ACT_FRAME_ADVANCE, BTN_R);
+    if (action_buttons(ACT_RUN) == (BTN_L | BTN_LSTICK))
+      action_set_buttons(ACT_RUN, BTN_R | BTN_LSTICK);
+  }
 
   input_display = s->input_display != 0;
   input_display_bg = s->input_display_bg != 0;

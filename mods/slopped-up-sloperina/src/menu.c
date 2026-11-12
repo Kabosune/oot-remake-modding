@@ -903,6 +903,73 @@ static void draw_item(menu_t *menu, int index, int y)
   }
 }
 
+/* --- button prompts ----------------------------------------------------------------------------
+ * Under the hint, as sloperinaGZ shows them in the game's style: "select L   return R + d-left   close
+ * R + right stick down", from the bindings as they are now on Core's Mods page (Slopped Up Sloperina).
+ * Buttons are key caps (GFX_BUTTON), the d-pad and the sticks small pictures (two cells each). */
+#define PROMPT_GAP 3 /* columns between two prompts */
+
+static int prompt_buttons(int col, int y, uint32_t mask, bool draw)
+{
+  static const struct { uint32_t bit; const char *name; char icon; } parts[] = {
+    { BTN_L, "L", 0 }, { BTN_R, "R", 0 }, { BTN_ZL, "ZL", 0 }, { BTN_ZR, "ZR", 0 }, { BTN_A, "A", 0 }, { BTN_B, "B", 0 },
+    { BTN_X, "X", 0 }, { BTN_Y, "Y", 0 }, { BTN_LSTICK, "L3", 0 }, { BTN_RSTICK, "R3", 0 }, { BTN_PLUS, "+", 0 },
+    { BTN_MINUS, "-", 0 },
+    { BTN_DUP, 0, GFX_ICON_DPAD + 0 }, { BTN_DRIGHT, 0, GFX_ICON_DPAD + 1 },
+    { BTN_DDOWN, 0, GFX_ICON_DPAD + 2 }, { BTN_DLEFT, 0, GFX_ICON_DPAD + 3 },
+    { BTN_LS_UP, 0, GFX_ICON_LSTICK + 0 }, { BTN_LS_RIGHT, 0, GFX_ICON_LSTICK + 1 },
+    { BTN_LS_DOWN, 0, GFX_ICON_LSTICK + 2 }, { BTN_LS_LEFT, 0, GFX_ICON_LSTICK + 3 },
+    { BTN_RS_UP, 0, GFX_ICON_RSTICK + 0 }, { BTN_RS_RIGHT, 0, GFX_ICON_RSTICK + 1 },
+    { BTN_RS_DOWN, 0, GFX_ICON_RSTICK + 2 }, { BTN_RS_LEFT, 0, GFX_ICON_RSTICK + 3 },
+  };
+  bool first = true;
+  for (size_t i = 0; i < sizeof(parts) / sizeof(*parts); i++) {
+    if (!(mask & parts[i].bit))
+      continue;
+    if (!first) {
+      if (draw)
+        gfx_text(col + 1, y, GFX_DIM, "+");
+      col += 3; /* " + " */
+    }
+    first = false;
+    if (parts[i].name) {
+      if (draw)
+        gfx_text(col, y, GFX_BUTTON, parts[i].name);
+      col += (int)strlen(parts[i].name);
+    } else {
+      char icon[3] = { parts[i].icon, GFX_WIDE_REST, 0 };
+      if (draw)
+        gfx_text(col, y, GFX_NORMAL, icon);
+      col += 2;
+    }
+  }
+  if (first) { /* unbound on the controller (a key only) */
+    if (draw)
+      gfx_text(col, y, GFX_DIM, "-");
+    col++;
+  }
+  return col;
+}
+
+/* Draws the prompts at row y (or only measures them); returns the column they end at. */
+static int menu_prompts(int y, bool draw)
+{
+  const struct { const char *label; uint32_t buttons; } prompts[] = {
+    { "select", BTN_L }, { "return", action_buttons(ACT_BACK) }, { "close", action_buttons(ACT_MENU) },
+  };
+  int col = ITEM_COL;
+  for (size_t i = 0; i < sizeof(prompts) / sizeof(*prompts); i++) {
+    const char *label = T(prompts[i].label);
+    if (i)
+      col += PROMPT_GAP;
+    if (draw)
+      gfx_text(col, y, GFX_DIM, label);
+    col += (int)strlen(label) + 1;
+    col = prompt_buttons(col, y, prompts[i].buttons, draw);
+  }
+  return col;
+}
+
 /* what an item's row is, for the game's style (gfx_row) */
 static int row_kind(const menu_item_t *item)
 {
@@ -958,7 +1025,7 @@ void menu_draw(void)
   /* the lines under the list (menu->footer), a blank above them, take their rows from it */
   int footer = menu->footer > 0 && menu->footer < menu->n_items ? menu->footer : 0;
   int n_list = menu->n_items - footer;
-  int visible = gfx_menu_rows - first_item_y - 1 - hint_rows - (footer ? footer + 1 : 0);
+  int visible = gfx_menu_rows - first_item_y - 1 - hint_rows - (footer ? footer + 1 : 0) - 2; /* - the prompts */
   if (visible < MIN_SCROLL_ROWS)
     visible = MIN_SCROLL_ROWS;
   /* the first `pinned` items stay at the top; the rest scroll under them in `visible` rows */
@@ -1039,7 +1106,12 @@ void menu_draw(void)
     gfx_text(ITEM_COL, hint_y + k, GFX_DIM, hint_lines[k][0] ? hint_lines[k] : filler);
   if (n_hint_lines < hint_rows) /* the rows the longest hint takes stay the panel's */
     gfx_text(ITEM_COL, hint_y + hint_rows - 1, GFX_DIM, filler);
-  int width = max_int(title_len, max_int(items_w, ITEM_COL + hint_w));
+  /* a blank, then the button prompts */
+  int prompts_y = hint_y + hint_rows + 1;
+  gfx_row(prompts_y - 1, GFX_ROW_GAP);
+  gfx_row(prompts_y, GFX_ROW_TEXT);
+  int prompts_w = menu_prompts(prompts_y, true) + 1; /* and a blank column, as on the left */
+  int width = max_int(max_int(title_len, prompts_w), max_int(items_w, ITEM_COL + hint_w));
   if (width > GFX_COLS)
     width = GFX_COLS;
   gfx_text(width - 1, first_item_y - 1, GFX_DIM, filler);

@@ -56,6 +56,7 @@ class Process:
         self.modules = []        # in the order rtld would search them
         self.log = []
         self.unresolved = []
+        self.ticks = 0
 
     # ---- memory ----
     def read(self, address, size):
@@ -172,6 +173,9 @@ class Process:
             uc.reg_write(UC_ARM64_REG_X0, 0)
         elif svc == 0xB:     # SleepThread(ns): time doesn't pass here
             uc.reg_write(UC_ARM64_REG_X0, 0)
+        elif svc == 0x1E:    # GetSystemTick: 2 ms a call, so nothing Core caches is seen twice
+            self.ticks += 38400
+            uc.reg_write(UC_ARM64_REG_X0, self.ticks)
         elif svc == 0x29:    # GetInfo: nothing to tell
             uc.reg_write(UC_ARM64_REG_X0, 0xE401)
         else:

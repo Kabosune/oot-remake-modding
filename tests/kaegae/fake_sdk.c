@@ -44,6 +44,23 @@ EXPORT uint32_t _ZN2nn3hid15GetNpadStyleSetERKj(const uint32_t *id) {
 }
 #endif
 
+// The keyboard: like the system's, a read before InitializeKeyboard is an error (the real one
+// stops the game); here it is counted, and must stay 0.
+#ifndef OLD_SDK
+typedef struct { int64_t sample; uint32_t modifiers, attributes; uint64_t keys[4]; } keyboard_state_t;
+EXPORT uint64_t sdk_keys[4];
+EXPORT int sdk_keyboard_inits, sdk_keyboard_reads, sdk_keyboard_early_reads;
+EXPORT void _ZN2nn3hid18InitializeKeyboardEv(void) { sdk_keyboard_inits++; }
+EXPORT void _ZN2nn3hid16GetKeyboardStateEPNS0_13KeyboardStateE(keyboard_state_t *out) {
+    if (!sdk_keyboard_inits) {
+        sdk_keyboard_early_reads++;
+        return;
+    }
+    sdk_keyboard_reads++;
+    *out = (keyboard_state_t){ 1, 0, 0, { sdk_keys[0], sdk_keys[1], sdk_keys[2], sdk_keys[3] } };
+}
+#endif
+
 typedef struct {
     int64_t delta_time, sample;
     float acceleration[3], angular_velocity[3], angle[3], direction[9];

@@ -42,6 +42,11 @@
 #define GFX_ICON_RIGHT '\x0B' /* arrow_icons.png tiles 2 and 3 (0x0A is the newline, so skipped) */
 #define GFX_ICON_LEFT '\x0C'
 #define GFX_ICON_LOCK '\x80' /* single-cell padlock; 0x7F is reserved for invisible panel sizing */
+/* the menu's button prompts (Slopped Up Sloperina): two cells each, followed by GFX_WIDE_REST. The d-pad
+ * with one direction lit, and a stick pushed one way; + the direction: 0 up, 1 right, 2 down, 3 left */
+#define GFX_ICON_DPAD '\x10'
+#define GFX_ICON_LSTICK '\x14'
+#define GFX_ICON_RSTICK '\x18'
 /* the game's picture of an item (the game's style only, nativeui.c): two cells, GFX_PICTURE then its
  * number (gameimage.h's GAMEPIC_*) as GFX_PICTURE_ID(n) */
 #define GFX_PICTURE '\x0E'
@@ -59,6 +64,7 @@ typedef enum {
   GFX_NOTICE,
   GFX_LOG,
   GFX_FAINT, /* the controller's buttons not held */
+  GFX_BUTTON, /* a button's name in the menu's prompts: dark on a light key cap */
   GFX_NSTYLES
 } gfx_style_t;
 /* What a row of the menu panel is: the game's style (nativeui.c) lays the menu out by it, with its own

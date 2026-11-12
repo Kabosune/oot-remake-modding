@@ -5,8 +5,8 @@ portable C in [`menu/`](menu/) and pass their host tests. From API 0.4 the same 
 KaeGae Core (`core/menu.c`), drawn with Core's rectangles and built-in font, and a mod declares
 its page with `kae_settings`. It opens in the emulated game of the module tests; **it has not run
 inside the real game yet**. Inside Core it looks plainer than the screenshots here, which come
-from the host renderer's smooth font. Not done yet: the keyboard key and the reminder on the pause
-menu. Saving settings between runs is in Core 0.5.2 (a file on the SD card, see the
+from the host renderer's smooth font. Not done yet: the reminder on the pause menu. Keyboard keys
+are in Core 0.7 (below). Saving settings between runs is in Core 0.5.2 (a file on the SD card, see the
 [changelog](CHANGELOG.md)), tested in the game.
 
 One screen, called **Mods**, where a player sees every installed mod, switches mods on and off,
@@ -92,14 +92,24 @@ their own pages. Rebinding works here too.
 **About.** Core's version, the game version and build it found, how many mods are running, and
 later the log.
 
+## Keyboard keys (Core 0.7)
+
+Every binding has two cells, **Controller** and **Keyboard**, on the mod's page and on the Controls
+tab. Left / Right picks a cell; A on the keyboard cell waits for all keys to be let go, then takes
+the first key pressed; Y takes the key away (no binding has a key by default); B on the controller
+gives up. Two enabled actions on one key are shown in orange. The About tab has Core's own
+**Keyboard** switch: off, Core never touches the keyboard and the column is hidden.
+
+![A page with its Keyboard column](menu/screenshot-keys.png)
+
 ## Rules for mods
 
 - A mod never draws its own settings screen. It declares settings (label, kind, default, range,
   help line) and Core draws them, so every mod's settings look and work the same and a player
   learns the menu once. Custom pages (a warp list, a practice tool) come later as a separate
   feature, with Core still owning the frame, the tabs and the Back button.
-- Bindings are declared, never read raw. A mod asks "was my `toggle` action pressed", and Core
-  answers from whatever the player bound. That is what makes clash detection and rebinding
+- Bindings are declared, never read raw. A mod asks "was my `toggle` action pressed"
+  (`kae_binding_pressed`, from 0.7), and Core answers from whatever the player bound, buttons or key. That is what makes clash detection and rebinding
   possible for every mod.
 - Core saves and restores every setting, per mod ID. A mod doesn't write files.
 - While the menu is open the game sees no buttons at all, and none of the buttons used to close

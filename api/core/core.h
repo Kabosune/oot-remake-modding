@@ -49,6 +49,18 @@ static inline void kp_lock(kp_lock_t *l) {
 }
 static inline void kp_unlock(kp_lock_t *l) { __atomic_clear(l, __ATOMIC_RELEASE); }
 
+// The system's tick (svcGetSystemTick): 19.2 MHz on the Switch. 0 in the PC unit tests.
+static inline uint64_t kp_tick(void) {
+#if defined(__aarch64__)
+    register uint64_t x0 __asm__("x0");
+    __asm__ volatile("svc #0x1E" : "=r"(x0) : : "x1", "x2", "x3", "x4", "x5", "x6", "x7", "memory");
+    return x0;
+#else
+    return 0;
+#endif
+}
+#define KP_TICKS_PER_MS 19200
+
 // ---- the game: one entry per symbol pack (generated, see tools/kaegae_symbols.py) ----
 typedef struct { const char *name; uint32_t offset; } kp_sym_t;
 typedef struct { const char *name; uint32_t site; uint32_t slot; } kp_hookpoint_t;
@@ -104,7 +116,9 @@ void kp_menu_add_mod(const KaeMod *mod, const char *status); // status: null, or
 bool kp_mod_off(const KaeMod *mod);                         // switched off in the menu: gets no events
 bool kp_menu_on(void);
 void kp_menu_frame(void);
-void kp_menu_input(KaeInput *seen, const KaeInput *real);
+// Before the mods' input functions. `real` is the copy the mods are handed: keys held for older
+// mods' bindings are added to it and to `seen`, and taken out of `seen` again by kp_menu_input_done.
+void kp_menu_input(KaeInput *seen, KaeInput *real);
 void kp_menu_input_done(KaeInput *seen);                    // after the mods' input functions
 void kp_menu_draw(int width, int height);
 
@@ -112,6 +126,14 @@ void kp_menu_draw(int width, int height);
 bool kp_draw_start(void);
 bool kp_motion_start(void);
 bool kp_input_start(void);
+// The buttons held on player 1 and the handheld right now, read from the system (not from the
+// game's last read). At most once a millisecond; null functions give 0.
+uint64_t kp_input_live(void);
+// ---- the keyboard (keyboard.c) ----
+bool kp_keyboard_present(void);              // the system has the functions
+bool kp_keyboard_on(void);                   // ... and the About tab's switch is on
+void kp_keyboard_switch(bool on);
+bool kp_keyboard_read(uint64_t keys[4]);     // keys held now, bit n = USB HID usage n; false if off
 bool kp_hooks_start(void);
 bool kp_player_start(void);                      // after kp_hooks_start
 extern bool kp_player_on;

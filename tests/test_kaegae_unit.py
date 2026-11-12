@@ -17,7 +17,7 @@ import kaegae_font  # noqa: E402
 import kaegae_symbols  # noqa: E402
 
 CORE = REPO / "api" / "core"
-SOURCES = [CORE / f for f in ("mods.c", "events.c", "symbols.c", "log.c", "format.c", "alloc.c", "text.c", "menu.c", "settings.c")]
+SOURCES = [CORE / f for f in ("mods.c", "events.c", "symbols.c", "log.c", "format.c", "alloc.c", "text.c", "menu.c", "settings.c", "keyboard.c")]
 
 
 def packs_match_ld(packs):

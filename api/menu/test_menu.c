@@ -31,10 +31,15 @@ static KaeItem drone_items[] = {
 static KaeItem gz_items[] = {
     { KAE_BINDING, "Levitate", "Float Link.", 0, 0, 0, 0, 0, 0, KAE_L3, KAE_L3, changed, 0 },
 };
-static KaePage fp = { "kabosune.first-person", "First Person", "2.0.0", 0, 1, fp_items, 3 };
-static KaePage drone = { "kabosune.fpv-drone", "FPV Drone", "2.0.0", 0, 1, drone_items, 4 };
-static KaePage gz = { "example.practice-tools", "Practice Tools", "0.4.1", 0, 1, gz_items, 1 };
-static KaePage old = { "example.wide-fov", "Wide FOV", "1.0.0", "Not supported on this game version yet (needs Camera.Fov).", 0, 0, 0 };
+static unsigned char fp_keys[KAE_MAX_KEYED], drone_keys[KAE_MAX_KEYED], gz_keys[KAE_MAX_KEYED];
+static KaePage fp = { "kabosune.first-person", "First Person", "2.0.0", 0, 1, fp_items, 3, fp_keys };
+static KaePage drone = { "kabosune.fpv-drone", "FPV Drone", "2.0.0", 0, 1, drone_items, 4, drone_keys };
+static KaePage gz = { "example.practice-tools", "Practice Tools", "0.4.1", 0, 1, gz_items, 1, gz_keys };
+static KaeItem core_items[] = {
+    { KAE_TOGGLE, "Keyboard", "Read the keyboard for mods' keys.", 1, 1, 0, 0, 0, 0, 0, 0, changed, 0 },
+};
+static void key(int k, int down) { if (down) m.keys[k >> 6] |= 1ull << (k & 63); else m.keys[k >> 6] &= ~(1ull << (k & 63)); }
+static KaePage old = { "example.wide-fov", "Wide FOV", "1.0.0", "Not supported on this game version yet (needs Camera.Fov).", 0, 0, 0, 0 };
 
 static void shot(const char *name, const uint8_t *bg, int w, int h)
 {
@@ -98,6 +103,37 @@ int main(int argc, char **argv)
     CHECK(!m.capture && fp_items[0].binding == (KAE_ZL | KAE_Y));
     char t[64]; CHECK(!strcmp(kae_binding_text(fp_items[0].binding, t, sizeof t), "Y + ZL"));
     tap(KAE_Y); CHECK(fp_items[0].binding == KAE_R3);
+    /* --- stick directions can be part of a binding (0.7) */
+    CHECK(!strcmp(kae_binding_text(KAE_R | (1u << 23), t, sizeof t), "R + RS Down"));
+    tap(KAE_A); step(KAE_R); step(KAE_R | (1u << 23)); step(0);
+    CHECK(fp_items[0].binding == (KAE_R | (1u << 23)));
+    tap(KAE_Y); CHECK(fp_items[0].binding == KAE_R3);
+    /* --- keys: names both ways */
+    CHECK(!strcmp(kae_key_name(62, t, sizeof t), "F5") && !strcmp(kae_key_name(4, t, sizeof t), "A"));
+    CHECK(!strcmp(kae_key_name(44, t, sizeof t), "Space") && !strcmp(kae_key_name(80, t, sizeof t), "Left"));
+    CHECK(!strcmp(kae_key_name(0, t, sizeof t), "none") && !strcmp(kae_key_name(200, t, sizeof t), "Key 200"));
+    CHECK(kae_key_from_name("f5", 2) == 62 && kae_key_from_name("SPACE", 5) == 44 && kae_key_from_name("none", 4) == 0);
+    CHECK(kae_key_from_name("Num 7", 5) == 95 && kae_key_from_name(";", 1) == 51 && kae_key_from_name("Key 200", 7) == 200);
+    CHECK(kae_key_from_name("F55", 3) == -1 && kae_key_from_name("Num 7x", 6) == -1);
+    for (int k = 1; k < 256; k++) { kae_key_name(k, t, sizeof t); if (kae_key_from_name(t, (int)strlen(t)) != k) { CHECK(0); break; } }
+    /* --- the keyboard column: Right selects it, A waits for all keys up and takes the first key */
+    m.keyboard = 1;
+    tap(KAE_RIGHT); CHECK(m.column == 1 && fp_items[0].binding == KAE_R3);
+    key(4, 1); tap(KAE_A); CHECK(m.capture == &fp_items[0] && m.key_capture);
+    step(0); CHECK(m.capture);                                              /* A still held on the keyboard: waits */
+    key(4, 0); step(0); key(62, 1); step(0); key(62, 0);
+    CHECK(!m.capture && fp_keys[0] == 62 && fp_items[0].binding == KAE_R3);
+    shot("page-keys.ppm", bg, w, h);
+    tap(KAE_A); step(0); tap(KAE_B); CHECK(!m.capture && fp_keys[0] == 62 && m.open);   /* B gives up, key kept */
+    tap(KAE_Y); CHECK(fp_keys[0] == 0);                                     /* Y: no key */
+    key(62, 1); tap(KAE_A); key(62, 0); step(0); key(62, 1); step(0); key(62, 0); CHECK(fp_keys[0] == 62);
+    tap(KAE_LEFT); CHECK(m.column == 0);
+    /* --- a key clash */
+    drone_keys[0] = 62;
+    const KaePage *kowner = 0;
+    CHECK(kae_menu_key_clash(&m, &drone_items[0], &kowner) == &fp_items[0] && kowner == &fp);
+    CHECK(!kae_menu_key_clash(&m, &gz_items[0], 0));
+    CHECK(kae_menu_key_of(&m, &fp_items[1], 0) == 0);                        /* a toggle has no key */
     /* --- clash: two enabled mods on L3 */
     const KaePage *owner = 0;
     CHECK(kae_menu_clash(&m, &drone_items[0], &owner) == &gz_items[0] && owner == &gz);
@@ -111,6 +147,10 @@ int main(int argc, char **argv)
     CHECK(!kae_menu_clash(&m, &drone_items[0], 0));
     m.cursor[0] = 3; tap(KAE_X); CHECK(!old.enabled);                       /* an unavailable mod can't be switched on */
     tap(KAE_R); tap(KAE_R); CHECK(m.tab == 2);
+    /* --- Core's own switch on the About tab */
+    m.core_items = core_items; m.ncore = 1;
+    shot("about.ppm", bg, w, h);
+    tap(KAE_A); CHECK(core_items[0].value == 0); tap(KAE_Y); CHECK(core_items[0].value == 1);
     /* --- B closes; B is not passed to the game while still held */
     CHECK(step(KAE_B) == 0 && !m.open);
     CHECK(step(KAE_B) == 0); CHECK(step(0) == 0);
