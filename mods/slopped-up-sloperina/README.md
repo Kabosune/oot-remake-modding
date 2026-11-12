@@ -64,8 +64,9 @@ python3 tools/kaegae.py install releases/kaegae-core.zip releases/slopped-up-slo
 ```
 
 or copy both zips' folders into the emulator's mod folder for the game by hand (in Fritchii,
-`%APPDATA%\fritchii\load\0400486024DEC000\`). **Turn sloperinaGZ itself off** while this one is on:
-they're the same menu on the same buttons. It needs no `.ips` of its own.
+`%APPDATA%\fritchii\load\0400486024DEC000\`). It needs no `.ips` of its own. sloperinaGZ itself can
+stay installed (tested: both run and both menus draw, sloperinaGZ's on top), but they're the same
+menu on the same buttons, so it's simplest to turn one of them off.
 
 ## Changes to sloperinaGZ's sources
 
