@@ -3,6 +3,8 @@
 
 // "text a b c ..." with each float printed in thousandths (1.5 -> 1500); up to 12 per line.
 void kp_log_floats(const char *text, const float *values, int count) {
+    if (!kp_debug)
+        return;
     long long m[12] = { 0 };
     char format[2 + 12 * 5 + 1] = "%s";
     int n = 2;

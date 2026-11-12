@@ -412,14 +412,21 @@ def main():
             g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), grab], bundled, tmp / f"grab-{bundled}"))
             g.p.uc.mem_map(0x40000000, 0x10000)          # an actor that isn't Link: zeroed memory
             g.game("game_boot")
-            g.expect("kaegae [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.2.0 started",
+            g.expect("kaegae [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.3.0 started",
                      "mod kaegae.hello 0.5.0 started")
             for _ in range(3):
                 g.frame(actor=0x40000000)
             rects = g.rects()
             assert len(rects) > 20 and (640, 720 - 360 - 1, 1, 1, 0) in rects, rects[:6]   # the arrow's tip
             assert not g.p.unresolved, g.p.unresolved
-        print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors)")
+            assert not g.logged("  actor: "), "Mouse Grab's research log is on by default"
+            for buttons in (MINUS | PLUS, 0, MINUS | PLUS, 0):   # open and close the Mods menu: the close writes the file
+                g.set_controller(buttons)
+                for _ in range(3):
+                    g.frame(actor=0x40000000)
+            saved = sd_file(g)
+            assert "[kabosune.mouse-grab]\n(on) = 1\nGyro depth speed = 100\n" in saved and "Debug log = 0\n" in saved, saved
+        print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors, has its settings page)")
         # Slopped Up Sloperina, the first mod written against the public API only, and Core's player_move
         # event under it. A Link is built in memory the way the game lays him out (actor -> components
         # -> movement inside the player object, whose resource is "Player"; components -> ... ->

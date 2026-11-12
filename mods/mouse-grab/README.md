@@ -8,12 +8,36 @@ from the controller's pitch.
 
 Still in progress. This folder holds the findings and the builds.
 
+## Settings (0.3.0)
+
+On the mod's page in the Mods menu (- and + together). Core saves them between runs.
+
+| Setting | Default | What it does |
+|---|---|---|
+| Gyro depth speed | 100 % | How far tilting the controller pushes or pulls what you hold. 0 turns the gyro off |
+| Invert gyro depth | off | Tilt the other way to bring it closer |
+| Gyro deadzone | 5 | Turns slower than this (tenths of a radian per second) are ignored, so you can tilt back slowly |
+| Gyro smoothing | 35 % | How much of a tilt counts at once; lower is smoother but slower |
+| Grab radius | 120 cm | How close to the cursor a character must be to be picked up |
+| Pull strength | 8 | How fast what you hold catches up with the cursor |
+| Top speed | 25 m/s | The fastest Link is pulled |
+| Throw strength | 100 % | How much of the cursor's speed a throw keeps |
+| Grab other characters | on | People and animals too, not only Link |
+| Link's voice | on | His cries when grabbed, dropped and thrown |
+| Link's face | on | His hurt face while he's a ragdoll |
+| Show the cursor | on | The arrow under the mouse |
+| Cursor size | by screen size | Or small, medium, large |
+| Debug log | off | The research output (every actor's name, ragdoll state, held point): hundreds of lines per area load. On for finding bugs |
+
+The defaults are the values built in before 0.3.0, except the debug log, which was always on. The
+mouse doesn't grab while the Mods menu is open.
+
 ## Which zip
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.5. Tested in Fritchii on 11 November 2026 with Core 0.5.1, next to Slopped Up Sloperina | Playing around with the mod |
-| [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.5.1, needed by the mod | Install once, with any KaeGae mods |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.3.0 on its own (its settings page is new; not tested in the game yet), built for KaeGae Core 0.5. 0.2.0 was tested in Fritchii on 11 November 2026 with Core 0.5.1 | Playing around with the mod |
+| [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.5.2, needed by the mod | Install once, with any KaeGae mods |
 
 Install both: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`,
 or copy both zips' folders into the emulator's load folder by hand. If another mod already uses
