@@ -1,0 +1,19 @@
+# Emotes' manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+manifest = 1
+
+id       = "kabosune.emotes"
+name     = "Emotes"
+version  = "0.1.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.6"
+sources = ["emotes.c"]
+events  = ["frame", "input", "draw", "player_move"]
+# A research build: it plays animations through the game's own function by raw offset
+# (kae_game_base), so it only supports game version 1.1.1 until Core offers that by name.

@@ -22,6 +22,7 @@ HERE = REPO / "tests" / "kaegae"
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(HERE))
 import emu  # noqa: E402
+from unicorn import UC_HOOK_CODE  # noqa: E402
 import kaemod  # noqa: E402
 import kaegae_font  # noqa: E402
 import kaegae_symbols  # noqa: E402
@@ -609,6 +610,64 @@ def main():
         assert any(r[4] != 0x101820 and r[4] != 0x2A3530 and r[3] == 16 for r in g.rects()), "no bar fill"
         assert not g.p.unresolved, g.p.unresolved
         print("Speedometer: ok (measures Link's speed, draws its display bottom right with a filled bar)")
+        # Emotes: hold L to open the list, a tap goes back to the game, A plays the chosen emote
+        # through the game's AS function (f_802222a0, faked here as a ret that records the request).
+        g = Game(fakes, kaemod.build([kaemod.Mod(REPO / "mods" / "emotes")], False, tmp / "emotes"))
+        g.p.uc.mem_map(0x40000000, 0x10000)
+        for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                          (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                          (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                          (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                          (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                          (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"])):
+            g.p.write(at, struct.pack("<Q", value))
+        g.p.write(RESOURCE + 0x58, b"Player\0")
+        AS_PLAY = MAIN_BASE + 0x2022A0
+        g.p.write(AS_PLAY, struct.pack("<I", 0xD65F03C0))
+        played = []
+
+        def as_play(uc, address, size, user):
+            r = uc.reg_read(emu.UC_ARM64_REG_X0)
+            actor, command, partial = struct.unpack("<QQi", bytes(uc.mem_read(r, 0x14)))
+            name = bytes(uc.mem_read(command, 64)).split(b"\0")[0].decode()
+            played.append((actor, name, partial))
+        g.p.uc.hook_add(UC_HOOK_CODE, as_play, None, AS_PLAY, AS_PLAY)
+        g.game("game_boot")
+        g.expect("mod kabosune.emotes 0.1.0 started")
+        L, A, DOWN = 1 << 6, 1 << 0, 1 << 15
+
+        def em(buttons=0, count=1, ly=0):
+            g.set_controller(buttons, 0, ly)
+            seen = []
+            for _ in range(count):
+                g.frame(actor=LINK)
+                seen.append(g.states(0)[-1])
+            return seen
+        em(0, 3)
+        # a tap (3 frames): held back from the game, then handed to it
+        assert all(not st[0] & L for st in em(L, 3)), "the game saw a tap of L at once"
+        after = em(0, 6)
+        assert any(st[0] & L for st in after), ("the tap never reached the game", after)
+        assert not any(r[4] == 0x101820 for r in g.rects()), "the list opened on a tap"
+        em(0, 3)
+        # a hold: the list opens; the game never sees L, nor the stick once the list is up
+        held = em(L, 14, ly=20000)
+        assert all(not st[0] & L for st in held) and all(st[2] == 0 for st in held[-3:]), held
+        assert any(r[4] == 0x101820 for r in g.rects()), "no list after holding L"
+        em(L, 2)
+        em(L | DOWN)                          # down: from Stop to Wave
+        em(L, 2)
+        seen = em(L | A, 3)
+        assert all(not st[0] & A for st in seen), "the game saw A while the list was open"
+        assert played and played[-1] == (LINK, "EvtTalkHello", 0), played
+        em(L | A, 3)
+        assert len(played) == 1, ("A again with L still held played again", played)
+        g.p.write(g.sdk.exports["sdk_rect_count"], struct.pack("<i", 0))   # only cleared when Core draws
+        em(0, 3)
+        assert not any(r[4] == 0x101820 for r in g.rects()), "the list stayed open"
+        assert not g.p.unresolved, g.p.unresolved
+        print(f"Emotes: ok (a tap reaches the game late, a hold opens the list and hides L, A and the stick, "
+              f"A plays {played[-1][1]} on Link)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
