@@ -24,29 +24,22 @@ On a real Switch 2, use the [hardware test builds](#hardware-test-builds-11-nove
 
 ## What's in the zip, and real hardware
 
-Both zips have two files under `0400486024DEC000/Mouse Grab/exefs/`:
+Mouse Grab needs two downloads, each in its own mod folder:
 
-- `subsdk1`: the mod itself (KaeGae Core and Mouse Grab in one module). The game's loader loads it
-  next to `main`.
-- `E0F3CCFA....ips`: a 141-byte patch to `main` that jumps from one spot in the game to the module.
-  On its own it does nothing: without `subsdk1` the game runs as normal.
+- [`kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/kaegae-core.zip):
+  KaeGae Core 0.4. `exefs/subsdk1` is Core itself; `E0F3CCFA....ips` is a 141-byte patch to `main`
+  that jumps from one spot in the game to Core. On its own the patch does nothing.
+- [`mouse-grab.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/mouse-grab.zip):
+  the mod, `exefs/subsdk2`. Without Core it loads and does nothing.
 
-Both are needed, and only game version 1.1.1 is supported.
+Only game version 1.1.1 is supported. The `mod.toml` in each folder is the
+[KaeGae manifest](../../api/MANIFEST.md); the game ignores it.
 
-**Real Switch 2: untested.** Everything here has only run in Fritchii.
-[ns2jb-modloader](https://github.com/SebaaMG/ns2jb-modloader) takes exefs files and IPS patches, so
-going by its README the layout would be:
-
-```
-ns2jb-modloader/contents/0400486024DEC000/exefs/subsdk1
-ns2jb-modloader/exefs_patches/Mouse Grab/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips
-```
-
-Not known: whether that loader loads an exefs file the game doesn't ship (`subsdk1` is an extra one),
-and whether Joy-Con 2 mouse mode arrives through `GetMouseStates` the way the emulator's mouse does.
-There is no log on a console, so a failure looks like nothing happening or the game hanging at boot.
-If you try it, please report how far it gets in
-[issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2).
+**Real Switch 2: not working yet.** In Fritchii it works; on a jailbroken Switch 2 with
+[ns2jb-modloader](https://github.com/SebaaMG/ns2jb-modloader) the game crashes at the boot logo
+([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2)). That report was with the
+older one-module build (Core and Mouse Grab together in `subsdk1`). `tools/ns2jb.py` repacks any
+emulator zip into ns2jb-modloader's layout.
 
 ### Hardware test builds (11 November 2026)
 
