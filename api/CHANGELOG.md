@@ -4,7 +4,7 @@ Until API 1.0 anything here may still change. From 0.6 Core runs mods built for 
 version and for older ones back to the oldest it still supports (0.5 for Core 0.6); before 0.6
 the version had to match exactly.
 
-## Core 0.6, API 0.6 (11 November 2026; not tested in the game yet)
+## Core 0.6, API 0.6 (11 November 2026; tested in the game the same day)
 
 The version rule, so new Cores stop breaking older mods. Mods built for 0.5 run unchanged.
 
@@ -22,7 +22,9 @@ The version rule, so new Cores stop breaking older mods. Mods built for 0.5 run 
   `mod.toml` `[core] api` is the oldest API it is written for; it can be built with a newer header.
 - The log's start line is plain `Core 0.6 loaded, ...` again.
 - Tested in an emulated game: the released Slopped Up Sloperina 0.2.1 and Mouse Grab 0.2.0 zips,
-  built for 0.5, start on Core 0.6 (`tests/kaegae/old-mods`).
+  built for 0.5, start on Core 0.6 (`tests/kaegae/old-mods`). In the game (Fritchii v5.8.4): five
+  mods built for 0.5 (Mouse Grab 0.3.0, Slopped Up Sloperina 0.3.0, drunk mode, speedometer, moon
+  jump) all start on Core 0.6 and work.
 
 ## Slopped Up Sloperina 0.2.1 (11 November 2026)
 
