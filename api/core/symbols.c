@@ -54,6 +54,8 @@ int kae_has(const char *feature) {
     for (size_t i = 0; i < sizeof events / sizeof *events; i++)
         if (compare(feature, events[i].name) == 0)
             return kp_event_on[events[i].event];
+    if (compare(feature, "menu") == 0)
+        return kp_menu_on();
     if (compare(feature, "motion") == 0)
         return kp_motion_on;
     if (compare(feature, "symbols") == 0)

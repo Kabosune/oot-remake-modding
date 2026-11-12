@@ -53,11 +53,13 @@ static void start(KaeMod *mod) {
         kp_logf("mod %s %s is off: this build of the game isn't known to Core", mod->id, version);
         return;
     }
+    kp_menu_add_mod(mod, 0);
     starting = mod;
     int result = mod->start ? mod->start() : 0;
     starting = 0;
     if (result != 0) {
         kp_unsubscribe_mod(mod);
+        kp_menu_add_mod(mod, "This mod could not start in this game (see the log).");
         kp_logf("mod %s %s is off: its start returned %d", mod->id, version, result);
         return;
     }

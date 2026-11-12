@@ -3,7 +3,24 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
-## Draft 0.5, API 0.3 (10 November 2026; on the branch `kaepora-draw-text`, not tested in the game yet)
+## Draft 0.6, API 0.4 (10 November 2026; tested in the game on 11 November)
+
+The Mods menu runs inside Core.
+
+- **The Mods menu** ([MODS-MENU.md](MODS-MENU.md)) opens with - and + together. It lists every mod
+  with its version, switches a mod off and on with X (a mod that is off gets no events), and shows
+  a mod's page of settings. While it is open the game sees no buttons or sticks, whatever a mod's
+  input function does.
+- **`kae_settings(name, items, count)`** gives the calling mod its page: toggles, choices, numbers,
+  button bindings and actions (`KaeItem`). The mod reads `value` / `binding` from its own array;
+  Core calls `changed` after the player changes one. **`kae_menu_open()`**, `kae_has("menu")`, and
+  the button names `KAE_A` ... `KAE_DOWN`.
+- The menu's code is `menu/kae_menu.c`, the same file the host tests build; inside Core it draws
+  with `kae_draw_rect` and `kae_draw_text` instead of its own picture renderer.
+- Not yet: settings aren't saved between runs, and the reminder line on the game's pause menu.
+- API 0.4: mods built for 0.3 need a rebuild.
+
+## Draft 0.5, API 0.3 (10 November 2026; tested in the game)
 
 Text and small pictures.
 
@@ -12,6 +29,8 @@ Text and small pictures.
   `core/font/`), at whole-number scales. UTF-8; the font carries ASCII and Latin-1.
 - **`kae_draw_image`**: a picture of 0xAARRGGBB pixels at a whole-number scale. A pixel is drawn
   solid or left out (alpha below 0x80): made for pixel art such as cursors and icons.
+- In the game (Fritchii v5.7, 1.1.1): Hello's text and picture show; NVN reports free command
+  memory; 131 rectangles took 9028 bytes of command memory, about 69 bytes each.
 - Both are drawn as rectangles, the one kind of drawing proven in the game, so nothing new is asked
   of the game's graphics library. Smooth text in the game's own font and pictures blended over the
   game are a later step behind the same functions.

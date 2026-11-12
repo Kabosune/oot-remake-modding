@@ -40,7 +40,7 @@ CORE_SLOT = "subsdk1"
 MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]   # subsdk9 is left to standalone mods (sloperinaGZ)
 
 CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "symbols.c", "log.c", "format.c",
-                                   "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "input.c", "input_wrap.S", "motion.c",
+                                   "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "menu.c", "input.c", "input_wrap.S", "motion.c",
                                    "hooks.c")]
 # What Core imports, and which of the game's modules exports it. The second group is imported
 # weakly: Core runs without them (the build can't check the system's exports, only the game can).

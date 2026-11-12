@@ -1,5 +1,5 @@
 /* Host tests for the Mods menu, and screenshots of it.
- *     cc -O1 -Wall -o test_menu test_menu.c kae_menu.c && ./test_menu [background.rgba W H]
+ *     cc -O1 -Wall -I../include -o test_menu test_menu.c kae_menu.c && ./test_menu [background.rgba W H]
  * Writes mods.ppm, page.ppm and controls.ppm. */
 #include <stdio.h>
 #include <stdlib.h>

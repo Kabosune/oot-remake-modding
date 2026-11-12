@@ -78,27 +78,35 @@ int kae_on_actor_move(KaeActorFn fn, void *user, int priority) {
 void kp_fire_frame(void) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_FRAME, s);
+    kp_menu_frame();
     for (int i = 0; i < n; i++)
-        ((KaeFrameFn)s[i].fn)(s[i].user);
+        if (!kp_mod_off(s[i].owner))
+            ((KaeFrameFn)s[i].fn)(s[i].user);
 }
 
 void kp_fire_input(KaeInput *seen, const KaeInput *real) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_INPUT, s);
+    kp_menu_input(seen, real);
     for (int i = 0; i < n; i++)
-        ((KaeInputFn)s[i].fn)(seen, real, s[i].user);
+        if (!kp_mod_off(s[i].owner))
+            ((KaeInputFn)s[i].fn)(seen, real, s[i].user);
+    kp_menu_input_done(seen);
 }
 
 void kp_fire_draw(const KaeFrame *frame) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_DRAW, s);
     for (int i = 0; i < n; i++)
-        ((KaeDrawFn)s[i].fn)(frame, s[i].user);
+        if (!kp_mod_off(s[i].owner))
+            ((KaeDrawFn)s[i].fn)(frame, s[i].user);
+    kp_menu_draw(frame->width, frame->height);
 }
 
 void kp_fire_actor_move(void *actor) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_ACTOR_MOVE, s);
     for (int i = 0; i < n; i++)
-        ((KaeActorFn)s[i].fn)(actor, s[i].user);
+        if (!kp_mod_off(s[i].owner))
+            ((KaeActorFn)s[i].fn)(actor, s[i].user);
 }

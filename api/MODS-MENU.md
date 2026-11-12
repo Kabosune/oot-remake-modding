@@ -1,8 +1,12 @@
 # The Mods menu
 
-**Draft 0.1, 9 November 2026.** Part of [Kaepora](DESIGN.md). The menu's logic and drawing exist
-as portable C in [`menu/`](menu/) and pass their host tests. **It has not run inside the game**:
-that needs text drawing and input bindings in Kaepora Core, which Core 0.2 doesn't have yet.
+**Draft 0.2, 10 November 2026.** Part of [Kaepora](DESIGN.md). The menu's logic and drawing are
+portable C in [`menu/`](menu/) and pass their host tests. From API 0.4 the same code is built into
+Kaepora Core (`core/menu.c`), drawn with Core's rectangles and built-in font, and a mod declares
+its page with `kae_settings`. It opens in the emulated game of the module tests; **it has not run
+inside the real game yet**. Inside Core it looks plainer than the screenshots here, which come
+from the host renderer's smooth font. Not done yet: saving settings, the keyboard key, and the
+reminder on the pause menu.
 
 One screen, called **Mods**, where a player sees every installed mod, switches mods on and off,
 changes their settings and rebinds their buttons.
@@ -124,7 +128,7 @@ same file can be compiled into Core.
 
 ```
 cd api/menu
-cc -O1 -Wall -o test_menu test_menu.c kae_menu.c
+cc -O1 -Wall -I../include -o test_menu test_menu.c kae_menu.c
 ./test_menu
 ```
 
