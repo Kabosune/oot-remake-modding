@@ -1,5 +1,7 @@
 # Slopped Up Sloperina
 
+**Download: [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip)**, and [KaeGae Core](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip), which it needs (install both; see [Install](#install)).
+
 [sloperinaGZ](https://github.com/PracticeROM/sloperina), PracticeROM's gz-style practice menu for the
 Ocarina of Time remake, running as a mod on [KaeGae Core](../../api/README.md). It's their code
 (release 0.0.4.2), ported: KaeGae Core starts it, runs it every frame, hands it the controller and
