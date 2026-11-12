@@ -5,8 +5,9 @@ portable C in [`menu/`](menu/) and pass their host tests. From API 0.4 the same 
 KaeGae Core (`core/menu.c`), drawn with Core's rectangles and built-in font, and a mod declares
 its page with `kae_settings`. It opens in the emulated game of the module tests; **it has not run
 inside the real game yet**. Inside Core it looks plainer than the screenshots here, which come
-from the host renderer's smooth font. Not done yet: saving settings, the keyboard key, and the
-reminder on the pause menu.
+from the host renderer's smooth font. Not done yet: the keyboard key and the reminder on the pause
+menu. Saving settings between runs is in Core 0.5.2 (a file on the SD card, see the
+[changelog](CHANGELOG.md)), not tested in the game yet.
 
 One screen, called **Mods**, where a player sees every installed mod, switches mods on and off,
 changes their settings and rebinds their buttons.
