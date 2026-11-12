@@ -10,10 +10,11 @@ draws for it, so it sits next to other KaeGae mods instead of taking the game's 
 **Licence: GPL-3.0-or-later** ([LICENSE](LICENSE)), because sloperinaGZ is. This folder is the only
 part of the repository under the GPL; KaeGae Core and the other mods stay MIT.
 
-**Status, 11 November 2026: version 0.3.0, the first port. Works in the real game** (Fritchii
-v5.8.4, game 1.1.1, on KaeGae Core 0.6: KaboWabo, 20:46 PT), and its PC emulator test passes (it
-starts on game 1.1.1, opens and draws its menu, hides the controller from the game while the menu is
-open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
+**Status, 12 November 2026: version 0.4.0. Works in the real game** (Fritchii v5.8.4, game 1.1.1,
+on KaeGae Core 0.7), with its shortcuts rebindable on Core's page, keyboard keys and the button
+prompts under its menu. 0.3.0, the first port, worked the same way on Core 0.6 (11 November). Its PC
+emulator test passes too (it starts on game 1.1.1, opens and draws its menu, hides the controller
+from the game while the menu is open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
 offsets for 1.0.0 too, but KaeGae Core doesn't start mods on a game version it has no symbol pack for,
 and it has none for 1.0.0 yet.
 
