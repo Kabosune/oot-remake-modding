@@ -72,5 +72,5 @@ GOT slot and doesn't chain, so the two don't run together.
   it after installing a build. Log a build name at start to check.
 - A wrapper must not assume how the function it wraps returns its result: Core's wrapper on
   `GetNpadStyleSet` is assembly that keeps `x0` and `x8` and jumps to the real function.
-- Debug lines from `svcOutputDebugString` show in Fritchii's log (`eden_log.busy.txt` while it
-  runs, `eden_log.txt` after) as `Debug.Emulated <Info>`.
+- Debug lines from `svcOutputDebugString` show in Fritchii's log (in its data folder's `log` folder: `eden_log.busy.txt` while it
+  runs, `eden_log.txt` after; the data folder is `%APPDATA%\fritchii` from v5.8, `%APPDATA%\eden` before) as `Debug.Emulated <Info>`.

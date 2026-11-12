@@ -1,0 +1,16 @@
+# Kaepora registry for main build 33FA6C2C23848282A77E8B88A0A93F4887C55920 (game version 1.0.0).
+#
+# Nothing in this repo has been built for this version yet, and its free space hasn't been
+# surveyed (that needs a 1.0.0 dump). The one claim below is read from sloperinaGZ's patch.
+# Format: api/MANIFEST.md, "The registry".
+
+build   = "33FA6C2C23848282A77E8B88A0A93F4887C55920"
+version = "1.0.0"
+
+[[claim]]
+owner    = "practicerom.sloperinagz"
+name     = "sloperinaGZ"
+standard = false
+code     = ["0x3BE6A00..0x3BE6A10", "0x3BE6A40..0x3BE6A54"]
+hooks    = ["0x3AF2A6C"]
+source   = "its 0.0.3 patch"

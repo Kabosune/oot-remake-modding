@@ -5,6 +5,7 @@
     python3 tools/kaemod.py api/examples/hello                # Core + the mod, each its own module
     python3 tools/kaemod.py api/examples/hello mods/mouse-grab --name "Kaepora Test" --out releases/test.zip
     python3 tools/kaemod.py mods/mouse-grab --bundle          # the mod linked into Core's module
+    python3 tools/kaemod.py api/examples/hello --no-core      # the mod alone, for people who have Core installed
 
 Each mod folder has a mod.toml whose [core] table lists its sources. Two ways to put mods in the game:
 
@@ -12,8 +13,8 @@ Each mod folder has a mod.toml whose [core] table lists its sources. Two ways to
                       import Core's kae_ functions by name and the game's rtld connects them.
   --bundle            Core and the mods are linked into one module, subsdk1.
 
-The zip holds one mod folder for an emulator's load folder: the modules and Core's patch to main
-(its hook points). Needs clang, ld.lld, llvm-nm, llvm-objcopy (LLVM 15+) and Python 3.11+.
+The zip holds one mod folder for an emulator's load folder: the modules, Core's patch to main
+(its hook points) and a mod.toml that says what is in it, for `tools/kaepora.py check / install`. Needs clang, ld.lld, llvm-nm, llvm-objcopy (LLVM 15+) and Python 3.11+.
 """
 import argparse
 import re
@@ -186,8 +187,8 @@ def hook_patch(verify_main=None):
     return nxpatch.ips32(records), records
 
 
-def build(mods, bundle, work, verify_main=None, defines=()):
-    """{path inside the mod folder: bytes} for Core and the given mods."""
+def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
+    """{path inside the mod folder: bytes} for Core and the given mods (the mods alone if not with_core)."""
     work = Path(work)
     packs = kaepora_symbols.load_packs()
     for mod in mods:
@@ -199,13 +200,49 @@ def build(mods, bundle, work, verify_main=None, defines=()):
         files[f"exefs/{CORE_SLOT}"] = mknso.pack(build_core(work, mods, defines).read_bytes())
     else:
         assert len(mods) <= len(MOD_SLOTS), f"only {len(MOD_SLOTS)} mods fit as separate modules: use --bundle"
-        core = build_core(work, (), defines)
-        files[f"exefs/{CORE_SLOT}"] = mknso.pack(core.read_bytes())
+        core = build_core(work, (), defines)      # built even when left out: its exports are what the mods are checked against
+        if with_core:
+            files[f"exefs/{CORE_SLOT}"] = mknso.pack(core.read_bytes())
         exports = dynamic_symbols(core, "defined")
         for slot, mod in zip(MOD_SLOTS, mods):
             files[f"exefs/{slot}"] = mknso.pack(mod.as_module(work, exports).read_bytes())
-    files[f"exefs/{HOOK_BUILD_ID}.ips"] = hook_patch(verify_main)[0]
+    if with_core:
+        files[f"exefs/{HOOK_BUILD_ID}.ips"] = hook_patch(verify_main)[0]
     return files
+
+
+def package_manifest(mods, bundle, name, with_core=True, package_id=None):
+    """The mod.toml of a built folder: what each module is, and Core's claims on main if Core is in it."""
+    core = "%s@%d.%d" % (("kaepora.core",) + api_version())
+    q = lambda text: '"' + str(text).replace("\\", "\\\\").replace('"', '\\"') + '"'      # noqa: E731
+    if len(mods) == 1:
+        ident, version = mods[0].id, mods[0].manifest["version"]
+    elif not mods:
+        ident, version = core.split("@")
+    else:
+        ident, version = "pack." + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-"), "1.0.0"
+    authors = sorted({a for m in mods for a in m.manifest.get("authors", [])} | ({"KaboWabo/Kabosune"} if with_core else set()))
+    licenses = sorted({m.manifest.get("license", "") for m in mods} | ({"MIT"} if with_core else set()) - {""})
+    lines = ["# Written by tools/kaemod.py: what this folder holds. Format: api/MANIFEST.md.", "manifest = 1", "",
+             f"id       = {q(package_id or ident)}", f"name     = {q(name)}", f"version  = {q(version)}",
+             f"authors  = [{', '.join(q(a) for a in authors)}]", f"license  = {q(' AND '.join(licenses))}",
+             "", "[game]", f"title = {q(TITLE_ID)}", "", "[modules]"]
+    entries = [f"{m.id}@{m.manifest['version']}" for m in mods]
+    if bundle:
+        lines.append(f"{CORE_SLOT} = [{', '.join(q(e) for e in [core] + entries)}]      # linked into one module")
+    else:
+        lines += [f"{CORE_SLOT} = {q(core)}"] * with_core + [f"{slot} = {q(e)}" for slot, e in zip(MOD_SLOTS, entries)]
+    if mods:
+        lines += ["", "[core]", 'api = "%d.%d"      # the Core API the mods are built for' % api_version()]
+    if with_core:
+        claim = tomllib.loads((REPO / "registry" / "e0f3ccfa.toml").read_text())["claim"]
+        claim = next(c for c in claim if c["owner"] == "kaepora.core")
+        lines += ["", f"[build.{HOOK_BUILD_ID}]      # Kaepora Core's hook points (registry/e0f3ccfa.toml)",
+                  f'ips    = "exefs/{HOOK_BUILD_ID}.ips"'] + [
+                  f"{key:<6} = [{', '.join(q(v) for v in claim[key])}]" for key in ("code", "memory", "hooks")]
+    else:
+        lines += ["", "[relations]", f"requires = [{q(core.replace('@', '=='))}]      # install Kaepora Core as well"]
+    return "\n".join(lines) + "\n"
 
 
 def write_zip(path, name, files, readme):
@@ -218,8 +255,13 @@ def write_zip(path, name, files, readme):
             z.writestr(info, blob)
 
 
-def readme(mods, bundle, files):
+def readme(mods, bundle, files, with_core=True):
     major, minor = api_version()
+    if not with_core:
+        lines = [", ".join(f"{m.name} {m.manifest['version']}" for m in mods) + " (Ocarina of Time, Switch 2)", "",
+                 f"A Kaepora mod without Kaepora Core in the folder: it needs Core {major}.{minor} installed as well.",
+                 "Without Core it loads and does nothing.", "", "Files:"]
+        return "\n".join(lines + [f"  {rel}  ({len(blob)} bytes)" for rel, blob in sorted(files.items())]) + "\n"
     lines = [f"Kaepora Core {major}.{minor} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
     if mods:
         lines.append("With: " + ", ".join(f"{m.name} {m.manifest['version']}" for m in mods)
@@ -236,6 +278,8 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("mods", nargs="*", type=Path, help="mod folders (each with a mod.toml)")
     p.add_argument("--bundle", action="store_true", help="link the mods into Core's module instead of their own")
+    p.add_argument("--no-core", action="store_true", help="leave Core out: only the mods' own modules (Core is installed separately)")
+    p.add_argument("--id", help="the id in the folder's mod.toml (default: the mod's, or pack.<name> for several)")
     p.add_argument("--name", help="mod folder name inside the zip")
     p.add_argument("--out", type=Path, help="zip to write")
     p.add_argument("--verify-main", type=Path, help="flat main image to check Core's patch against")
@@ -246,9 +290,12 @@ def main(argv=None):
     mods = [Mod(folder) for folder in a.mods]
     name = a.name or (mods[0].name if len(mods) == 1 else "Kaepora Core")
     out = a.out or REPO / "releases" / (re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".zip")
+    assert not (a.no_core and (a.bundle or not mods)), "--no-core builds mods as their own modules: give a mod, without --bundle"
     with tempfile.TemporaryDirectory() as tmp:
-        files = build(mods, a.bundle, a.keep or Path(tmp), a.verify_main, a.define)
-    write_zip(out, name, files, readme(mods, a.bundle, files))
+        files = build(mods, a.bundle, a.keep or Path(tmp), a.verify_main, a.define, not a.no_core)
+    text = readme(mods, a.bundle, files, not a.no_core)
+    files["mod.toml"] = package_manifest(mods, a.bundle, name, not a.no_core, a.id).encode()
+    write_zip(out, name, files, text)
     for rel, blob in sorted(files.items()):
         print(f"  {rel}: {len(blob)} bytes")
     print(f"-> {out}")

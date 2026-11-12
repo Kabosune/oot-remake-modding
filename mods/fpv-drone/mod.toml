@@ -1,0 +1,25 @@
+# FPV Drone's manifest: a level 2 mod (it patches main itself, in space taken from the registry).
+manifest = 1
+
+id       = "kabosune.fpv-drone"
+name     = "FPV Drone"
+version  = "1.0.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[build.E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348]      # 1.1.1
+ips    = "exefs/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips"
+code   = ["0x3C46610..0x3C46B00",          # hooks and constants, in the code cave
+          "0x17776A8..0x177CB20"]          # its C code: the first 113 padding slots
+memory = ["0x4E9FD00..0x4E9FE00"]
+hooks  = ["0x4C506C",                      # view (the instruction after First Person's hook)
+          "0x2C215E0",                     # first instruction of the movement update: carrying Link
+          "0x3C427FC", "0x3C4280C", "0x3C4281C", "0x3C4282C", "0x3C4283C"]   # the five GetNpadStates import stubs
+
+[input]
+toggle = "L3"
+# While the drone is on it takes the whole controller (see the README); only the switch is listed.

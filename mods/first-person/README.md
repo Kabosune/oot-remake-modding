@@ -39,7 +39,8 @@ Compatible with: FPV Drone (when both are on, the drone's view wins), Ultrawide,
 
 ## Install
 
-Copy `0400486024DEC000` from `releases/first-person.zip` into `%APPDATA%\eden\load\` and restart
+Copy `0400486024DEC000` from `releases/first-person.zip` into the emulator's `load` folder (Fritchii v5.8
+and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older Fritchii: `%APPDATA%\eden\load\`) and restart
 the game.
 
 ## Real Switch 2 (testing)

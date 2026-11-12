@@ -70,12 +70,16 @@ The manifest ([example](examples/mod.toml)) states what the mod is and everythin
 - **Identity:** `id` (`author.mod-name`, lowercase, never reused), `name`, `version` (semver),
   `authors`, `license`, `manifest = 1`.
 - **Game:** the title ID and, per supported build, the build ID.
-- **Claims:** for each build, the byte ranges of `main` it writes, the memory it uses, and the
+- **Claims:** for each build, the byte ranges of `main` it writes (`code`), the memory it uses, and the
   instructions it hooks. Level 2 mods take these from the registry.
 - **romfs:** files added, files patched, and resource size table entries it needs raised.
 - **Input:** each action the mod listens for and its default buttons (`toggle = "L3"`).
 - **Relations:** `requires`, `conflicts`, `load-after`, by mod ID and version range.
 - **For core mods:** the API version built against, the symbols and hook points it needs.
+
+*Implemented (11 November): [`tools/kaepora.py`](../tools/kaepora.py) has `check`, `install`, `remove`,
+`list`, `inspect` and `init`; `build` is not written. The exact format and every finding are in
+[MANIFEST.md](MANIFEST.md).*
 
 A command-line tool, `kaepora`, reads the manifests of everything installed:
 
@@ -105,6 +109,10 @@ a hand-edited ASB and a whole size table; under this scheme it ships a script pl
 line.
 
 ## Level 2: the registry
+
+*Implemented (11 November) for 1.1.1 as [`registry/e0f3ccfa.toml`](../registry/e0f3ccfa.toml); a test
+keeps its claims from overlapping and in step with the manifests of this repo's mods. The memory
+map page is still written by hand.*
 
 `registry/<build id>.toml` is the machine-readable version of today's
 [memory map](../docs/memory-map.md): who owns which bytes of the code cave, which padding slots,
@@ -163,6 +171,11 @@ memory, which hardware may refuse.
   module, or linked into Core's (`--bundle`), where each mod's own names are made private first so
   two mods can't clash. A mod's imports from Core are weak, so a mod loaded without Core does
   nothing.
+- *Implemented 11 November, not yet tried in the game:* `--no-core` builds a mod without Core in its
+  folder, and `kaepora install` renames a new mod's module to a free slot when its own is taken.
+  That is the layout the standard is meant to end up with: Core installed once, each mod in its
+  own folder. It rests on the emulator combining the `exefs` folders of several mods, which it
+  does for patches and should do for modules.
 
 ### What Core gets without knowing any addresses
 
@@ -315,8 +328,8 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 
 | Step | Delivers | Proves |
 |---|---|---|
-| M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods |
-| M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped |
+| M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods. **Written (11 Nov): `check` run on a real Fritchii mod folder; it also found that a Fritchii built-in patch now sits inside First Person's range** |
+| M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped. **Size table merge written (11 Nov), same result as the hand-made table; the rest is open** |
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1, 4 and 6 answered. Results in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |

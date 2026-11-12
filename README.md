@@ -27,13 +27,18 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 | [Super Sloperina](mods/super-sloperina/README.md) | Practice tools on Kaepora Core: input display, position watch, save / load position, levitate. | First slice, not tested in the game yet |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
-`load` folder (Lichii / Fritchii / Eden: `%APPDATA%\eden\load\`), then restart the game.
+`load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
+Fritchii: `%APPDATA%\eden\load\`), then close and reopen the emulator. Or let the tool do it, with
+a check for conflicts first: `python3 tools/kaepora.py install releases/first-person.zip`
+([api/MANIFEST.md](api/MANIFEST.md)).
 
 ## A shared modding standard (draft)
 
 [Kaepora](api/README.md) is a proposal for how mods for this game can be packaged, checked for
 conflicts and, later, built on one shared core module so they survive game updates and work
-together. It is a design draft: read [api/DESIGN.md](api/DESIGN.md) and say what's wrong with it.
+together. The core runs in the game and the conflict checker works on today's mods
+(`python3 tools/kaepora.py check`); it is still a draft: read [api/DESIGN.md](api/DESIGN.md) and
+say what's wrong with it.
 
 ## Docs
 

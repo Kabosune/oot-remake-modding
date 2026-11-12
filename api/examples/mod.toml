@@ -13,8 +13,8 @@ title = "0400486024DEC000"
 
 [build.E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348]      # 1.1.1
 ips    = "exefs/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips"
-cave   = ["0x3C46B00..0x3C46FB0"]          # code written into main's padding
-memory = ["0x4E9FC00..0x4E9FC40"]          # writable state (module offsets)
+code   = ["0x3C46B00..0x3C46FB0"]          # code written into main's padding (module offsets, end not included)
+memory = ["0x4E9FC00..0x4E9FC40"]          # writable state
 hooks  = ["0x4C5068", "0x2C21720"]         # instructions replaced by a branch
 
 [input]                                     # actions and their default buttons
@@ -25,13 +25,13 @@ eye-reset  = "key:/"
 show-link  = "key:;"
 
 [relations]
+requires   = []                             # such as ["kaepora.core>=1.0"]
 conflicts  = []
 load-after = []
 
 # A romfs mod would add, for example:
 #
-# [romfs]
-# adds = ["Model/MyThing.bfres.zs"]
+# (Files in the folder's romfs/ need no listing: the tools read the folder.)
 #
 # [[romfs-patch]]
 # kind = "size-table"
@@ -48,7 +48,7 @@ load-after = []
 # hello/mod.toml for a real one that tools/kaemod.py builds.
 #
 # [core]
-# api     = "0.2"
+# api     = "0.3"
 # sources = ["my_mod.c"]
 # symbols = ["field:Actor.position", "function:IsChildLink"]
 # events  = ["frame", "input"]

@@ -123,7 +123,7 @@ def main():
         nxpatch.verify_slots(slots[:nslots], a.verify_main)
         print("verified against", a.verify_main)
     patch = nxpatch.ips32(records)
-    nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README)
+    nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README, HERE / "mod.toml")
     for start, end, _ in REGIONS:
         print(f"cave {start:#x}..{end:#x}: {used[start]} of {end - start} bytes")
     print(f"code: {nslots} of {len(slots)} padding slots, {slots[0][0]:#x}..{slots[nslots - 1][0] + slots[nslots - 1][1]:#x}")

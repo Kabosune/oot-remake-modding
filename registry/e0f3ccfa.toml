@@ -1,0 +1,123 @@
+# Kaepora registry for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
+#
+# Who uses which bytes of main: free space that mods may claim, and every claim on it, including
+# mods that don't follow the standard (read from their patches). `tools/kaepora.py check` reads
+# this file; docs/memory-map.md explains the spaces in words. Format: api/MANIFEST.md, "The registry".
+#
+# All numbers are module offsets (address in the docs minus 0x80020000), ranges leave the end out.
+# To claim space: add a [[claim]] with your mod's id by pull request, in the smallest amount that
+# works. tests/test_kaepora_tools.py fails if two claims overlap.
+
+build   = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
+version = "1.1.1"
+
+# ---- free space ----
+
+[space.cave]
+kind  = "code"
+range = "0x3C461D0..0x3C47000"
+note  = ".text padding: 3632 bytes, executable, zero"
+
+[space.slots]
+kind  = "code"
+range = "0x17776A8..0x177F6A8"
+note  = "padding between functions, in pieces of at most 28 bytes: the 205 slots of symbols/e0f3ccfa-slots.txt"
+
+[space.bss-tail]
+kind  = "memory"
+range = "0x4E9A4C8..0x4EA0000"
+note  = "writable, zeroed at boot, referenced by nothing in the game"
+
+# ---- claims by mods that follow the standard ----
+
+[[claim]]
+owner  = "kaepora.core"
+name   = "Kaepora Core"
+code   = ["0x3C46310..0x3C46400"]          # hook point stubs
+memory = ["0x4E9FB00..0x4E9FC00"]          # one function pointer per hook point
+hooks  = ["0x2C215E4"]                     # hook point Actor.MoveUpdate
+
+[[claim]]
+owner  = "kabosune.first-person"
+name   = "First Person"
+code   = ["0x3C46B00..0x3C46FB0"]
+memory = ["0x4E9FC00..0x4E9FC40"]
+hooks  = ["0x4C5068", "0x2C21720"]         # view matrix done; movement update (Link's position)
+
+[[claim]]
+owner  = "kabosune.fpv-drone"
+name   = "FPV Drone"
+code   = ["0x3C46610..0x3C46B00",          # hooks and constants
+          "0x17776A8..0x177CB20"]          # its C code: the first 113 slots
+memory = ["0x4E9FD00..0x4E9FE00"]
+hooks  = ["0x4C506C",                      # view (runs after First Person's)
+          "0x2C215E0",                     # first instruction of the movement update
+          "0x3C427FC", "0x3C4280C", "0x3C4281C", "0x3C4282C", "0x3C4283C"]   # br x17 of the five GetNpadStates stubs
+
+# ---- claims read from mods that don't follow the standard ----
+# `standard = false`: nobody asked for these; they are recorded so the checker knows about them.
+# `builtin` names emulators that apply the patch themselves, with no mod folder.
+
+[[claim]]
+owner    = "lichii.dynamic-fps"
+name     = "Dynamic FPS by Dark (built into Lichii)"
+standard = false
+builtin  = ["lichii", "fritchii"]
+code     = ["0x3C46200..0x3C46278"]
+memory   = ["0x4E9FE00..0x4E9FE10"]
+hooks    = ["0x6E6CC4"]
+source   = "Lichii's patch_manager.cpp (6 November 2026)"
+
+[[claim]]
+owner    = "lichii.max-resolution"
+name     = "Max Resolution (built into Lichii)"
+standard = false
+builtin  = ["lichii", "fritchii"]
+hooks    = ["0x805BD0"]
+source   = "Lichii's patch_manager.cpp (6 November 2026)"
+
+[[claim]]
+owner    = "fritchii.high-refresh-rate"
+name     = "High refresh rate, experimental (built into Fritchii)"
+standard = false
+builtin  = ["fritchii"]
+code     = ["0x3C46278..0x3C46310"]
+memory   = ["0x4E9FE20..0x4EA0000"]
+source   = "seen in Fritchii v5.6; extent not confirmed from source"
+
+[[claim]]
+owner    = "fritchii.water-ripples"
+name     = "Water ripples at any frame rate (built into Fritchii)"
+standard = false
+builtin  = ["fritchii"]
+code     = ["0x3C46E00..0x3C46E04"]
+shared   = ["kabosune.first-person"]
+source   = "Fritchii v5.8.3's log: it skips this patch when a mod has written main+0x3c46e00. Only that one offset is known, the real extent is larger"
+note     = "inside First Person's range, which was claimed first: with First Person on, Fritchii leaves this fix out"
+
+[[claim]]
+owner    = "craftycorvid.ultrawide"
+name     = "Ultrawide (craftycorvid/oot-mod)"
+standard = false
+code     = ["0x3C46400..0x3C46610"]
+hooks    = ["0x4F1E8", "0x20C2B0", "0x23B9A8", "0x25D76C", "0x33B82C", "0x774368", "0x3485CC0", "0x3B5C758"]
+shared   = ["practicerom.sloperinagz"]
+
+[[claim]]
+owner    = "practicerom.sloperinagz"
+name     = "sloperinaGZ"
+standard = false
+code     = ["0x3C46400..0x3C46410", "0x3C46440..0x3C46454"]     # an OOTGZ tag and the jump into its subsdk9
+hooks    = ["0x3B500DC"]
+shared   = ["craftycorvid.ultrawide"]
+source   = "its 0.0.3 patch"
+note     = "inside Ultrawide's range: don't expect those two to work together"
+
+[[claim]]
+owner    = "kabosune.mouse-probe"
+name     = "Mouse Probe (retired)"
+standard = false
+retired  = true
+code     = ["0x177CB68..0x177D1C0"]         # slots 113 to 127
+hooks    = ["0x3C427EC", "0x3C428AC", "0x3C4480C"]
+note     = "it also used Kaepora Core's cave range, so it can't be installed alongside Core"

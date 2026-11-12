@@ -68,7 +68,7 @@ def main():
         nxpatch.verify(records, a.verify_main)
         print("verified against", a.verify_main)
     patch = nxpatch.ips32(records)
-    nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README)
+    nxpatch.write_zip(a.out, TITLE_ID, a.name, BUILD_ID, patch, README, HERE / "mod.toml")
     print(f"cave {CAVE:#x}..{CAVE + size:#x} ({size} bytes), {len(HOOKS)} hooks -> {a.out}")
 
 
