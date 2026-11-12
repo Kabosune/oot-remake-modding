@@ -622,6 +622,16 @@ def main():
                           (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"])):
             g.p.write(at, struct.pack("<Q", value))
         g.p.write(RESOURCE + 0x58, b"Player\0")
+        # Link's AI state ([[[components+0x188]+0x1c0]+0x28]) and blackboard ([[components+0x0]+0x10])
+        AI, STATE, BBO, BB, NAMES, VALUES, STRS = (0x4000A000 + i * 0x200 for i in range(7))
+        for at, value in ((COMPONENTS + 0x188, AI), (AI + 0x1C0, STATE), (COMPONENTS + 0x0, BBO), (BBO + 0x10, BB),
+                          (BB + 0x8, NAMES), (BB + 0x18, VALUES), (NAMES, STRS), (NAMES + 8, STRS + 0x40),
+                          (VALUES, STRS + 0x80), (VALUES + 8, STRS + 0xC0)):
+            g.p.write(at, struct.pack("<Q", value))
+        g.p.write(BB, struct.pack("<i", 2)); g.p.write(BB + 0x10, struct.pack("<i", 2))
+        g.p.write(STATE + 0x28, struct.pack("<i", 0x11A)); g.p.write(STATE + 0x4C, struct.pack("<i", 0x16))
+        g.p.write(STRS, b"IsFly\0"); g.p.write(STRS + 0x40, b"EventArrivedASCommand\0")
+        g.p.write(STRS + 0x80, b"\0"); g.p.write(STRS + 0xC0, b"EvtWait\0")
         AS_PLAY = MAIN_BASE + 0x2022A0
         g.p.write(AS_PLAY, struct.pack("<I", 0xD65F03C0))
         played, requests = [], []
@@ -635,7 +645,13 @@ def main():
             requests.append((ignore_same, whole))
         g.p.uc.hook_add(UC_HOOK_CODE, as_play, None, AS_PLAY, AS_PLAY)
         g.game("game_boot")
-        g.expect("mod kabosune.emotes 0.1.2 started")
+        g.expect("mod kabosune.emotes 0.1.3 started")
+        em_frames = lambda n: [g.frame(actor=LINK) for _ in range(n)]       # noqa: E731
+        em_frames(2)
+        g.expect("Link's state 0x16 (raw 0x11a)", 'EventArrivedASCommand = "EvtWait"')
+        g.p.write(STATE + 0x28, struct.pack("<i", 0x28))
+        em_frames(1)
+        g.expect("Link's state 0x28 (raw 0x28)")
         L, A, DOWN = 1 << 6, 1 << 0, 1 << 15
 
         def em(buttons=0, count=1, ly=0):
@@ -673,7 +689,7 @@ def main():
         assert not any(r[4] == 0x101820 for r in g.rects()), "the list stayed open"
         assert not g.p.unresolved, g.p.unresolved
         print(f"Emotes: ok (a tap reaches the game late, a hold opens the list and hides L, A and the stick, "
-              f"A plays {played[-1][1]} on Link with the whole-body flag)")
+              f"A plays {played[-1][1]} on Link with the whole-body flag, logs Link's state and EventArrivedASCommand)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

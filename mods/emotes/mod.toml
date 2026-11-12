@@ -3,7 +3,7 @@ manifest = 1
 
 id       = "kabosune.emotes"
 name     = "Emotes"
-version  = "0.1.2"
+version  = "0.1.3"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"

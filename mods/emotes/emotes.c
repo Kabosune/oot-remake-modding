@@ -58,7 +58,7 @@ static const Emote emotes[] = {
 };
 #define N_EMOTES ((int)(sizeof emotes / sizeof *emotes))
 
-enum { BUTTON, BLOCK, TAP, HOLD, VOICE, KEEP, KEEP_FOR, ROWS, SLOT, WHOLE, UPPER, DEBUG, N_SETTINGS };
+enum { BUTTON, BLOCK, TAP, HOLD, VOICE, KEEP, KEEP_FOR, ROWS, SLOT, WHOLE, UPPER, EVENT, WATCH, DEBUG, N_SETTINGS };
 enum { BLOCK_OFF, BLOCK_WHILE_OPEN, BLOCK_ALWAYS };
 static const char *const block_names[] = { "Off", "While the list is open", "Always" };
 enum { KEEP_OFF, KEEP_BEFORE, KEEP_AFTER };
@@ -75,6 +75,8 @@ static KaeItem settings[] = {
     [SLOT]   = { KAE_NUMBER, "Body slot (test)", "Animation slot the emote plays in: 0 whole body?, 1 upper body, 4 face. For testing.", 0, 0, 0, 8, 1, 0, 0, 0, 0, 0 },
     [WHOLE]  = { KAE_TOGGLE, "Whole-body flag (test)", "Sets the request's +0x21 byte: the game's other way of playing an animation.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
     [UPPER]  = { KAE_TOGGLE, "Also on the upper body (test)", "Plays the emote on slot 1 (upper body) as well.", 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 },
+    [EVENT]  = { KAE_TOGGLE, "Event command (test)", "Also puts the emote in Link's EventArrivedASCommand while it plays (the way events do).", 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 },
+    [WATCH]  = { KAE_TOGGLE, "Log Link's state (test)", "Logs Link's state number and EventArrivedASCommand when they change. Talk, open chests, read signs...", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
     [DEBUG]  = { KAE_TOGGLE, "Debug log", "Logs every emote played and the list's state.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
 };
 
@@ -112,7 +114,13 @@ static void close_list(void) {
 static void as_play(void *actor, const char *command, int partial);
 static void emote_play(void *actor, const char *command);
 
+static void event_restore(void);
+static int event_frames;
+static const char **event_slot;        // where the mod wrote EventArrivedASCommand, and what was there
+static const char *event_before;
+
 static void stop_keeping(const char *why) {
+    event_restore();
     if (keep_index >= 0) LOG("emotes: %s ended after %d frames (%s)", emotes[keep_index].name, keep_frames, why);
     keep_index = -1;
 }
@@ -135,6 +143,10 @@ static void keep(uint64_t pressed, int lx, int ly) {
 
 static void frame(void *user) {
     (void)user;
+    if (event_slot && keep_index < 0 && ++event_frames > (settings[KEEP_FOR].value ? settings[KEEP_FOR].value : 180)) {
+        event_frames = 0;
+        event_restore();
+    }
     uint64_t now = frame_buttons, pressed = now & ~prev_buttons;
     int dir = frame_ly > 16000 ? 1 : frame_ly < -16000 ? -1 : 0;   // stick up = 1
     int on = frame_bound, lx = frame_lx, ly = frame_ly;
@@ -254,9 +266,70 @@ static void emote_play(void *actor, const char *command) {
         as_request(actor, command, 1, 0);
 }
 
+static int same(const char *a, const char *b);
+
+// ---- Link's AI, as his AS node f_80220ac0 reads it ----
+// state:      [[[[actor+0x270]+0x188]+0x1c0]+0x28], or +0x4c when that is 0x11a. The node plays
+//             EventArrivedASCommand instead of his usual command in states 0x16 and 0x28.
+// blackboard: [[[actor+0x270]+0x0]+0x10]: +0x0 string-name count, +0x8 names (char *[]),
+//             +0x10 value count, +0x18 values (char *[])
+#define AT(p, off, type) (*(type *)((char *)(p) + (off)))
+
+static void *follow(void *p, size_t off) {
+    return p && kae_readable((char *)p + off, 8) ? AT(p, off, void *) : 0;
+}
+
+static int link_state(void *actor, int *raw) {
+    void *st = follow(follow(follow(actor, 0x270), 0x188), 0x1c0);
+    if (!st || !kae_readable((char *)st + 0x28, 0x28)) return *raw = -1;
+    int id = *raw = AT(st, 0x28, int32_t);
+    return id == 0x11a ? AT(st, 0x4c, int32_t) : id;
+}
+
+static const char **event_command_slot(void *actor) {
+    char *bb = follow(follow(follow(actor, 0x270), 0x0), 0x10);
+    if (!bb || !kae_readable(bb, 0x20)) return 0;
+    int names = AT(bb, 0x0, int32_t), values = AT(bb, 0x10, int32_t);
+    const char **name = AT(bb, 0x8, const char **), **value = AT(bb, 0x18, const char **);
+    if (names <= 0 || names > 512 || !name || !value || !kae_readable(name, names * 8)) return 0;
+    for (int i = 0; i < names && i < values; i++) {
+        if (name[i] && kae_readable(name[i], 22) && same(name[i], "EventArrivedASCommand"))
+            return kae_readable(&value[i], 8) ? &value[i] : 0;
+    }
+    return 0;
+}
+
+static int last_state = -2, last_raw = -2;
+static const char *last_event = (const char *)1;
+
+static void event_restore(void) {
+    if (event_slot) {
+        *event_slot = event_before;
+        LOG("emotes: EventArrivedASCommand put back");
+    }
+    event_slot = 0;
+}
+
+static void watch(void *actor) {
+    if (!settings[WATCH].value) return;
+    int raw, st = link_state(actor, &raw);
+    if (st != last_state || raw != last_raw) {
+        KAE_LOG("emotes: Link's state 0x%x (raw 0x%x)", st, raw);
+        last_state = st, last_raw = raw;
+    }
+    const char **slot = event_command_slot(actor);
+    const char *ev = slot ? *slot : 0;
+    if (ev != last_event) {
+        const char *shown = !slot ? "(not found)" : !ev ? "(null)" : kae_readable(ev, 1) ? ev : "(unreadable)";
+        KAE_LOG("emotes: EventArrivedASCommand = \"%s\"", shown);
+        last_event = ev;
+    }
+}
+
 static void player_move(const KaePlayer *link, void *user) {
     (void)user;
     link_actor = link->actor, frames_since_link = 0;
+    if (link->actor) watch(link->actor);
     if (keep_index >= 0 && settings[KEEP].value == KEEP_BEFORE && link->actor)
         emote_play(link->actor, emotes[keep_index].command);
     int i = play_index;
@@ -266,6 +339,18 @@ static void player_move(const KaePlayer *link, void *user) {
     keep_index = (i == 0 || settings[KEEP].value == KEEP_OFF) ? -1 : i, keep_frames = 0;   // "Stop" isn't kept
     const Emote *e = &emotes[i];
     emote_play(link->actor, e->command);
+    event_restore();
+    if (settings[EVENT].value && i != 0) {
+        event_slot = event_command_slot(link->actor);
+        if (event_slot) {
+            event_before = *event_slot;
+            *event_slot = e->command;
+            event_frames = 0;
+            LOG("emotes: EventArrivedASCommand set to %s", e->command);
+        } else {
+            LOG("emotes: EventArrivedASCommand not found on Link's blackboard");
+        }
+    }
     if (e->voice && settings[VOICE].value)
         as_play(link->actor, e->voice, PARTIAL_MOUTH);
     LOG("emotes: played %s (%s) in slot %d, whole-body flag %d, upper body too %d", e->name, e->command,
@@ -315,8 +400,8 @@ static int start(void) {
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_input(input, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Emotes", settings, N_SETTINGS);
-    KAE_LOG("emotes 0.1.2: %d emotes, hold the button to open the list", N_EMOTES);
+    KAE_LOG("emotes 0.1.3: %d emotes, hold the button to open the list", N_EMOTES);
     return 0;
 }
 
-KAE_MOD("kabosune.emotes", "0.1.2", start, 0);
+KAE_MOD("kabosune.emotes", "0.1.3", start, 0);
