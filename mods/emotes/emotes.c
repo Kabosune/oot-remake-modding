@@ -57,15 +57,19 @@ static const Emote emotes[] = {
 };
 #define N_EMOTES ((int)(sizeof emotes / sizeof *emotes))
 
-enum { BUTTON, BLOCK, TAP, HOLD, VOICE, ROWS, SLOT, DEBUG, N_SETTINGS };
+enum { BUTTON, BLOCK, TAP, HOLD, VOICE, KEEP, KEEP_FOR, ROWS, SLOT, DEBUG, N_SETTINGS };
 enum { BLOCK_OFF, BLOCK_WHILE_OPEN, BLOCK_ALWAYS };
 static const char *const block_names[] = { "Off", "While the list is open", "Always" };
+enum { KEEP_OFF, KEEP_BEFORE, KEEP_AFTER };
+static const char *const keep_names[] = { "Off", "Before Link's update", "After Link's update" };
 static KaeItem settings[] = {
     [BUTTON] = { KAE_BINDING, "Emote list (hold)", "Hold to open the list. Up / down to choose, A to play.", 0, 0, 0, 0, 0, 0, KAE_L, KAE_L, 0, 0 },
     [BLOCK]  = { KAE_CHOICE, "Hide the button from the game", "Always: the game never gets it (L / R lose their own use: shield, targeting).", BLOCK_WHILE_OPEN, BLOCK_WHILE_OPEN, 0, 2, 1, block_names, 0, 0, 0, 0 },
     [TAP]    = { KAE_TOGGLE, "Tap goes to the game", "With \"While the list is open\": a short tap still does the button's own thing.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
     [HOLD]   = { KAE_NUMBER, "Hold time (frames)", "How long to hold before the list opens. 60 frames = 1 second.", 10, 10, 2, 40, 1, 0, 0, 0, 0, 0 },
     [VOICE]  = { KAE_TOGGLE, "Voice", "Link's voice with the emotes that have one.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
+    [KEEP]   = { KAE_CHOICE, "Keep the emote playing (test)", "Asks for the emote again every frame so the game's own animation doesn't replace it. Try both.", KEEP_AFTER, KEEP_AFTER, 0, 2, 1, keep_names, 0, 0, 0, 0 },
+    [KEEP_FOR] = { KAE_NUMBER, "Keep it for (frames)", "How long, at most. Moving the stick or pressing a button ends it sooner. 0 = until then.", 180, 180, 0, 600, 30, 0, 0, 0, 0, 0 },
     [ROWS]   = { KAE_NUMBER, "List rows", "How many emotes the list shows at once.", 10, 10, 4, 20, 1, 0, 0, 0, 0, 0 },
     [SLOT]   = { KAE_NUMBER, "Body slot (test)", "Animation slot the emote plays in: 0 whole body?, 1 upper body, 4 face. For testing.", 0, 0, 0, 8, 1, 0, 0, 0, 0, 0 },
     [DEBUG]  = { KAE_TOGGLE, "Debug log", "Logs every emote played and the list's state.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
@@ -84,7 +88,12 @@ static volatile int play_index = -1;   // set by frame(), played and cleared by 
 
 // What the controllers did since the last frame (input can come several times a frame).
 static uint64_t frame_buttons, prev_buttons;
-static int frame_ly, prev_dir;
+static int frame_ly, frame_lx, prev_dir;
+
+// The emote being kept playing (KEEP): asked for again every frame until it ends or Link moves.
+static int keep_index = -1, keep_frames;
+static void *link_actor;        // from Link's last movement update
+static int frames_since_link = 1000;
 static int frame_bound;          // the button combination was fully held on some controller
 static uintptr_t game_base;
 
@@ -97,12 +106,37 @@ static void close_list(void) {
     state = settings[BUTTON].binding ? WAIT_RELEASE : IDLE;
 }
 
+static void as_play(void *actor, const char *command, int partial);
+
+static void stop_keeping(const char *why) {
+    if (keep_index >= 0) LOG("emotes: %s ended after %d frames (%s)", emotes[keep_index].name, keep_frames, why);
+    keep_index = -1;
+}
+
+// Once a frame, on the game's thread between two of Link's updates ("After Link's update").
+static void keep(uint64_t pressed, int lx, int ly) {
+    if (keep_index < 0)
+        return;
+    const uint64_t buttons = KAE_A | KAE_B | KAE_X | KAE_Y | KAE_ZL | KAE_ZR | KAE_L3 | KAE_R3 | KAE_L | KAE_R;
+    if (state == OPEN || state == PENDING) return;            // choosing another one: hold still
+    if (pressed & buttons & ~settings[BUTTON].binding) { stop_keeping("a button"); return; }
+    if ((lx || ly) && keep_frames >= 15) { stop_keeping("the stick"); return; }   // a grace for the thumb that chose it
+    if (frames_since_link > 2 || !link_actor) { stop_keeping("Link went away"); return; }
+    int most = settings[KEEP_FOR].value;
+    if (most && keep_frames >= most) { stop_keeping("time"); return; }
+    keep_frames++;
+    if (settings[KEEP].value == KEEP_AFTER)
+        as_play(link_actor, emotes[keep_index].command, settings[SLOT].value);
+}
+
 static void frame(void *user) {
     (void)user;
     uint64_t now = frame_buttons, pressed = now & ~prev_buttons;
     int dir = frame_ly > 16000 ? 1 : frame_ly < -16000 ? -1 : 0;   // stick up = 1
-    int on = frame_bound;
-    frame_buttons = 0, frame_ly = 0, frame_bound = 0;
+    int on = frame_bound, lx = frame_lx, ly = frame_ly;
+    frame_buttons = 0, frame_ly = 0, frame_lx = 0, frame_bound = 0;
+    if (frames_since_link < 1000) frames_since_link++;
+    keep(pressed, lx, ly);
 
     if (kae_menu_open()) {
         state = IDLE, held_frames = 0;
@@ -169,6 +203,7 @@ static void input(KaeInput *seen_by_game, const KaeInput *real, void *user) {
     uint64_t b = settings[BUTTON].binding;
     frame_buttons |= real->buttons;
     if (real->ly > 16000 || real->ly < -16000) frame_ly = real->ly;
+    if (real->lx > 16000 || real->lx < -16000) frame_lx = real->lx;
     if (bound(real->buttons)) {
         if (!frame_bound) press_controller = real->controller;
         frame_bound = 1;
@@ -199,16 +234,21 @@ static void input(KaeInput *seen_by_game, const KaeInput *real, void *user) {
 
 static void as_play(void *actor, const char *command, int partial) {
     static _Alignas(16) uint8_t stand_in_node[0x200];
+    // IsIgnoreSameCommand = 1: asking again for what is already playing doesn't restart it
     as_request_t r = { actor, command, partial, 1.0f, { -1.0f, -1.0f }, 1, { 0 }, stand_in_node };
     ((void (*)(as_request_t *))(game_base + F_AS_PLAY))(&r);
 }
 
 static void player_move(const KaePlayer *link, void *user) {
     (void)user;
+    link_actor = link->actor, frames_since_link = 0;
+    if (keep_index >= 0 && settings[KEEP].value == KEEP_BEFORE && link->actor)
+        as_play(link->actor, emotes[keep_index].command, settings[SLOT].value);
     int i = play_index;
     if (i < 0 || i >= N_EMOTES || !link->actor)
         return;
     play_index = -1;
+    keep_index = (i == 0 || settings[KEEP].value == KEEP_OFF) ? -1 : i, keep_frames = 0;   // "Stop" isn't kept
     const Emote *e = &emotes[i];
     as_play(link->actor, e->command, settings[SLOT].value);
     if (e->voice && settings[VOICE].value)
@@ -259,8 +299,8 @@ static int start(void) {
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_input(input, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Emotes", settings, N_SETTINGS);
-    KAE_LOG("emotes 0.1.0: %d emotes, hold the button to open the list", N_EMOTES);
+    KAE_LOG("emotes 0.1.1: %d emotes, hold the button to open the list", N_EMOTES);
     return 0;
 }
 
-KAE_MOD("kabosune.emotes", "0.1.0", start, 0);
+KAE_MOD("kabosune.emotes", "0.1.1", start, 0);

@@ -633,7 +633,7 @@ def main():
             played.append((actor, name, partial))
         g.p.uc.hook_add(UC_HOOK_CODE, as_play, None, AS_PLAY, AS_PLAY)
         g.game("game_boot")
-        g.expect("mod kabosune.emotes 0.1.0 started")
+        g.expect("mod kabosune.emotes 0.1.1 started")
         L, A, DOWN = 1 << 6, 1 << 0, 1 << 15
 
         def em(buttons=0, count=1, ly=0):
@@ -661,13 +661,22 @@ def main():
         assert all(not st[0] & A for st in seen), "the game saw A while the list was open"
         assert played and played[-1] == (LINK, "EvtTalkHello", 0), played
         em(L | A, 3)
-        assert len(played) == 1, ("A again with L still held played again", played)
+        assert all(p == (LINK, "EvtTalkHello", 0) for p in played), ("A again with L still held played another", played)
+        # kept playing: asked for again every frame (the game ignores a request for what already plays)
+        before = len(played)
+        em(0, 20)
+        assert len(played) >= before + 18, ("the emote isn't kept playing", len(played) - before)
+        em(0, 1, ly=30000)                    # the stick (after the grace) ends it
+        before = len(played)
+        em(0, 5)
+        assert len(played) == before, "still kept after moving the stick"
+        g.expect("Wave ended after", "(the stick)")
         g.p.write(g.sdk.exports["sdk_rect_count"], struct.pack("<i", 0))   # only cleared when Core draws
         em(0, 3)
         assert not any(r[4] == 0x101820 for r in g.rects()), "the list stayed open"
         assert not g.p.unresolved, g.p.unresolved
         print(f"Emotes: ok (a tap reaches the game late, a hold opens the list and hides L, A and the stick, "
-              f"A plays {played[-1][1]} on Link)")
+              f"A plays {played[-1][1]} on Link and keeps it playing until the stick moves)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
