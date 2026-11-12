@@ -3,7 +3,7 @@ manifest = 1
 
 id       = "kabosune.sloped-up-sloperina"
 name     = "Sloped Up Sloperina"
-version  = "0.1.0"
+version  = "0.2.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
@@ -12,7 +12,6 @@ homepage = "https://github.com/Kabosune/oot-remake-modding"
 title = "0400486024DEC000"
 
 [core]
-api     = "0.4"
+api     = "0.5"
 sources = ["sloperina.c"]
-events  = ["input", "draw", "actor_move"]
-symbols = ["function:CctChangePosition", "vtable:vtable.Actor", "vtable:vtable.Player", "vtable:vtable.Cct", "field:Actor.position"]
+events  = ["input", "draw", "player_move"]

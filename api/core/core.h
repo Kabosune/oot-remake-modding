@@ -66,13 +66,15 @@ void kp_mods_ready(void);
 KaeMod *kp_mod_starting(void);
 
 // ---- events ----
-enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_COUNT };
+enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_PLAYER_MOVE, KP_EV_COUNT };
 extern bool kp_event_on[KP_EV_COUNT];   // set by the service that feeds the event
 
 void kp_fire_frame(void);
 void kp_fire_input(KaeInput *seen, const KaeInput *real);
 void kp_fire_draw(const KaeFrame *frame);
 void kp_fire_actor_move(void *actor);
+bool kp_wants_player_move(void);                 // someone subscribed: worth looking for Link
+void kp_fire_player_move(const KaePlayer *link);
 void kp_unsubscribe_mod(const KaeMod *mod);
 
 // ---- the Mods menu (menu.c) ----
@@ -90,6 +92,8 @@ bool kp_draw_start(void);
 bool kp_motion_start(void);
 bool kp_input_start(void);
 bool kp_hooks_start(void);
+bool kp_player_start(void);                      // after kp_hooks_start
+extern bool kp_player_on;
 extern bool kp_motion_on;
 
 // Mods linked into Core's own module (bundle builds); empty otherwise.

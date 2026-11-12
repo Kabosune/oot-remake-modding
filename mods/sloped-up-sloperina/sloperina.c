@@ -1,12 +1,10 @@
 // Sloped Up Sloperina: practice tools on KaeGae Core. The first slice: an input display, a position
 // watch, save / load position and levitate. Its settings and buttons are a page of the Mods menu.
 //
-// Everything it asks of the game goes through Core by name (kae_sym, kae_field), except the walk
-// from an actor to Link's player object and character controller, whose offsets are still written
-// out here (finding Link belongs in Core; see the README).
+// Everything it asks of the game goes through Core: Link comes from the player_move event, and he
+// is moved and slowed with kae_player_move and kae_player_set_velocity. No address or offset of the
+// game is written here.
 #include <kaegae.h>
-
-#define AT(p, off, type) (*(type *)((char *)(p) + (off)))
 
 // ---- settings: a page of the Mods menu ----
 static void save_now(KaeItem *item, void *user);
@@ -37,12 +35,9 @@ static struct {
 } shown = { .link_seen = 1000 };
 
 // ---- the game ----
-static void *vt_actor, *vt_player, *vt_cct;
-static void (*change_position)(void *controller, const float position[4]);
-static int64_t position_offset;
-
 static float saved[3];
 static int want_save, want_load, levitating;
+static int levitate_result = 1;     // what setting his velocity last returned, to log a change once
 static uint64_t held_before;
 
 static void note(const char *text) {
@@ -53,37 +48,6 @@ static void note(const char *text) {
 static void save_now(KaeItem *item, void *user) { (void)item; (void)user; want_save = 1; }
 static void load_now(KaeItem *item, void *user) { (void)item; (void)user; want_load = 1; }
 
-// Link's character controller if `actor` is Link's physics actor, else null. The walk FPV Drone
-// and Mouse Grab use, tested in the game on 1.1.1: the actor's movement component sits inside
-// Link's player object, whose resource is named "Player".
-static void *links_controller(void *actor) {
-    if (!kae_readable(actor, 0x340) || AT(actor, 0, void *) != vt_actor)
-        return 0;
-    char *components = AT(actor, 0x270, char *);
-    if (!components || !kae_readable(components, 0x328))
-        return 0;
-    char *movement = AT(components, 0x320, char *);
-    if (!movement || !kae_readable(movement - 0x1d50, 0x1d70) || AT(movement, 0x18, void *) != actor)
-        return 0;
-    char *player = movement - 0x1d50;
-    if (AT(player, 0, void *) != vt_player)
-        return 0;
-    char *resource = AT(player, 0x10, char *);
-    if (!resource || !kae_readable(resource, 0x60) || AT(resource, 0x58, uint32_t) != 0x79616c50 ||
-        AT(resource, 0x5c, uint16_t) != 0x7265 || resource[0x5e])       // "Player"
-        return 0;
-    char *controller = components;
-    static const uint8_t chain[4] = { 0x50, 0x20, 0x10, 0x08 };
-    for (int i = 0; i < 4; i++) {
-        if (!kae_readable(controller + chain[i], 8))
-            return 0;
-        controller = AT(controller, chain[i], char *);
-        if (!controller)
-            return 0;
-    }
-    return kae_readable(controller, 8) && AT(controller, 0, void *) == vt_cct ? controller : 0;
-}
-
 static float root(float v) {
     if (v <= 0)
         return 0;
@@ -93,13 +57,10 @@ static float root(float v) {
     return r;
 }
 
-// Every physics actor's movement update, on the game's thread. Link's is where he can be moved.
-static void actor_move(void *actor, void *user) {
+// Link's movement update, on the game's thread, before the game moves him.
+static void player_move(const KaePlayer *link, void *user) {
     (void)user;
-    void *controller = links_controller(actor);
-    if (!controller)
-        return;
-    float *position = &AT(actor, position_offset, float);
+    const float *position = link->position;
     float d[3] = { position[0] - shown.position[0], position[1] - shown.position[1], position[2] - shown.position[2] };
     // the game's own rate is 30 updates a second on this game; shown as distance per update x 30
     shown.speed = shown.link_seen == 0 ? root(d[0] * d[0] + d[1] * d[1] + d[2] * d[2]) * 30.0f : 0;
@@ -114,7 +75,7 @@ static void actor_move(void *actor, void *user) {
         shown.has_save = 1;
         note("position saved");
     }
-    float to[4] = { position[0], position[1], position[2], 0 };
+    float to[3] = { position[0], position[1], position[2] };
     int move = 0;
     if (want_load) {
         want_load = 0;
@@ -130,9 +91,23 @@ static void actor_move(void *actor, void *user) {
     if (levitating) {
         to[1] += (float)settings[LEVITATE_SPEED].value / 100.0f;
         move = 1;
+        // Lifting him doesn't stop him falling: gravity keeps adding to his downward speed and soon
+        // outruns the lift. So his falling speed is taken away every update he is held up; the
+        // rest of his velocity (walking, a jump's rise) is left as it is.
+        float v[3];
+        if (kae_player_velocity(link, v) != KAE_OK)
+            v[0] = v[1] = v[2] = 0;
+        if (v[1] < 0)
+            v[1] = 0;
+        int result = kae_player_set_velocity(link, v);
+        if (result != levitate_result) {
+            levitate_result = result;
+            KAE_LOG(result == KAE_OK ? "levitate: holding Link's falling speed at zero"
+                                     : "levitate: Link's velocity is out of reach here (%d): lifting only", result);
+        }
     }
     if (move)
-        change_position(controller, to);
+        kae_player_move(link, to);
 }
 
 static int held(uint64_t buttons, const KaeItem *item) {
@@ -281,22 +256,13 @@ static void draw(const KaeFrame *f, void *user) {
 }
 
 static int start(void) {
-    vt_actor = kae_sym("vtable.Actor");
-    vt_player = kae_sym("vtable.Player");
-    vt_cct = kae_sym("vtable.Cct");
-    change_position = (void (*)(void *, const float *))kae_sym("CctChangePosition");
-    position_offset = kae_field("Actor.position");
-    if (!vt_actor || !vt_player || !vt_cct || !change_position || position_offset < 0) {
-        KAE_LOG("this game version's symbols are missing: not starting");
-        return 1;
-    }
     if (kae_on_input(input, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
-    if (kae_on_actor_move(actor_move, 0, 0) != KAE_OK)
-        KAE_LOG("no actor_move event: the position watch, save / load and levitate are off");
+    if (kae_on_player_move(player_move, 0, 0) != KAE_OK)
+        KAE_LOG("no player_move event: the position watch, save / load and levitate are off");
     kae_settings("Sloped Up Sloperina", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("sloped up sloperina 0.1.0: input display, position watch, save / load position, levitate");
+    KAE_LOG("sloped up sloperina 0.2.0: input display, position watch, save / load position, levitate");
     return 0;
 }
 
-KAE_MOD("kabosune.sloped-up-sloperina", "0.1.0", start, 0);
+KAE_MOD("kabosune.sloped-up-sloperina", "0.2.0", start, 0);

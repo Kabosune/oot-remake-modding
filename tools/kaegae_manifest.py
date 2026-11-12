@@ -34,7 +34,7 @@ RELATION = re.compile(r"\s*([a-z0-9.-]+)\s*(?:(>=|<=|==|>|<)\s*([0-9][0-9A-Za-z.
 BUTTONS = ("A", "B", "X", "Y", "L", "R", "ZL", "ZR", "L3", "R3", "Plus", "Minus", "Up", "Down", "Left", "Right",
            "SL", "SR", "Home", "Capture", "C")
 MOUSE = ("left", "right", "middle", "back", "forward")
-EVENTS = ("frame", "input", "draw", "actor_move", "view", "player_update", "scene_change", "pause_change")
+EVENTS = ("frame", "input", "draw", "actor_move", "player_move", "view", "scene_change", "pause_change")
 PATCH_KINDS = {
     "size-table": ("path", "at-least"),
     "byml": ("path", "set"),

@@ -37,6 +37,7 @@ void kp_module_init(void) {
         kp_log("input off: main's GetNpadStates imports weren't found");
     if (!kp_motion_start())
         kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
-    kp_hooks_start();
+    if (kp_hooks_start() && !kp_player_start())
+        kp_log("player off: this build's symbol pack doesn't say where Link is");
     kp_menu_start();
 }

@@ -14,7 +14,14 @@ static bool same_text(const char *a, const char *b) {
     return false;
 }
 
-static void on_move(void *actor) { kp_fire_actor_move(actor); }
+static void on_move(void *actor) {
+    kp_fire_actor_move(actor);
+    if (kp_wants_player_move()) {
+        const KaePlayer *link = kae_player_of(actor);
+        if (link)
+            kp_fire_player_move(link);
+    }
+}
 
 bool kp_hooks_start(void) {
     const kp_hookpoint_t *move = 0;

@@ -72,7 +72,7 @@ static void draw(const KaeFrame *f, void *user) {
     }
     // text on a dark plate so it reads over anything
     int scale = settings[TEXT_SIZE].value;
-    const char *text = a_held ? "KaeGae Core 0.4: A is held" : "KaeGae Core 0.4: - and + open Mods";
+    const char *text = a_held ? "KaeGae Core 0.5: A is held" : "KaeGae Core 0.5: - and + open Mods";
     int x = unit * 7, y = unit * 2;
     kae_draw_rect(x - 4, y - 4, kae_text_width(scale, text) + 8 * scale * 3 + 12, kae_text_height(scale, text) + 8, 0x101820);
     x = kae_draw_text(x, y, scale, colour_rgb[settings[TEXT_COLOUR].value], text);
@@ -100,4 +100,4 @@ static int start(void) {
     return 0;
 }
 
-KAE_MOD("kaegae.hello", "0.4.0", start, 0);
+KAE_MOD("kaegae.hello", "0.5.0", start, 0);

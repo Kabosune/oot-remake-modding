@@ -75,6 +75,10 @@ int kae_on_actor_move(KaeActorFn fn, void *user, int priority) {
     return subscribe(KP_EV_ACTOR_MOVE, (void *)fn, user, priority);
 }
 
+int kae_on_player_move(KaePlayerFn fn, void *user, int priority) {
+    return subscribe(KP_EV_PLAYER_MOVE, (void *)fn, user, priority);
+}
+
 void kp_fire_frame(void) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_FRAME, s);
@@ -109,4 +113,14 @@ void kp_fire_actor_move(void *actor) {
     for (int i = 0; i < n; i++)
         if (!kp_mod_off(s[i].owner))
             ((KaeActorFn)s[i].fn)(actor, s[i].user);
+}
+
+bool kp_wants_player_move(void) { return __atomic_load_n(&lists[KP_EV_PLAYER_MOVE].count, __ATOMIC_RELAXED) != 0; }
+
+void kp_fire_player_move(const KaePlayer *link) {
+    sub_t s[MAX_SUBSCRIBERS];
+    int n = snapshot(KP_EV_PLAYER_MOVE, s);
+    for (int i = 0; i < n; i++)
+        if (!kp_mod_off(s[i].owner))
+            ((KaePlayerFn)s[i].fn)(link, s[i].user);
 }

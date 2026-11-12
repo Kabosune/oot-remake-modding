@@ -3,6 +3,28 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Draft 0.9, API 0.5 (11 November 2026; not tested in the game yet)
+
+Link, from Core.
+
+- **`player_move`** (`kae_on_player_move`): Link's own movement update, with a `KaePlayer` (his
+  actor, player object, character controller, its physics body, his position). This is the event
+  the design called `player_update`.
+- **`kae_player_of(actor)`** for an `actor_move` function that needs to tell Link from other actors.
+- **`kae_player_move`**, **`kae_player_velocity`**, **`kae_player_set_velocity`**: the game's own
+  character controller move, and its body's velocity. `kae_has("player")`,
+  `kae_has("event.player_move")`.
+- The walk from an actor to Link, which Sloped Up Sloperina, Mouse Grab and FPV Drone each wrote
+  out with their own offsets, is now in Core once (`core/player.c`), and its offsets are fields of
+  the symbol pack (`Actor.components`, `Player.movement`, `Cct.body` ...), so a pack for 1.0.0 covers
+  every mod at once. New pack entries: `vtable.CctBody` and those fields. `CctBody.velocity`
+  (`+0xE0`) is from sloperinaGZ's write-up and has not been checked against main by us; Core
+  refuses values that can't be a speed.
+- **Sloped Up Sloperina 0.2.0** uses these and has no game offset left in it. Levitate now takes
+  away Link's falling speed every update he is held up (0.1.0 only lifted him, and gravity won).
+- Mouse Grab is rebuilt for API 0.5 from the same source (it still finds Link itself).
+- API 0.5: mods built for 0.4 need a rebuild.
+
 ## Draft 0.8: the new names (11 November 2026)
 
 No change in behaviour. The standard **Kaepora** is now **KaeGae**, Kaepora Core is **KaeGae Core**,
