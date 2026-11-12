@@ -143,3 +143,56 @@ EXPORT void *sdk_other_hook(const char *name) {
     sdk_other_hook_calls++;
     return nvnBootstrapLoader(name);
 }
+
+// ---- files: the SD card holds one file, the settings file, in memory ----
+#ifndef OLD_SDK   // the old system has no file functions at all
+typedef struct { void *handle; } file_t;
+EXPORT char sdk_file[16384];
+EXPORT int sdk_file_len = -1;            // -1: no file yet
+EXPORT int sdk_mounts, sdk_writes, sdk_auto_abort = 1, sdk_mount_result;
+static const char settings_path[] = "kaesd:/kaegae/settings.txt";
+EXPORT uint32_t _ZN2nn2fs19MountSdCardForDebugEPKc(const char *name) { (void)name; sdk_mounts++; return (uint32_t)sdk_mount_result; }
+EXPORT uint32_t _ZN2nn2fs15CreateDirectoryEPKc(const char *path) { (void)path; return 0x402; }
+EXPORT uint32_t _ZN2nn2fs10CreateFileEPKcl(const char *path, long size) {
+    if (!same(path, settings_path) || sdk_file_len >= 0)
+        return 0x402;
+    sdk_file_len = (int)size;
+    return 0;
+}
+EXPORT uint32_t _ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci(file_t *out, const char *path, int mode) {
+    if (!same(path, settings_path) || sdk_file_len < 0)
+        return 0x202;   // path not found
+    (void)mode;
+    out->handle = (void *)1;
+    return 0;
+}
+EXPORT uint32_t _ZN2nn2fs8ReadFileEPmNS0_10FileHandleElPvm(unsigned long *got, file_t f, long at, void *to, unsigned long size) {
+    (void)f;
+    unsigned long n = 0;
+    for (; n < size && at + (long)n < sdk_file_len; n++)
+        ((char *)to)[n] = sdk_file[at + n];
+    *got = n;
+    return 0;
+}
+EXPORT uint32_t _ZN2nn2fs11SetFileSizeENS0_10FileHandleEl(file_t f, long size) {
+    (void)f;
+    if (size < 0 || size > (long)sizeof sdk_file)
+        return 0x1;
+    sdk_file_len = (int)size;
+    return 0;
+}
+EXPORT uint32_t _ZN2nn2fs9WriteFileENS0_10FileHandleElPKvmRKNS0_11WriteOptionE(file_t f, long at, const void *from, unsigned long size,
+                                                                            const int *option) {
+    (void)f; (void)option;
+    if (at + (long)size > (long)sizeof sdk_file)
+        return 0x1;
+    for (unsigned long i = 0; i < size; i++)
+        sdk_file[at + i] = ((const char *)from)[i];
+    if (at + (long)size > sdk_file_len)
+        sdk_file_len = (int)(at + (long)size);
+    sdk_writes++;
+    return 0;
+}
+EXPORT void _ZN2nn2fs9CloseFileENS0_10FileHandleE(file_t f) { (void)f; }
+EXPORT void _ZN2nn2fs19SetEnabledAutoAbortEb(int on) { sdk_auto_abort = on; }
+#endif
