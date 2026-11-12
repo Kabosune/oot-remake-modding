@@ -19,30 +19,30 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 
 ## Mods
 
-**Install [KaeGae Core](api/README.md) first** ([`releases/kaegae-core.zip`](releases/kaegae-core.zip)),
+**Install [KaeGae Core](api/README.md) first** ([download `kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip)),
 in its own folder, before any of the mods below. Mouse Grab, Slopped Up Sloperina, Moon Jump, Speedometer and Drunk Mode run on it and
 do nothing without it. First Person and FPV Drone still work on their own today, but they are
 moving onto Core too, so it's simplest to always have it installed. On a real Switch 2, KaeGae
 Core doesn't run yet ([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2)): there,
 use First Person and FPV Drone on their own and leave Core out for now.
 
-| Mod | What it does | Needs KaeGae Core | Status |
-|---|---|---|---|
-| [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Keyboard: `,` `.` eye height, `;` show / hide Link. | Not yet (moving onto it) | Works in Lichii / Fritchii |
-| [FPV Drone](mods/fpv-drone/README.md) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | Not yet (moving onto it) | Works in Fritchii: drone modes, Free fly and carrying Link |
-| [Mouse Grab](mods/mouse-grab/README.md) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes | 0.3.0 works in Fritchii (KaeGae Core 0.5.2, 11 Nov) |
-| [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.3.0, the full port, works in Fritchii (KaeGae Core 0.6, 11 Nov) |
+| Mod | Download | What it does | Needs KaeGae Core | Status |
+|---|---|---|---|---|
+| [First Person](mods/first-person/README.md) | [first-person.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Keyboard: `,` `.` eye height, `;` show / hide Link. | Not yet (moving onto it) | Works in Lichii / Fritchii |
+| [FPV Drone](mods/fpv-drone/README.md) | [fpv-drone.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | Not yet (moving onto it) | Works in Fritchii: drone modes, Free fly and carrying Link |
+| [Mouse Grab](mods/mouse-grab/README.md) | [mouse-grab.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/mouse-grab.zip) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes | 0.3.0 works in Fritchii (KaeGae Core 0.5.2, 11 Nov) |
+| [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.3.0, the full port, works in Fritchii (KaeGae Core 0.6, 11 Nov) |
 
 ### Extra mods
 
 Small, just-for-fun mods built on KaeGae Core. They all need Core, have their settings on the
 Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
 
-| Mod | What it does |
-|---|---|
-| [Moon Jump](mods/moon-jump/README.md) | Low gravity, boosted jumps, hold L + A to fly up. |
-| [Speedometer](mods/speedometer/README.md) | Link's speed as a big number and a bar, with his top speed and rise / fall. m/s, km/h or mph. |
-| [Drunk Mode](mods/drunk-mode/README.md) | The movement stick wobbles; sticks and A / B can be mirrored, flipped or swapped. |
+| Mod | Download | What it does |
+|---|---|---|
+| [Moon Jump](mods/moon-jump/README.md) | [moon-jump.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/moon-jump.zip) | Low gravity, boosted jumps, hold L + A to fly up. |
+| [Speedometer](mods/speedometer/README.md) | [speedometer.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/speedometer.zip) | Link's speed as a big number and a bar, with his top speed and rise / fall. m/s, km/h or mph. |
+| [Drunk Mode](mods/drunk-mode/README.md) | [drunk-mode.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/drunk-mode.zip) | The movement stick wobbles; sticks and A / B can be mirrored, flipped or swapped. |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
