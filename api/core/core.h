@@ -7,6 +7,12 @@
 
 #include "kaegae.h"
 
+// The oldest minor version of this major version that Core still runs mods for (see kaegae.h).
+// Raise it only when a change in the API really breaks the older mods.
+#define KP_API_OLDEST_MINOR 5
+#define KP_STR_(x) #x
+#define KP_STR(x) KP_STR_(x)
+
 // Hardware test switches (tools/kaemod.py --define NAME), off in normal builds:
 //   KAE_NO_DEBUG_OUT  the log writes nothing (no svcOutputDebugString)
 //   KAE_LOAD_ONLY     the module's start returns at once: Core and its mods do nothing

@@ -14,6 +14,7 @@ import struct
 import subprocess
 import sys
 import tempfile
+import zipfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -180,15 +181,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.5 loaded (build 0.5.2, settings saved), game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.6 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 5 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 6 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaegae [kaegae.hello]: hello from its own start. Core API 0.5, game 1.1.1",
+             "kaegae [kaegae.hello]: hello from its own start. Core API 0.6, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -210,9 +211,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("KaeGae Core 0.5: A is held", white, at its
+    # between them hello's text plate, its text ("KaeGae Core 0.6: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.5: A is held")
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.6: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -394,7 +395,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.5: unknown game build, doing nothing",
+        g.expect("Core 0.6: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -427,6 +428,23 @@ def main():
             saved = sd_file(g)
             assert "[kabosune.mouse-grab]\n(on) = 1\nGyro depth speed = 100\n" in saved and "Debug log = 0\n" in saved, saved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors, has its settings page)")
+        # mods built for API 0.5 and released before 0.6, unchanged, on this Core (0.6 runs them):
+        # tests/kaegae/old-mods holds the zips as they were released
+        old = {}
+        for zip_name, slot in (("slopped-up-sloperina-0.2.1-api0.5.zip", "subsdk2"), ("mouse-grab-0.2.0-api0.5.zip", "subsdk3")):
+            with zipfile.ZipFile(HERE / "old-mods" / zip_name) as z:
+                (module,) = [n for n in z.namelist() if "/exefs/subsdk" in n]
+                assert 'api = "0.5"' in z.read(next(n for n in z.namelist() if n.endswith("mod.toml"))).decode()
+                old[f"exefs/{slot}"] = z.read(module)
+        core_only = kaemod.build([], False, tmp / "core-only")
+        g = Game(fakes, {**core_only, **old})
+        g.p.uc.mem_map(0x40000000, 0x10000)
+        g.game("game_boot")
+        for _ in range(3):
+            g.frame(actor=0x40000000)
+        g.expect("Core 0.6 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        assert not g.logged(" is off"), g.logged(" is off")
+        print("mods built for API 0.5 on Core 0.6: ok (the released Slopped Up Sloperina and Mouse Grab start)")
         # Slopped Up Sloperina, the first mod written against the public API only, and Core's player_move
         # event under it. A Link is built in memory the way the game lays him out (actor -> components
         # -> movement inside the player object, whose resource is "Player"; components -> ... ->

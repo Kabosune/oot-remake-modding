@@ -1,4 +1,4 @@
-/* KaeGae Core API 0.5. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.6. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
@@ -28,7 +28,11 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 5
+#define KAE_API_MINOR 6
+
+/* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
+   Core keeps running older mods, back to the oldest minor version it still supports (Core 0.6:
+   mods built for 0.5 and 0.6). Before 0.6 the minor versions had to match exactly. */
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -176,6 +180,11 @@ struct KaeItem {
    after that, `value` / `binding` may differ from the defaults, and `changed` is called for each
    that does. Rename a label and its saved value is left behind. */
 KAE_API int kae_settings(const char *name, KaeItem *items, int count);
+/* The same, with the size of one KaeItem as the mod was built with it, so KaeItem can grow in a
+   later version without breaking older mods. kae_settings (below) calls this for you; the plain
+   kae_settings above is for mods built before 0.6. */
+KAE_API int kae_settings_sized(const char *name, KaeItem *items, int count, uint32_t item_size);
+#define kae_settings(name, items, count) kae_settings_sized((name), (items), (count), (uint32_t)sizeof(KaeItem))
 /* 1 while the Mods menu is open. A mod that reacts to buttons itself should hold still then. */
 KAE_API int kae_menu_open(void);
 

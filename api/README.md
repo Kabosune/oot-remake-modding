@@ -4,7 +4,7 @@ A proposed shared standard for Ocarina of Time remake mods: one package format, 
 who patches what, and a small core module that mods call instead of patching the game themselves.
 
 - [DESIGN.md](DESIGN.md): the design, its reasons, the roadmap and the open questions.
-- [include/kaegae.h](include/kaegae.h): the Core API (0.5). A mod includes only this.
+- [include/kaegae.h](include/kaegae.h): the Core API (0.6). A mod includes only this.
 - [core/](core/): KaeGae Core, the module that goes in `exefs/subsdk1`.
 - [sdk/](sdk/): what the build adds to a mod (its module start, four C library functions).
 - [examples/hello/](examples/hello/): the smallest core mod, also Core's in-game test.
@@ -23,6 +23,7 @@ who patches what, and a small core module that mods call instead of patching the
 | API 0.4: the Mods menu and mods' settings (`kae_settings`) | Tested in the game (11 November, Fritchii v5.8.3, game 1.1.1): the menu opens with - and +, blocks the game's input, switches mods off, settings and rebinding work, with three added modules loaded at once (Core, Hello, Slopped Up Sloperina) |
 | API 0.5: Link from Core (`player_move`, `kae_player_of`, `kae_player_move`, his velocity) | Tested in the game (11 November, Fritchii v5.8.4, game 1.1.1) with Core 0.5.1: Core finds Link and his body, Slopped Up Sloperina levitates. Core 0.5 itself could hang the game (its locks only spun), fixed in 0.5.1 |
 | Core 0.5.2: the Mods menu's settings saved between runs (`kaegae/settings.txt` on the SD card, through the system's `nn::fs`) | Tested in the game (11 November, Fritchii v5.8.4, game 1.1.1): changes survive closing and reopening the emulator |
+| Core 0.6: newer Cores run older mods (back to 0.5), `kae_settings_sized` | Tested in the game (11 November, Fritchii v5.8.4): five mods built for 0.5 start and work on Core 0.6 |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |

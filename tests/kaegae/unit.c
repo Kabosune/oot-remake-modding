@@ -86,7 +86,8 @@ static void test_mods(void) {
     known_game();
     static KaeMod a = MOD("t.a", start_a), b = MOD("t.b", start_b), c = MOD("t.c", start_c);
     static KaeMod fails = MOD("t.fails", start_fails), twin = MOD("t.a", start_c), no_id = MOD("", start_c);
-    static KaeMod old = { sizeof(KaeMod), KAE_API_MAJOR, KAE_API_MINOR - 1, "t.old", "1", start_c, 0, 0 };
+    static KaeMod old = { sizeof(KaeMod), KAE_API_MAJOR, KP_API_OLDEST_MINOR, "t.old", "1", start_b, 0, 0 };
+    static KaeMod ancient = { sizeof(KaeMod), KAE_API_MAJOR, KP_API_OLDEST_MINOR - 1, "t.ancient", "1", start_c, 0, 0 };
     static KaeMod newer = { sizeof(KaeMod), KAE_API_MAJOR, KAE_API_MINOR + 1, "t.newer", "1", start_c, 0, 0 };
     static KaeMod major = { sizeof(KaeMod), KAE_API_MAJOR + 1, 0, "t.major", "1", start_c, 0, 0 };
     static KaeMod tiny = { 8, KAE_API_MAJOR, KAE_API_MINOR, "t.tiny", "1", start_c, 0, 0 };
@@ -96,26 +97,28 @@ static void test_mods(void) {
     kae_register(&twin);
     kae_register(&no_id);
     kae_register(&old);
+    kae_register(&ancient);
     kae_register(&newer);
     kae_register(&major);
     kae_register(&tiny);
     kae_register(0);
     CHECK(!order[0]);                      // registering starts nothing
     kp_fire_frame();                       // the first entry from the game starts the mods, in order
-    CHECK(!strcmp(order, "afb"));
+    CHECK(!strcmp(order, "afbb"));         // t.old (built for the oldest API still run) starts too
     CHECK(frames_a == 1 && frames_b == 0); // the failed mod's subscription was taken back
     CHECK(logged_line("mod t.a 1.0.0 started") && logged_line("mod t.b 1.0.0 started"));
     CHECK(logged_line("mod t.fails 1.0.0 is off: its start returned 7"));
     CHECK(logged_line("mod t.a 1.0.0 is off: a mod with the same id is already loaded"));
     CHECK(logged_line("mod (no id) 1.0.0 is off: it has no id"));
-    CHECK(logged_line("mod t.old 1 is off: it was built for an older 0.x API"));
+    CHECK(logged_line("mod t.old 1 started"));
+    CHECK(logged_line("mod t.ancient 1 is off: it was built for an older API than this Core still runs (0.5)"));
     CHECK(logged_line("mod t.newer 1 is off: it was built for a newer Core"));
     CHECK(logged_line("mod t.major 1 is off: it was built for a different major version"));
     CHECK(logged_line("mod t.tiny 1 is off: its descriptor is smaller"));
     kp_mods_ready();
-    CHECK(!strcmp(order, "afb"));          // only once
+    CHECK(!strcmp(order, "afbb"));         // only once
     kae_register(&c);                      // late: started straight away
-    CHECK(!strcmp(order, "afbc"));
+    CHECK(!strcmp(order, "afbbc"));
     kp_fire_frame();
     CHECK(frames_a == 2);
 }

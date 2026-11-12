@@ -23,6 +23,20 @@ from kaegae_manifest import (BUILD_ID, HOOK_SIZE, ID, SLOT, Problem, byte_map, f
 REPO = Path(__file__).resolve().parent.parent
 REGISTRY_DIR = REPO / "registry"
 CORE_ID = "kaegae.core"
+
+
+def core_runs(built_api, core_version):
+    """Whether a Core of `core_version` runs a mod built for API `built_api` (api/include/kaegae.h):
+    same major, a minor no newer than Core's, and no older than the oldest Core still runs. Cores
+    before 0.6 needed the same 0.x exactly; from 0.6 they run mods back to 0.5."""
+    def key(v):
+        parts = [int(x) for x in str(v).split(".")[:2]]
+        return (parts + [0])[:2]
+    (bm, bn), (cm, cn) = key(built_api), key(core_version)
+    if bm != cm or bn > cn:
+        return False
+    oldest = cn if (cm, cn) < (0, 6) else 5 if cm == 0 else 0
+    return bn >= oldest
 CORE_SLOT = "subsdk1"
 SPACE_KINDS = ("code", "memory")
 
@@ -347,6 +361,13 @@ def _check_relations(mods):
         if not mod.manifest:
             continue
         for mod_id, op, version in mod.manifest.requires:
+            if mod_id == CORE_ID and op in ("==", ">=") and mod_id in have:
+                # Core is judged by its own rule (core_runs), not as an exact version: older
+                # manifests say "kaegae.core==0.5", which a 0.6 Core still meets
+                if not core_runs(version, have[mod_id]):
+                    out.append(Problem("error", "requires", f"is built for Core API {version}; "
+                                                            f"Core {have[mod_id]} doesn't run it", (mod.name,)))
+                continue
             if mod_id not in have:
                 out.append(Problem("error", "requires", f"needs {mod_id}{(' ' + op + ' ' + version) if op else ''}, "
                                                         "which isn't installed (or has no manifest)", (mod.name,)))
@@ -375,9 +396,10 @@ def _check_core(mods):
         api = (mod.manifest.core or {}).get("api")
         for holder, core_version in cores:
             core_api = ".".join(core_version.split(".")[:2])
-            if api and api != core_api and api.split(".")[0] == "0":
+            if api and not core_runs(api, core_api):
                 out.append(Problem("error", "api-mismatch", f"is built for Core API {api}; {holder.name} holds Core "
-                                                            f"{core_version}. Before 1.0 the two must match exactly",
+                                                            f"{core_version}, which doesn't run it (a newer or much "
+                                                            "older API: see api/include/kaegae.h)",
                                    (mod.name, holder.name)))
     for mod in with_slot1:
         if not (mod.manifest and CORE_SLOT in mod.manifest.modules):

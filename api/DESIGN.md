@@ -287,8 +287,12 @@ Helpers are added when two mods need the same thing, not before.
    meaning. A better version gets a new name.
 3. The API has a version, `major.minor`. Minor versions only add. A mod records the version it
    was built against; Core runs any mod with the same major version and an equal or lower minor.
-   Before 1.0 the versions must match exactly, since 0.x may still change.
-4. Every structure passed across starts with its own size, so it can grow at the end.
+   Before 1.0 a minor version may still break things, so Core also has an oldest minor it still
+   runs (Core 0.6: 0.5). It is raised only when a change really breaks older mods. Until 0.6 the
+   0.x versions had to match exactly.
+4. Every structure passed across starts with its own size, so it can grow at the end. An array a
+   mod hands to Core (its settings, `KaeItem`) goes with the size of one element instead
+   (`kae_settings_sized`, which the header's `kae_settings` calls).
 5. A mod asks `kae_has("draw.text")` before using an optional feature and must cope with "no".
 6. A mod's init function does one thing: `kae_register(&descriptor)`. `kae_register` only adds to
    a list, so it is safe whichever module the system initialises first. Core calls each mod's
