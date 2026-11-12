@@ -40,7 +40,7 @@ BUILDS = [
     ("mouse-grab-no-debug-log", "Mouse Grab (no debug log)",
      [REPO / "mods/mouse-grab/build.py", "--define", "KAE_NO_DEBUG_OUT"],
      "Hardware test: Mouse Grab with KaeGae Core's debug log switched off (it never calls\n"
-     "svcOutputDebugString). Otherwise the same as mouse-grab-test.zip.\n"),
+     "svcOutputDebugString). Otherwise the same as the Core 0.3 Mouse Grab test build of 11 November.\n"),
 ]
 
 INSTALL = ("\nInstall: copy the ns2jb-modloader folder in this zip to the root of the microSD card, merging\n"

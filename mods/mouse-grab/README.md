@@ -12,13 +12,15 @@ Still in progress. This folder holds the findings and the builds.
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 with KaeGae Core 0.2, tested in Fritchii on 10 November 2026 | Playing around with the mod |
-| [`mouse-grab-test.zip`](../../releases/mouse-grab-test.zip) | Mouse Grab 0.2.0 with the newest KaeGae Core (0.3: text and small pictures), not tested in the game yet | Testing KaeGae Core |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.4. Tested in Fritchii on 11 November 2026, next to Core and Sloped Up Sloperina | Playing around with the mod |
+| [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.4, needed by the mod | Install once, with any KaeGae mods |
+
+Install both: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`,
+or copy both zips' folders into the emulator's load folder by hand. If another mod already uses
+`exefs/subsdk2`, the tool moves Mouse Grab to a free one (by hand: rename it to a free
+`subsdk3` ... `subsdk8`). Turn off older Mouse Grab folders that have their own `exefs/subsdk1`.
 
 On a real Switch 2, use the [hardware test builds](#hardware-test-builds-11-november-2026) for now.
-
-Install one or the other, not both: each has its own `exefs/subsdk1`. `build.py` writes the test
-zip; `mouse-grab.zip` stays the tested build until a newer one has been tried in the game.
 
 ## What's in the zip, and real hardware
 
