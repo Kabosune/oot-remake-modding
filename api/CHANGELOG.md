@@ -45,6 +45,18 @@ Same API (0.5) and Core (0.5.2); runs on Core 0.6 too. Works in the game (Fritch
   nn::hid::detail, the SD card calls sloperinaGZ makes), the emulator answers SleepThread and
   GetInfo, and `sdk_rects` keeps 16384 rectangles.
 
+## Three showcase mods (11 November 2026)
+
+New core mods on API 0.5, written against the public API only (no game addresses), each in its own
+module and release zip. Core unchanged. All three work in Fritchii (KaeGae Core 0.6, game 1.1.1).
+
+- **Moon Jump** 0.1.0 (`kabosune.moon-jump`, `releases/moon-jump.zip`): gravity scale, jump boost,
+  hold L + A to fly up, a top falling speed.
+- **Speedometer** 0.1.0 (`kabosune.speedometer`, `releases/speedometer.zip`): Link's speed, top speed,
+  rise / fall, a coloured bar; units and corner in its settings.
+- **Drunk Mode** 0.1.0 (`kabosune.drunk-mode`, `releases/drunk-mode.zip`): a wobbling movement stick,
+  mirrored / flipped / swapped sticks, A and B swapped.
+
 ## Slopped Up Sloperina 0.2.1 (11 November 2026)
 
 Sloped Up Sloperina is now **Slopped Up Sloperina**. No change in behaviour; Core unchanged.
