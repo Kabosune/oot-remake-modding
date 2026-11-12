@@ -3,6 +3,18 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Three showcase mods (11 November 2026)
+
+New core mods on API 0.5, written against the public API only (no game addresses), each in its own
+module and release zip. Core unchanged. Not tested in the game yet; they pass the module tests.
+
+- **Moon Jump** 0.1.0 (`kabosune.moon-jump`, `releases/moon-jump.zip`): gravity scale, jump boost,
+  hold L + A to fly up, a top falling speed.
+- **Speedometer** 0.1.0 (`kabosune.speedometer`, `releases/speedometer.zip`): Link's speed, top speed,
+  rise / fall, a coloured bar; units and corner in its settings.
+- **Drunk Mode** 0.1.0 (`kabosune.drunk-mode`, `releases/drunk-mode.zip`): a wobbling movement stick,
+  mirrored / flipped / swapped sticks, A and B swapped.
+
 ## Slopped Up Sloperina 0.2.1 (11 November 2026)
 
 Sloped Up Sloperina is now **Slopped Up Sloperina**. No change in behaviour; Core unchanged.

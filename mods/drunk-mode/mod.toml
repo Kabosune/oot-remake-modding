@@ -1,0 +1,17 @@
+# Drunk Mode's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+manifest = 1
+
+id       = "kabosune.drunk-mode"
+name     = "Drunk Mode"
+version  = "0.1.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.5"
+sources = ["drunk_mode.c"]
+events  = ["frame", "input"]
