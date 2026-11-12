@@ -1,7 +1,28 @@
 # KaeGae changelog
 
-Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
-own API version.
+Until API 1.0 anything here may still change. From 0.6 Core runs mods built for its own API
+version and for older ones back to the oldest it still supports (0.5 for Core 0.6); before 0.6
+the version had to match exactly.
+
+## Core 0.6, API 0.6 (11 November 2026; not tested in the game yet)
+
+The version rule, so new Cores stop breaking older mods. Mods built for 0.5 run unchanged.
+
+- **A newer Core runs older mods.** Same major version, a minor no newer than Core's, and no
+  older than the oldest minor Core still runs (`KP_API_OLDEST_MINOR`, 5 for now; raised only when
+  a change really breaks older mods). After 1.0 that is the usual rule: same major, any older
+  minor. A mod built for a newer API than the installed Core is still switched off, with the
+  reason on its line in the Mods menu.
+- **`kae_settings_sized(name, items, count, item_size)`**: `KaeItem` is the one structure without
+  its own size, so the size of one item now comes with the array, and `KaeItem` can grow later.
+  The header's `kae_settings` is a macro that calls it, so mods change nothing in their source;
+  the plain `kae_settings` stays for mods built for 0.5.
+- `kaegae check` and `install` use the same rule. Folders built from now on say
+  `requires = ["kaegae.core>=0.6"]`; the older `==0.5` is read as "built for 0.5". A mod's
+  `mod.toml` `[core] api` is the oldest API it is written for; it can be built with a newer header.
+- The log's start line is plain `Core 0.6 loaded, ...` again.
+- Tested in an emulated game: the released Slopped Up Sloperina 0.2.1 and Mouse Grab 0.2.0 zips,
+  built for 0.5, start on Core 0.6 (`tests/kaegae/old-mods`).
 
 ## Slopped Up Sloperina 0.2.1 (11 November 2026)
 

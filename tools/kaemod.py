@@ -117,8 +117,9 @@ class Mod:
         assert core, f"{self.folder}/mod.toml has no [core] table: not a core mod"
         self.id, self.name = self.manifest["id"], self.manifest["name"]
         assert re.fullmatch(r"[a-z0-9-]+\.[a-z0-9-]+", self.id), f"{self.id}: an id is author.mod-name, lower case"
-        want = f"{api_version()[0]}.{api_version()[1]}"
-        assert core["api"] == want, f"{self.id} is written for API {core['api']}; this Core is {want}"
+        written = tuple(int(x) for x in str(core["api"]).split("."))
+        assert written[0] == api_version()[0] and written[1] <= api_version()[1], (
+            f"{self.id} is written for API {core['api']}; this header is {api_version()[0]}.{api_version()[1]}")
         self.sources = []
         for pattern in core["sources"]:
             found = sorted(self.folder.glob(pattern))
@@ -251,7 +252,7 @@ def package_manifest(mods, bundle, name, with_core=True, package_id=None):
                   f'ips    = "exefs/{HOOK_BUILD_ID}.ips"'] + [
                   f"{key:<6} = [{', '.join(q(v) for v in claim[key])}]" for key in ("code", "memory", "hooks")]
     else:
-        lines += ["", "[relations]", f"requires = [{q(core.replace('@', '=='))}]      # install KaeGae Core as well"]
+        lines += ["", "[relations]", f"requires = [{q(core.replace('@', '>='))}]      # install KaeGae Core as well"]
     return "\n".join(lines) + "\n"
 
 

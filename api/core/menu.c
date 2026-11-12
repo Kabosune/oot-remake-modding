@@ -57,9 +57,16 @@ bool kp_mod_off(const KaeMod *mod) {
     return page && !page->enabled;
 }
 
-int kae_settings(const char *name, KaeItem *items, int count) {
+// Mods built before 0.6: their KaeItem is this Core's KaeItem.
+int (kae_settings)(const char *name, KaeItem *items, int count) {
+    return kae_settings_sized(name, items, count, sizeof(KaeItem));
+}
+
+int kae_settings_sized(const char *name, KaeItem *items, int count, uint32_t item_size) {
     KaePage *page = page_of(kp_mod_starting());
-    if (!page || count < 0 || (count && !items))
+    // Only this Core's KaeItem so far. When it grows, an older, smaller one will be read through a
+    // copy here instead of being refused.
+    if (!page || count < 0 || (count && !items) || item_size != sizeof(KaeItem))
         return KAE_ERR_ARGUMENT;
     if (name && name[0])
         page->name = name;

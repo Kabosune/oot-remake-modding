@@ -71,6 +71,16 @@ def run(*argv):
     return code, out.getvalue()
 
 
+def test_core_runs():
+    # Core's own rule for which mods it runs (kaegae.h), as the checker applies it
+    ok(kc.core_runs("0.5", "0.5") and kc.core_runs("0.5.2", "0.5"), "a mod for 0.5 on Core 0.5")
+    ok(not kc.core_runs("0.4", "0.5"), "before 0.6, 0.x versions don't mix")
+    ok(kc.core_runs("0.5", "0.6") and kc.core_runs("0.6", "0.6"), "Core 0.6 runs mods built for 0.5 and 0.6")
+    ok(not kc.core_runs("0.4", "0.6"), "but not for 0.4")
+    ok(not kc.core_runs("0.6", "0.5"), "a mod for a newer API than Core's isn't run")
+    ok(not kc.core_runs("0.6", "1.0") and not kc.core_runs("1.0", "0.6"), "major versions don't mix")
+
+
 def test_values():
     ok(km.parse_range("0x10..0x20", "t") == (16, 32), "range")
     for bad in ("0x20..0x10", "0x10", 5, "a..b"):
@@ -399,6 +409,7 @@ def test_build(work):
 
 
 def main():
+    test_core_runs()
     test_values()
     test_ips()
     test_registry()

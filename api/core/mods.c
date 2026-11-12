@@ -29,8 +29,8 @@ static const char *refusal(const KaeMod *mod) {
         return "it was built for a different major version of the API";
     if (mod->api_minor > KAE_API_MINOR)
         return "it was built for a newer Core than this one";
-    if (KAE_API_MAJOR == 0 && mod->api_minor != KAE_API_MINOR)
-        return "it was built for an older 0.x API, and 0.x versions don't mix: rebuild it";
+    if (mod->api_minor < KP_API_OLDEST_MINOR)
+        return "it was built for an older API than this Core still runs (0." KP_STR(KP_API_OLDEST_MINOR) "): rebuild it";
     for (int i = 0; i < mod_count; i++)
         if (mods[i] != mod && same_text(mods[i]->id, mod->id))
             return "a mod with the same id is already loaded";
