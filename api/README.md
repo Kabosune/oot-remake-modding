@@ -24,7 +24,7 @@ who patches what, and a small core module that mods call instead of patching the
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
-| A core mod in its own folder, apart from Core's (`kaemod.py --no-core`), and the installer giving it a free module slot | Written, passes its tests on a PC. **Not tested in the game yet** |
+| A core mod in its own folder, apart from Core's (`kaemod.py --no-core`) | Tested in the game (11 November, Fritchii v5.8.3): Core, Hello and Sloped Up Sloperina from three folders load, link and start |
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
@@ -85,11 +85,14 @@ It reads mods with and without a manifest, compares their patches byte by byte, 
 the registry whose space a patch is in. [MANIFEST.md](MANIFEST.md) has the format and every finding
 it can report.
 
-A folder built by `tools/kaemod.py` now carries a `mod.toml` that names its modules. By default
-Core is in the folder with the mod, which installs by hand in one step but means two such mods
-can't be on together (both bring `subsdk1`). `--no-core` builds the mod alone; Core is then
-installed once from its own folder (`python3 tools/kaemod.py` with no mod), and any number of
-mods up to seven sit next to it.
+A folder built by `tools/kaemod.py` carries a `mod.toml` that names its modules.
+
+**Core goes in its own folder, each mod in its own** (tested in the game on 11 November: Core,
+Hello and Sloped Up Sloperina from three folders, all linked and started). Core is
+`releases/kaegae-core.zip` (`python3 tools/kaemod.py` with no mod); a mod is built with
+`--no-core`; up to seven mods sit next to Core, each in a free `subsdk2` ... `subsdk8`, which
+`kaegae install` picks. Without `--no-core`, Core is linked into the mod's folder: it installs by
+hand in one step, but two such folders can't be on together (both bring `subsdk1`).
 
 ## Tests
 

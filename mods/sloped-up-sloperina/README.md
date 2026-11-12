@@ -26,9 +26,17 @@ not saved between runs yet (that comes with KaeGae Core).
 
 ## Install
 
-Sloped Up Sloperina needs KaeGae Core. `python3 tools/kaemod.py mods/sloped-up-sloperina` builds a zip
-with Core and the mod; copy its folder into the emulator's mod folder for the game. Turn off
-sloperinaGZ itself while using it: both hook the game's drawing.
+Sloped Up Sloperina needs KaeGae Core, installed once from its own download. Install both:
+
+```
+python3 tools/kaegae.py install releases/kaegae-core.zip releases/sloped-up-sloperina.zip
+```
+
+or copy both zips' folders into the emulator's mod folder for the game by hand. If another mod
+already uses `subsdk2`, the tool moves this one to a free slot; by hand, rename
+`exefs/subsdk2` to a free `subsdk3` ... `subsdk8`. Turn off sloperinaGZ itself while using it:
+both hook the game's drawing. (`python3 tools/kaemod.py mods/sloped-up-sloperina` still builds the
+older one-folder zip with Core inside.)
 
 ## How it works
 

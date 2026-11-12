@@ -171,11 +171,11 @@ memory, which hardware may refuse.
   module, or linked into Core's (`--bundle`), where each mod's own names are made private first so
   two mods can't clash. A mod's imports from Core are weak, so a mod loaded without Core does
   nothing.
-- *Implemented 11 November, not yet tried in the game:* `--no-core` builds a mod without Core in its
+- *Implemented and tested in the game, 11 November:* `--no-core` builds a mod without Core in its
   folder, and `kaegae install` renames a new mod's module to a free slot when its own is taken.
   That is the layout the standard is meant to end up with: Core installed once, each mod in its
-  own folder. It rests on the emulator combining the `exefs` folders of several mods, which it
-  does for patches and should do for modules.
+  own folder. The emulator combines the `exefs` folders of several mods, modules included
+  (Core, Hello and Sloped Up Sloperina from three folders, in Fritchii v5.8.3).
 
 ### What Core gets without knowing any addresses
 
