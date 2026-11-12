@@ -681,6 +681,66 @@ def main():
         assert "Save position = 0x2080\nSave position (key) = F5\n" in saved and "Watches: show / hide = 0x4080\n" in saved, saved
         print("Slopped Up Sloperina's shortcuts on Core's page: ok (saved with their buttons and keys; F1 opens its menu, "
               "Backspace closes it)")
+        # The showcase mods: Moon Jump, Speedometer and Drunk Mode, three modules next to Core, on the
+        # same Link as above.
+        showcase = [kaemod.Mod(REPO / "mods" / name) for name in ("moon-jump", "speedometer", "drunk-mode")]
+        g = Game(fakes, kaemod.build(showcase, False, tmp / "showcase"))
+        g.p.uc.mem_map(0x40000000, 0x10000)
+        for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                          (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                          (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                          (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                          (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                          (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"])):
+            g.p.write(at, struct.pack("<Q", value))
+        g.p.write(RESOURCE + 0x58, b"Player\0")
+        g.p.write(MAIN_BASE + PACK["function"]["CctChangePosition"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D804000, 0xD65F03C0))
+        g.p.write(MAIN_BASE + PACK["function"]["BodySetLinearVelocity"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D808000, 0xD65F03C0))
+        g.game("game_boot")
+        g.expect("mod kabosune.moon-jump 0.1.0 started", "mod kabosune.speedometer 0.1.0 started",
+                 "mod kabosune.drunk-mode 0.1.0 started")
+        UNSET = (123.0, 456.0, 789.0)
+
+        def step(v, at=(0.0, 0.0, 0.0), buttons=0, lx=0, ly=0):
+            g.p.write(BODY + 0x200, struct.pack("<3f", *UNSET))
+            g.p.write(velocity, struct.pack("<3f", *v))
+            g.p.write(position, struct.pack("<3f", *at))
+            g.set_controller(buttons, lx, ly)
+            g.frame(actor=LINK)
+            return set_velocity(), g.states(0)[-1]
+        close = lambda a, b: all(abs(x - y) < 1e-4 for x, y in zip(a, b))     # noqa: E731
+        # Moon Jump, gravity 40 %: the first update only looks; after that a drop of 1 m/s becomes 0.4
+        assert step((1.0, -1.0, 2.0))[0] == UNSET
+        assert close(step((1.0, -2.0, 2.0))[0], (1.0, -1.4, 2.0)), set_velocity()
+        # a jump's kick (more than 2 m/s up in one update) is boosted 130 %
+        assert close(step((1.0, 5.0, 2.0))[0], (1.0, 6.5, 2.0)), set_velocity()
+        # a rise that isn't a kick passes through untouched
+        assert step((1.0, 7.0, 2.0))[0] == UNSET
+        # hold L + A: he flies up at 6 m/s and the game doesn't see the combination
+        L, A = 1 << 6, 1 << 0
+        moved, seen = step((1.0, -3.0, 2.0), buttons=L | A)
+        assert close(moved, (1.0, 6.0, 2.0)) and seen[0] == 0, (moved, seen)
+        print("Moon Jump: ok (lower gravity, boosted jump kick, moon jump hides its combination)")
+        # Drunk Mode, wobble 40 %: a pushed stick is turned but keeps its length; a centred one stays
+        # centred; buttons other than the moon jump's pass through
+        turned = []
+        for _ in range(40):
+            seen = step((0.0, 0.0, 0.0), lx=0, ly=20000, buttons=A)[1]
+            assert seen[0] == A and abs((seen[1] ** 2 + seen[2] ** 2) ** 0.5 - 20000) < 40, seen
+            turned.append(seen[1])
+        assert max(abs(x) for x in turned) > 1000, turned
+        assert step((0.0, 0.0, 0.0))[1][1:3] == (0, 0)
+        print("Drunk Mode: ok (the stick wobbles and keeps its length, a centred stick stays centred)")
+        # Speedometer: 0.2 m an update along the ground is 6 m/s; the display sits bottom right
+        for i in range(30):
+            step((0.0, 0.0, 0.0), at=(0.2 * i, 0.0, 0.0))
+        g.frame(actor=0xABC000)
+        plate = [r for r in g.rects() if r[4] == 0x101820]
+        width = 14 * 8 * 2 + 2 * 12
+        assert any(r[0] == 1280 - 720 // 45 - width and r[1] == 720 // 45 and r[2] == width for r in plate), plate
+        assert any(r[4] != 0x101820 and r[4] != 0x2A3530 and r[3] == 16 for r in g.rects()), "no bar fill"
+        assert not g.p.unresolved, g.p.unresolved
+        print("Speedometer: ok (measures Link's speed, draws its display bottom right with a filled bar)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
