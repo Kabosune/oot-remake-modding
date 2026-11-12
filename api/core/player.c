@@ -1,7 +1,7 @@
 // Link: telling his physics actor from the others, moving him, his velocity.
 //
 // Every offset and address comes from the symbol pack of the running build. The walk is the one
-// FPV Drone, Mouse Grab and Sloped Up Sloperina each did themselves, tested in the game on 1.1.1:
+// FPV Drone, Mouse Grab and Slopped Up Sloperina each did themselves, tested in the game on 1.1.1:
 // the actor's movement component sits inside Link's player object, whose resource is named
 // "Player", and the actor's character controller is four pointers away from its components.
 #include "core.h"

@@ -20,13 +20,13 @@ who patches what, and a small core module that mods call instead of patching the
 |---|---|
 | Core 0.2: mods register and start, events (`frame`, `input`, `draw`, `actor_move`), symbols by name, log, memory pool, motion | Written and tested in the game (10 November, Fritchii, game 1.1.1): Hello registered, started, drew and reacted to the A button. Also passes its tests on a PC, including the real AArch64 modules run in an emulator against a fake game |
 | API 0.3: text (`kae_draw_text`) and small pictures (`kae_draw_image`) | Tested in the game (10 November, Fritchii v5.7, game 1.1.1) |
-| API 0.4: the Mods menu and mods' settings (`kae_settings`) | Tested in the game (11 November, Fritchii v5.8.3, game 1.1.1): the menu opens with - and +, blocks the game's input, switches mods off, settings and rebinding work, with three added modules loaded at once (Core, Hello, Sloped Up Sloperina) |
-| API 0.5: Link from Core (`player_move`, `kae_player_of`, `kae_player_move`, his velocity) | Tested in the game (11 November, Fritchii v5.8.4, game 1.1.1) with Core 0.5.1: Core finds Link and his body, Sloped Up Sloperina levitates. Core 0.5 itself could hang the game (its locks only spun), fixed in 0.5.1 |
+| API 0.4: the Mods menu and mods' settings (`kae_settings`) | Tested in the game (11 November, Fritchii v5.8.3, game 1.1.1): the menu opens with - and +, blocks the game's input, switches mods off, settings and rebinding work, with three added modules loaded at once (Core, Hello, Slopped Up Sloperina) |
+| API 0.5: Link from Core (`player_move`, `kae_player_of`, `kae_player_move`, his velocity) | Tested in the game (11 November, Fritchii v5.8.4, game 1.1.1) with Core 0.5.1: Core finds Link and his body, Slopped Up Sloperina levitates. Core 0.5 itself could hang the game (its locks only spun), fixed in 0.5.1 |
 | Core 0.5.2: the Mods menu's settings saved between runs (`kaegae/settings.txt` on the SD card, through the system's `nn::fs`) | Tested in the game (11 November, Fritchii v5.8.4, game 1.1.1): changes survive closing and reopening the emulator |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
 | `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
-| A core mod in its own folder, apart from Core's (`kaemod.py --no-core`) | Tested in the game (11 November, Fritchii v5.8.3): Core, Hello and Sloped Up Sloperina from three folders load, link and start |
+| A core mod in its own folder, apart from Core's (`kaemod.py --no-core`) | Tested in the game (11 November, Fritchii v5.8.3): Core, Hello and Slopped Up Sloperina from three folders load, link and start |
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
@@ -90,7 +90,7 @@ it can report.
 A folder built by `tools/kaemod.py` carries a `mod.toml` that names its modules.
 
 **Core goes in its own folder, each mod in its own** (tested in the game on 11 November: Core,
-Hello and Sloped Up Sloperina from three folders, all linked and started). Core is
+Hello and Slopped Up Sloperina from three folders, all linked and started). Core is
 `releases/kaegae-core.zip` (`python3 tools/kaemod.py` with no mod); a mod is built with
 `--no-core`; up to seven mods sit next to Core, each in a free `subsdk2` ... `subsdk8`, which
 `kaegae install` picks. Without `--no-core`, Core is linked into the mod's folder: it installs by

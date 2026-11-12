@@ -3,6 +3,17 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Slopped Up Sloperina 0.2.1 (11 November 2026)
+
+Sloped Up Sloperina is now **Slopped Up Sloperina**. No change in behaviour; Core unchanged.
+
+- Mod id `kabosune.sloped-up-sloperina` → `kabosune.slopped-up-sloperina`, folder
+  `mods/slopped-up-sloperina/`, release zip `slopped-up-sloperina.zip`, installed folder
+  `Slopped Up Sloperina`. Entries below use the new name.
+- Its saved settings are under the old id in `kaegae/settings.txt`: rename the
+  `[kabosune.sloped-up-sloperina]` section to keep them. Remove the old `Sloped Up Sloperina`
+  folder from the load folder when installing this one.
+
 ## Core 0.5.2 (11 November 2026; tested in the game the same day)
 
 Same API (0.5): mods need no rebuild.
@@ -26,7 +37,7 @@ Same API (0.5): mods need no rebuild.
 Same API (0.5), a fix in Core only: mods need no rebuild.
 
 - **The game could hang** (freeze for good, no crash) a few seconds after an area loaded, with
-  Core 0.5, Sloped Up Sloperina and Mouse Grab on. Core's locks only spun while waiting; the game
+  Core 0.5, Slopped Up Sloperina and Mouse Grab on. Core's locks only spun while waiting; the game
   runs threads of different priorities on one core, so a thread spinning on a lock held by a
   lower-priority one kept it from ever running again. 0.5 takes these locks far more often (it
   looks at every actor's movement update to find Link), so it hit this often. Locks now spin
@@ -45,13 +56,13 @@ Link, from Core.
 - **`kae_player_move`**, **`kae_player_velocity`**, **`kae_player_set_velocity`**: the game's own
   character controller move, and its body's velocity. `kae_has("player")`,
   `kae_has("event.player_move")`.
-- The walk from an actor to Link, which Sloped Up Sloperina, Mouse Grab and FPV Drone each wrote
+- The walk from an actor to Link, which Slopped Up Sloperina, Mouse Grab and FPV Drone each wrote
   out with their own offsets, is now in Core once (`core/player.c`), and its offsets are fields of
   the symbol pack (`Actor.components`, `Player.movement`, `Cct.body` ...), so a pack for 1.0.0 covers
   every mod at once. New pack entries: `vtable.CctBody` and those fields. `CctBody.velocity`
   (`+0xE0`) is from sloperinaGZ's write-up and has not been checked against main by us; Core
   refuses values that can't be a speed.
-- **Sloped Up Sloperina 0.2.0** uses these and has no game offset left in it. Levitate now takes
+- **Slopped Up Sloperina 0.2.0** uses these and has no game offset left in it. Levitate now takes
   away Link's falling speed every update he is held up (0.1.0 only lifted him, and gravity won).
 - Mouse Grab is rebuilt for API 0.5 from the same source (it still finds Link itself).
 - API 0.5: mods built for 0.4 need a rebuild.
@@ -59,14 +70,14 @@ Link, from Core.
 ## Draft 0.8: the new names (11 November 2026)
 
 No change in behaviour. The standard **Kaepora** is now **KaeGae**, Kaepora Core is **KaeGae Core**,
-and Super Sloperina is **Sloped Up Sloperina**. Older entries below use the new names too.
+and Super Sloperina is **Slopped Up Sloperina**. Older entries below use the new names too.
 
 - Mod ids: `kaepora.core` → `kaegae.core`, `kaepora.hello` → `kaegae.hello`, `kaepora.built` →
-  `kaegae.built`, `kabosune.super-sloperina` → `kabosune.sloped-up-sloperina`. A manifest that
+  `kaegae.built`, `kabosune.super-sloperina` → `kabosune.slopped-up-sloperina`. A manifest that
   requires `kaepora.core` must say `kaegae.core` now.
 - Files: `tools/kaegae.py` (was `kaepora.py`) and `tools/kaegae_*.py`, `api/include/kaegae.h` (was
-  `kaepora.h`: change the `#include`), `tests/test_kaegae_*.py`, `mods/sloped-up-sloperina/`.
-- Release zips: `kaegae-test.zip`, `kaegae-hello-without-core.zip`, `sloped-up-sloperina.zip`.
+  `kaepora.h`: change the `#include`), `tests/test_kaegae_*.py`, `mods/slopped-up-sloperina/`.
+- Release zips: `kaegae-test.zip`, `kaegae-hello-without-core.zip`, `slopped-up-sloperina.zip`.
 - The log prefix is `kaegae:`; environment variables `KAEGAE_TARGET`, `KAEGAE_LOAD_DIR`.
 - Kept: the `kae_*` functions, `KAE_*` names and `Kae*` types, so a mod's code only needs the new
   `#include`. Modules built before the rename still link to the new Core.

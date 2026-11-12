@@ -1,4 +1,4 @@
-# Sloped Up Sloperina
+# Slopped Up Sloperina
 
 Practice tools for the Ocarina of Time remake, running on [KaeGae Core](../../api/README.md).
 The idea and the name come from [sloperinaGZ](https://github.com/PracticeROM/sloperina) by
@@ -6,7 +6,7 @@ PracticeROM, a gz-style practice menu for this game. This is a new mod written f
 KaeGae, not a copy of their code (theirs is GPL-3.0, this repository is MIT); what was learned
 from their write-ups is in [docs/sloperina-findings.md](../../docs/sloperina-findings.md).
 
-**Status, 11 November 2026: version 0.2.0. 0.1.0 ran in the real game (Fritchii v5.8.3): everything
+**Status, 11 November 2026: version 0.2.1 (0.2.0 renamed; no other change). 0.1.0 ran in the real game (Fritchii v5.8.3): everything
 worked except that levitate struggled against gravity. 0.2.0 has the fix for that and needs KaeGae
 Core 0.5.1 (0.5 itself could hang the game); it works in the real game too (11 November, Fritchii
 v5.8.4): Link rises steadily while levitating.** Game version 1.1.1 only.
@@ -28,16 +28,16 @@ Core 0.5.2 the settings are saved between runs (Core keeps them on the SD card).
 
 ## Install
 
-Sloped Up Sloperina needs KaeGae Core, installed once from its own download. Install both:
+Slopped Up Sloperina needs KaeGae Core, installed once from its own download. Install both:
 
 ```
-python3 tools/kaegae.py install releases/kaegae-core.zip releases/sloped-up-sloperina.zip
+python3 tools/kaegae.py install releases/kaegae-core.zip releases/slopped-up-sloperina.zip
 ```
 
 or copy both zips' folders into the emulator's mod folder for the game by hand. If another mod
 already uses `subsdk2`, the tool moves this one to a free slot; by hand, rename
 `exefs/subsdk2` to a free `subsdk3` ... `subsdk8`. Turn off sloperinaGZ itself while using it:
-both hook the game's drawing. (`python3 tools/kaemod.py mods/sloped-up-sloperina` still builds the
+both hook the game's drawing. (`python3 tools/kaemod.py mods/slopped-up-sloperina` still builds the
 older one-folder zip with Core inside.)
 
 ## How it works

@@ -420,13 +420,13 @@ def main():
             assert len(rects) > 20 and (640, 720 - 360 - 1, 1, 1, 0) in rects, rects[:6]   # the arrow's tip
             assert not g.p.unresolved, g.p.unresolved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors)")
-        # Sloped Up Sloperina, the first mod written against the public API only, and Core's player_move
+        # Slopped Up Sloperina, the first mod written against the public API only, and Core's player_move
         # event under it. A Link is built in memory the way the game lays him out (actor -> components
         # -> movement inside the player object, whose resource is "Player"; components -> ... ->
         # character controller -> body), and main gets stand-ins: ChangePosition copies the position
         # it is given into the controller at +0x100, BodySetLinearVelocity the velocity into the
         # body at +0x200.
-        sloperina = kaemod.Mod(REPO / "mods" / "sloped-up-sloperina")
+        sloperina = kaemod.Mod(REPO / "mods" / "slopped-up-sloperina")
         g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), sloperina], False, tmp / "sloperina"))
         LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, BODY, PLAYER = (0x40000000 + i * 0x1000 for i in range(9))
         MOVEMENT = PLAYER + 0x1D50
@@ -455,7 +455,7 @@ def main():
             return g.states(0)[-1][0], struct.unpack("<3f", g.p.read(CCT + 0x100, 12))
         L, LEFT, UP, RIGHT = 1 << 6, 1 << 12, 1 << 13, 1 << 14
         g.game("game_boot")
-        g.expect("mod kabosune.sloped-up-sloperina 0.2.0 started")
+        g.expect("mod kabosune.slopped-up-sloperina 0.2.1 started")
         assert link_frame(0, (1.0, 2.0, 3.0)) == (0, (0.0, 0.0, 0.0))               # nothing asked: Link isn't moved
         assert link_frame(L | LEFT)[0] == 0, "the game saw the save combination"    # saved at (1, 2, 3)
         link_frame(0, (50.0, 60.0, 70.0))
@@ -484,7 +484,7 @@ def main():
         hud = [r for r in g.rects() if r[4] == 0x101820 and r[0] == 720 // 45]
         assert len(hud) == 1 and hud[0][1] == 720 // 45, hud                        # bottom left (origin lower left)
         assert not g.p.unresolved, g.p.unresolved
-        print("Sloped Up Sloperina and player_move: ok (Core finds Link, saves / loads his position, levitates without falling, hides its combinations, draws its display)")
+        print("Slopped Up Sloperina and player_move: ok (Core finds Link, saves / loads his position, levitates without falling, hides its combinations, draws its display)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

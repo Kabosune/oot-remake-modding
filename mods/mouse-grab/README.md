@@ -12,7 +12,7 @@ Still in progress. This folder holds the findings and the builds.
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.5. Tested in Fritchii on 11 November 2026 with Core 0.5.1, next to Sloped Up Sloperina | Playing around with the mod |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.5. Tested in Fritchii on 11 November 2026 with Core 0.5.1, next to Slopped Up Sloperina | Playing around with the mod |
 | [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.5.1, needed by the mod | Install once, with any KaeGae mods |
 
 Install both: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`,

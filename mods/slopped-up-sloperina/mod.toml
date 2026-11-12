@@ -1,9 +1,9 @@
-# Sloped Up Sloperina's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+# Slopped Up Sloperina's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
 manifest = 1
 
-id       = "kabosune.sloped-up-sloperina"
-name     = "Sloped Up Sloperina"
-version  = "0.2.0"
+id       = "kabosune.slopped-up-sloperina"
+name     = "Slopped Up Sloperina"
+version  = "0.2.1"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"

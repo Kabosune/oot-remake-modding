@@ -175,7 +175,7 @@ memory, which hardware may refuse.
   folder, and `kaegae install` renames a new mod's module to a free slot when its own is taken.
   That is the layout the standard is meant to end up with: Core installed once, each mod in its
   own folder. The emulator combines the `exefs` folders of several mods, modules included
-  (Core, Hello and Sloped Up Sloperina from three folders, in Fritchii v5.8.3).
+  (Core, Hello and Slopped Up Sloperina from three folders, in Fritchii v5.8.3).
 
 ### What Core gets without knowing any addresses
 

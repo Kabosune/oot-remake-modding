@@ -1,4 +1,4 @@
-// Sloped Up Sloperina: practice tools on KaeGae Core. The first slice: an input display, a position
+// Slopped Up Sloperina: practice tools on KaeGae Core. The first slice: an input display, a position
 // watch, save / load position and levitate. Its settings and buttons are a page of the Mods menu.
 //
 // Everything it asks of the game goes through Core: Link comes from the player_move event, and he
@@ -260,9 +260,9 @@ static int start(void) {
         return 2;
     if (kae_on_player_move(player_move, 0, 0) != KAE_OK)
         KAE_LOG("no player_move event: the position watch, save / load and levitate are off");
-    kae_settings("Sloped Up Sloperina", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("sloped up sloperina 0.2.0: input display, position watch, save / load position, levitate");
+    kae_settings("Slopped Up Sloperina", settings, sizeof settings / sizeof *settings);
+    KAE_LOG("slopped up sloperina 0.2.1: input display, position watch, save / load position, levitate");
     return 0;
 }
 
-KAE_MOD("kabosune.sloped-up-sloperina", "0.2.0", start, 0);
+KAE_MOD("kabosune.slopped-up-sloperina", "0.2.1", start, 0);
