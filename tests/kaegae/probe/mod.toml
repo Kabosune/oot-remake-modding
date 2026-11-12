@@ -1,8 +1,8 @@
-# A mod that exists only for tests/test_kaepora_modules.py: it uses every part of the API and
+# A mod that exists only for tests/test_kaegae_modules.py: it uses every part of the API and
 # reports what it saw through the log.
 manifest = 1
-id       = "kaepora.test-probe"
-name     = "Kaepora Test Probe"
+id       = "kaegae.test-probe"
+name     = "KaeGae Test Probe"
 version  = "1.2.3"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"

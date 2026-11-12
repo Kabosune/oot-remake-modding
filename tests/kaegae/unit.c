@@ -1,5 +1,5 @@
 // Host tests of Core's portable parts (mod list, events, symbols, format, pool), built for the PC
-// and run by tests/test_kaepora_unit.py. Each scenario runs in its own process: Core keeps its
+// and run by tests/test_kaegae_unit.py. Each scenario runs in its own process: Core keeps its
 // state in statics, as it does in the game.
 #include <stdio.h>
 #include <stdlib.h>
@@ -65,9 +65,9 @@ static void test_format(void) {
     memset(&none, 0, sizeof none);
     CHECK(kp_vformat(small, sizeof small, "0123456789", none) == 7 && !strcmp(small, "0123456"));
     kae_logf(0, "x %d", 1);
-    CHECK(!strcmp(logged[0], "kaepora [?]: x 1"));
+    CHECK(!strcmp(logged[0], "kaegae [?]: x 1"));
     kp_logf("core %s", "line");
-    CHECK(!strcmp(logged[1], "kaepora: core line"));
+    CHECK(!strcmp(logged[1], "kaegae: core line"));
 }
 
 // ---- mods ----

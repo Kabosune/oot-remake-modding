@@ -1,12 +1,12 @@
 /* The Mods menu: model, input handling and drawing. Portable C, so the same code runs inside
- * the game (built into Kaepora Core with KAE_MENU_ON_CORE) and in the host tests.
+ * the game (built into KaeGae Core with KAE_MENU_ON_CORE) and in the host tests.
  * Draft 0.1: see ../MODS-MENU.md. */
 #ifndef KAE_MENU_H
 #define KAE_MENU_H
 #include <stdint.h>
 
 /* The buttons (KAE_A ...) and KaeItem are part of the public API. */
-#include "kaepora.h"
+#include "kaegae.h"
 
 #define KAE_OPEN_CHORD   (KAE_PLUS | KAE_MINUS)
 #define KAE_CHORD_WINDOW 4       /* frames a lone + or - is held back, waiting for the other */

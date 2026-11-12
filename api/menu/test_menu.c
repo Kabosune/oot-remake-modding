@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         fclose(f);
     }
     kae_menu_add(&m, &fp); kae_menu_add(&m, &drone); kae_menu_add(&m, &gz); kae_menu_add(&m, &old);
-    m.about[0] = "Kaepora Core 0.1 (draft)"; m.about[1] = "Game 1.1.1, build E0F3CCFA";
+    m.about[0] = "KaeGae Core 0.1 (draft)"; m.about[1] = "Game 1.1.1, build E0F3CCFA";
     m.about[2] = "4 mods installed, 3 running"; m.nabout = 3;
 
     /* --- a lone Plus reaches the game, late by the window, for as long as it is held */

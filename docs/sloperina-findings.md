@@ -129,7 +129,7 @@ retold; their code is GPL-3.0, so it is read for understanding and not copied he
 has been checked by us.
 
 **Drawing with the game's own parts.** They draw on the GPU just before the game presents a frame
-(the same `nvnBootstrapLoader` hook Kaepora Core uses for its rectangles), with the game's UI
+(the same `nvnBootstrapLoader` hook KaeGae Core uses for its rectangles), with the game's UI
 shader, fonts and pictures read from the player's own RomFS at start. Nothing needs a game address,
 so one build serves 1.0.0 and 1.1.1, and it keeps drawing while the game is paused. They looked at
 driving the game's UI library (Layout2) and set it aside: no symbols, an address per version for
@@ -171,7 +171,7 @@ both versions. Useful when a symbol pack for 1.0.0 is made.
 **Dive test (0.0.4.1, their measurements on 1.1.1).** Gravity about 28 units/s², falling speed
 tops out at 60 units/s.
 
-What this means for Kaepora: text and pictures in Core (the Mods menu, Mouse Grab's fairy cursor)
+What this means for KaeGae: text and pictures in Core (the Mods menu, Mouse Grab's fairy cursor)
 can follow the same route, a font read from the game's own files and blended quads drawn at
 present time, written from scratch. Whether to use the game's UI shader or a small shader of our
 own is still to decide.

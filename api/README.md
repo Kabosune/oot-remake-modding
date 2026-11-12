@@ -1,17 +1,17 @@
-# Kaepora (draft)
+# KaeGae (draft)
 
 A proposed shared standard for Ocarina of Time remake mods: one package format, one registry of
 who patches what, and a small core module that mods call instead of patching the game themselves.
 
 - [DESIGN.md](DESIGN.md): the design, its reasons, the roadmap and the open questions.
-- [include/kaepora.h](include/kaepora.h): the Core API (0.2). A mod includes only this.
-- [core/](core/): Kaepora Core, the module that goes in `exefs/subsdk1`.
+- [include/kaegae.h](include/kaegae.h): the Core API (0.2). A mod includes only this.
+- [core/](core/): KaeGae Core, the module that goes in `exefs/subsdk1`.
 - [sdk/](sdk/): what the build adds to a mod (its module start, four C library functions).
 - [examples/hello/](examples/hello/): the smallest core mod, also Core's in-game test.
 - [examples/mod.toml](examples/mod.toml): a manifest for a mod that patches `main` itself (levels 1 and 2).
 - [MODS-MENU.md](MODS-MENU.md): the shared in-game Mods menu (settings, button mapping), with menu code and host tests in `menu/`. Built into Core from API 0.4.
-- [MANIFEST.md](MANIFEST.md): the package format, `mod.toml`, the registry, and what `kaepora check` and
-  `kaepora install` do (levels 1 and 2). The registry itself is [`registry/`](../registry/).
+- [MANIFEST.md](MANIFEST.md): the package format, `mod.toml`, the registry, and what `kaegae check` and
+  `kaegae install` do (levels 1 and 2). The registry itself is [`registry/`](../registry/).
 - [CHANGELOG.md](CHANGELOG.md): what changed between drafts and API versions.
 
 ## Status (11 November 2026)
@@ -20,19 +20,19 @@ who patches what, and a small core module that mods call instead of patching the
 |---|---|
 | Core 0.2: mods register and start, events (`frame`, `input`, `draw`, `actor_move`), symbols by name, log, memory pool, motion | Written and tested in the game (10 November, Fritchii, game 1.1.1): Hello registered, started, drew and reacted to the A button. Also passes its tests on a PC, including the real AArch64 modules run in an emulator against a fake game |
 | API 0.3: text (`kae_draw_text`) and small pictures (`kae_draw_image`) | Tested in the game (10 November, Fritchii v5.7, game 1.1.1) |
-| API 0.4: the Mods menu and mods' settings (`kae_settings`) | Tested in the game (11 November, Fritchii v5.8.3, game 1.1.1): the menu opens with - and +, blocks the game's input, switches mods off, settings and rebinding work, with three added modules loaded at once (Core, Hello, Super Sloperina) |
+| API 0.4: the Mods menu and mods' settings (`kae_settings`) | Tested in the game (11 November, Fritchii v5.8.3, game 1.1.1): the menu opens with - and +, blocks the game's input, switches mods off, settings and rebinding work, with three added modules loaded at once (Core, Hello, Sloped Up Sloperina) |
 | Drawing, the motion sensor, the `Actor.MoveUpdate` hook point | Tested in the game (Fritchii v5.6, game 1.1.1) as part of Mouse Grab, before Core was split out |
 | A mod as its own module (`subsdk2`+) finding Core through rtld | Works in the game: Hello in `subsdk2` found Core in `subsdk1` (open question 1: yes) |
-| `kaepora check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
+| `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
 | A core mod in its own folder, apart from Core's (`kaemod.py --no-core`), and the installer giving it a free module slot | Written, passes its tests on a PC. **Not tested in the game yet** |
-| `kaepora build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
+| `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Generic hook points (`kae_hook`), input bindings, config, the Mods menu in game | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
 
 ## Writing a mod
 
 ```c
-#include <kaepora.h>
+#include <kaegae.h>
 
 static void draw(const KaeFrame *frame, void *user) {
     kae_draw_rect(20, 20, 40, 40, 0x40C0FF);
@@ -67,18 +67,18 @@ What a mod can rely on:
   `actor_move` come on the game's thread, `draw` on its render thread.
 - If Core is missing, the build of the game is unknown, or the mod was built for another API
   version, the mod doesn't run and the log says why. Nothing crashes on its behalf.
-- Core's log lines start `kaepora:`, a mod's `kaepora [its.id]:`. In Fritchii they are in
+- Core's log lines start `kaegae:`, a mod's `kaegae [its.id]:`. In Fritchii they are in
   `log\eden_log.txt` in its data folder (`%APPDATA%\fritchii` from v5.8, `%APPDATA%\eden` before) as
   `Debug.Emulated <Info>`.
 
 ## Checking and installing mods
 
 ```
-python3 tools/kaepora.py check                     # the mods that are on in the emulator: can they run together?
-python3 tools/kaepora.py check my-mod.zip --with-installed
-python3 tools/kaepora.py install my-mod.zip        # check first, then copy; gives a core mod a free module slot
-python3 tools/kaepora.py list
-python3 tools/kaepora.py init "My Mod" --id me.my-mod   # write a mod.toml for an existing mod
+python3 tools/kaegae.py check                     # the mods that are on in the emulator: can they run together?
+python3 tools/kaegae.py check my-mod.zip --with-installed
+python3 tools/kaegae.py install my-mod.zip        # check first, then copy; gives a core mod a free module slot
+python3 tools/kaegae.py list
+python3 tools/kaegae.py init "My Mod" --id me.my-mod   # write a mod.toml for an existing mod
 ```
 
 It reads mods with and without a manifest, compares their patches byte by byte, and knows from
@@ -94,11 +94,11 @@ mods up to seven sit next to it.
 ## Tests
 
 ```
-python3 tests/test_kaepora_tools.py      # the manifest reader, the registry, check / install / init
-python3 tests/test_kaepora_unit.py       # Core's logic, built for the PC
-python3 tests/test_kaepora_modules.py    # the shipped modules in Unicorn with a fake game and system
-python3 tests/test_kaepora_symbols.py    # the symbol pack and symbols/<build>.ld agree
-python3 tests/test_kaepora_hooks.py main.bin releases/kaepora-test.zip    # the hook stub on your real main
+python3 tests/test_kaegae_tools.py      # the manifest reader, the registry, check / install / init
+python3 tests/test_kaegae_unit.py       # Core's logic, built for the PC
+python3 tests/test_kaegae_modules.py    # the shipped modules in Unicorn with a fake game and system
+python3 tests/test_kaegae_symbols.py    # the symbol pack and symbols/<build>.ld agree
+python3 tests/test_kaegae_hooks.py main.bin releases/kaegae-test.zip    # the hook stub on your real main
 ```
 
 The first three need no game files. `--log` on the second prints the log of a full run.
@@ -114,7 +114,7 @@ works. Its log has `input: 5 of 5 controller styles hooked, frames from GetNpadS
 the controller functions' names Core guessed are the right ones, and `hook point in place:
 Actor.MoveUpdate`. First Person and FPV Drone (patches to `main`) were on in the same run.
 
-`releases/kaepora-test.zip` is Core in `subsdk1` and Hello in `subsdk2`, plus Core's `.ips`.
+`releases/kaegae-test.zip` is Core in `subsdk1` and Hello in `subsdk2`, plus Core's `.ips`.
 
 1. Turn off any other mod folder that has an `exefs/subsdk1` (older Mouse Grab builds), and
    sloperinaGZ (it takes the same drawing hook and doesn't pass calls on). Close the emulator
@@ -122,7 +122,7 @@ Actor.MoveUpdate`. First Person and FPV Drone (patches to `main`) were on in the
 2. Copy the zip's `0400486024DEC000` folder into the emulator's `load` folder, close and reopen
    the emulator, start the game.
 3. What should happen: a small blue square near the top left corner, which turns green while A is
-   held. In the log, `kaepora: Core 0.2 loaded`, then `kaepora [kaepora.hello]: hello from its own
+   held. In the log, `kaegae: Core 0.2 loaded`, then `kaegae [kaegae.hello]: hello from its own
    start` and a list of what works, then an `alive:` line every 300 frames with rising counts.
 
 What each outcome means:
@@ -130,7 +130,7 @@ What each outcome means:
 | You see | It means |
 |---|---|
 | The square and Hello's log lines | rtld links an added module to another one. Mods can be separate modules (question 1: yes) |
-| `Core 0.2 loaded` but `kaepora mod: Kaepora Core isn't loaded` and no square | rtld loaded both but didn't link them (question 1: no). Mods get bundled into Core's module instead: `--bundle` |
+| `Core 0.2 loaded` but `kaegae mod: KaeGae Core isn't loaded` and no square | rtld loaded both but didn't link them (question 1: no). Mods get bundled into Core's module instead: `--bundle` |
 | The game doesn't start | Something in the new Core stops it. Try `releases/mouse-grab.zip` (Core and Mouse Grab in one module): if that starts, the second module is the problem; if not, look first at Core's new input hooks |
 | `input: 0 of 5 controller styles hooked` | The system's names for the controller functions aren't the ones Core guessed; the log line says which part is missing |
 
@@ -140,11 +140,11 @@ first); either order works. While the emulator runs its log is `eden_log.busy.tx
 ### A mod without Core (open question 6)
 
 **Result, 10 November 2026 (Fritchii v5.7, game 1.1.1): passed.** With only Hello's module on, the
-emulator loaded `subsdk2`, the game ran as normal, and the log has `kaepora mod: Kaepora Core isn't
+emulator loaded `subsdk2`, the game ran as normal, and the log has `kaegae mod: KaeGae Core isn't
 loaded (or this module wasn't linked to it); doing nothing`. A missing weak import is left empty.
 
-`releases/kaepora-hello-without-core.zip` is Hello's module alone. Install it with every other
-Kaepora folder off. Hoped for: the game starts as normal and logs `kaepora mod: Kaepora Core isn't
+`releases/kaegae-hello-without-core.zip` is Hello's module alone. Install it with every other
+KaeGae folder off. Hoped for: the game starts as normal and logs `kaegae mod: KaeGae Core isn't
 loaded`. If the game stays at "starting...", the game's rtld refuses a module with a missing import
 even when it is weak. Then mods must not import Core at all: Core would publish a table of its
 functions at an agreed place and mods would look it up at start (the other option weighed on

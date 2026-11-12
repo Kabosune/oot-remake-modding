@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""kaepora: check, install and list Ocarina of Time (Switch 2) mods.
+"""kaegae: check, install and list Ocarina of Time (Switch 2) mods.
 
-    python3 tools/kaepora.py check                      # the mods that are on in the emulator
-    python3 tools/kaepora.py check my-mod other.zip     # these folders or zips, with each other
-    python3 tools/kaepora.py list
-    python3 tools/kaepora.py install my-mod.zip
-    python3 tools/kaepora.py remove "My Mod"
-    python3 tools/kaepora.py build --game-table <the game's size table>   # shared files, from your own dump
-    python3 tools/kaepora.py inspect my-mod             # what a patch writes, and whose space that is
-    python3 tools/kaepora.py init my-mod --id me.my-mod # write a mod.toml for an existing mod
-    python3 tools/kaepora.py registry                   # who has claimed what
-    python3 tools/kaepora.py targets                    # where this tool looks for emulators
+    python3 tools/kaegae.py check                      # the mods that are on in the emulator
+    python3 tools/kaegae.py check my-mod other.zip     # these folders or zips, with each other
+    python3 tools/kaegae.py list
+    python3 tools/kaegae.py install my-mod.zip
+    python3 tools/kaegae.py remove "My Mod"
+    python3 tools/kaegae.py build --game-table <the game's size table>   # shared files, from your own dump
+    python3 tools/kaegae.py inspect my-mod             # what a patch writes, and whose space that is
+    python3 tools/kaegae.py init my-mod --id me.my-mod # write a mod.toml for an existing mod
+    python3 tools/kaegae.py registry                   # who has claimed what
+    python3 tools/kaegae.py targets                    # where this tool looks for emulators
 
 Where the mods are: --target fritchii | eden | lichii, or --load-dir with the emulator's `load`
 folder. With neither, the tool looks for the emulators it knows and uses the one it finds (if it
-finds more than one, it asks you to choose). KAEPORA_TARGET and KAEPORA_LOAD_DIR set a default.
+finds more than one, it asks you to choose). KAEGAE_TARGET and KAEGAE_LOAD_DIR set a default.
 
 `check` changes nothing. `install` runs the check first and refuses when it finds an error.
 The manifest format and the registry are described in api/MANIFEST.md. Needs Python 3.11+ (or
@@ -30,12 +30,12 @@ import zipfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import kaepora_build as kb  # noqa: E402
-import kaepora_check as kc  # noqa: E402
-import kaepora_manifest as km  # noqa: E402
+import kaegae_build as kb  # noqa: E402
+import kaegae_check as kc  # noqa: E402
+import kaegae_manifest as km  # noqa: E402
 
 TITLE_ID = "0400486024DEC000"
-MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]      # subsdk1 is Kaepora Core's, subsdk9 is left to standalone mods
+MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]      # subsdk1 is KaeGae Core's, subsdk9 is left to standalone mods
 BUILD_NAMES = {"E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348": "1.1.1", "33FA6C2C23848282A77E8B88A0A93F4887C55920": "1.0.0"}
 
 # Emulators and the folder each keeps its data in. On Windows that folder is in %APPDATA%; a
@@ -76,7 +76,7 @@ class Place:
     def folders(self):
         if not self.title_dir.is_dir():
             return []
-        return sorted((p for p in self.title_dir.iterdir() if p.is_dir() and not p.name.endswith(".kaepora-new")),
+        return sorted((p for p in self.title_dir.iterdir() if p.is_dir() and not p.name.endswith(".kaegae-new")),
                       key=lambda p: p.name)
 
     def disabled(self):
@@ -108,8 +108,8 @@ def read_disabled(ini, title_id):
 
 
 def find_place(args):
-    load = args.load_dir or os.environ.get("KAEPORA_LOAD_DIR")
-    target = args.target or os.environ.get("KAEPORA_TARGET")
+    load = args.load_dir or os.environ.get("KAEGAE_LOAD_DIR")
+    target = args.target or os.environ.get("KAEGAE_TARGET")
     if target and target not in TARGETS:
         raise Stop(f"unknown target {target!r}: targets are {', '.join(TARGETS)}")
     if load:
@@ -126,7 +126,7 @@ def find_place(args):
                    + ", or --load-dir with the emulator's load folder")
     if len(found) > 1:
         raise Stop("more than one emulator found:\n" + "\n".join(f"  --target {n:<9} {d}" for n, d in found)
-                   + "\nchoose one with --target (or set KAEPORA_TARGET)")
+                   + "\nchoose one with --target (or set KAEGAE_TARGET)")
     name, data = found[0]
     return Place(data / "load" / TITLE_ID, name, data)
 
@@ -275,7 +275,7 @@ def assign_slots(mod, taken):
             taken.add(slot)
             continue
         if any(mod_id == kc.CORE_ID for mod_id, _ in mod.manifest.modules[slot]):
-            continue                    # a second Kaepora Core: the check reports it
+            continue                    # a second KaeGae Core: the check reports it
         free = [s for s in MOD_SLOTS if s not in taken]
         if not free:
             raise Stop(f"{mod.name}: no module slot is free ({MOD_SLOTS[0]} to {MOD_SLOTS[-1]} are taken). "
@@ -326,7 +326,7 @@ def cmd_install(args):
         place.title_dir.mkdir(parents=True, exist_ok=True)
         for mod in new:
             dest = place.title_dir / mod.name
-            staging = place.title_dir / f".{mod.name}.kaepora-new"
+            staging = place.title_dir / f".{mod.name}.kaegae-new"
             try:
                 if staging.exists():
                     shutil.rmtree(staging)
@@ -389,7 +389,7 @@ def cmd_remove(args):
     for name in args.names:
         dest = place.title_dir / name
         if Path(name).name != name or not dest.is_dir() or dest.parent != place.title_dir:
-            raise Stop(f"no mod folder called {name!r} in {place.title_dir} (see `kaepora list`)")
+            raise Stop(f"no mod folder called {name!r} in {place.title_dir} (see `kaegae list`)")
         try:
             shutil.rmtree(dest)
         except PermissionError as e:
@@ -457,7 +457,7 @@ def cmd_init(args):
     mod = km.load_folder(folder)
     registries = kc.load_registries(args.registry)
     quote = lambda s: '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'     # noqa: E731
-    lines = ["# Kaepora manifest (api/MANIFEST.md in https://github.com/Kabosune/oot-remake-modding).",
+    lines = ["# KaeGae manifest (api/MANIFEST.md in https://github.com/Kabosune/oot-remake-modding).",
              "manifest = 1", "",
              f"id       = {quote(args.id)}",
              f"name     = {quote(args.name or folder.name)}",
@@ -482,7 +482,7 @@ def cmd_init(args):
     print(f"wrote {target}")
     for p in again.problems:
         print(f"  {p}")
-    print("Read it through: ranges are guessed from the patch. Then run `kaepora check` on the folder.")
+    print("Read it through: ranges are guessed from the patch. Then run `kaegae check` on the folder.")
     return 0
 
 
@@ -520,7 +520,7 @@ def cmd_targets(args):
 
 
 def main(argv=None):
-    p = argparse.ArgumentParser(prog="kaepora", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p = argparse.ArgumentParser(prog="kaegae", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     where = argparse.ArgumentParser(add_help=False)
     where.add_argument("--target", help="the emulator: " + ", ".join(TARGETS))
     where.add_argument("--load-dir", type=Path, help="the emulator's load folder (or the game's folder inside it)")
@@ -577,7 +577,7 @@ def main(argv=None):
     try:
         return args.run(args)
     except Stop as e:
-        print(f"kaepora: {e}", file=sys.stderr)
+        print(f"kaegae: {e}", file=sys.stderr)
         return 2
 
 

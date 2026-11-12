@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Compare mod folders with each other and with the registry: what `kaepora check` reports.
+"""Compare mod folders with each other and with the registry: what `kaegae check` reports.
 
-A check never changes anything. It reads each folder (tools/kaepora_manifest.py), then looks for
+A check never changes anything. It reads each folder (tools/kaegae_manifest.py), then looks for
 mods that can't be on together: patches that write the same bytes, two hooks on one instruction,
 the same file from two folders, the same buttons, requirements nobody meets. Mods without a
 manifest are checked by their bytes and files.
@@ -16,13 +16,13 @@ except ImportError:          # Python 3.10: pip install tomli
 from dataclasses import dataclass, field
 from pathlib import Path
 
-import kaepora_build
-from kaepora_manifest import (BUILD_ID, HOOK_SIZE, ID, SLOT, Problem, byte_map, fmt_range, merge_ranges, overlap,
+import kaegae_build
+from kaegae_manifest import (BUILD_ID, HOOK_SIZE, ID, SLOT, Problem, byte_map, fmt_range, merge_ranges, overlap,
                               parse_int, parse_range, relation_holds, runs)
 
 REPO = Path(__file__).resolve().parent.parent
 REGISTRY_DIR = REPO / "registry"
-CORE_ID = "kaepora.core"
+CORE_ID = "kaegae.core"
 CORE_SLOT = "subsdk1"
 SPACE_KINDS = ("code", "memory")
 
@@ -370,7 +370,7 @@ def _check_core(mods):
     for mod in wanting:
         asked = any(i == CORE_ID for i, _, _ in mod.manifest.requires)     # then "requires" has said it already
         if not cores and not with_slot1 and not asked:
-            out.append(Problem("error", "no-core", "is a core mod, and Kaepora Core is not installed: "
+            out.append(Problem("error", "no-core", "is a core mod, and KaeGae Core is not installed: "
                                                    "it will load and do nothing", (mod.name,)))
         api = (mod.manifest.core or {}).get("api")
         for holder, core_version in cores:
@@ -381,7 +381,7 @@ def _check_core(mods):
                                    (mod.name, holder.name)))
     for mod in with_slot1:
         if not (mod.manifest and CORE_SLOT in mod.manifest.modules):
-            out.append(Problem("note", "unnamed-core", f"has exefs/{CORE_SLOT} (where Kaepora Core goes) but no manifest "
+            out.append(Problem("note", "unnamed-core", f"has exefs/{CORE_SLOT} (where KaeGae Core goes) but no manifest "
                                                        "saying which version it is", (mod.name,)))
     return out
 
@@ -392,8 +392,8 @@ def _check_size_table(mods):
         if mod.manifest:
             for path, size in mod.manifest.size_table.items():
                 asks.setdefault(path, []).append((mod, size))
-    built = [m for m in mods if m.id == kaepora_build.BUILT_ID]
-    shipping = [m for m in mods if m.id != kaepora_build.BUILT_ID and any(kaepora_build.is_size_table(p) for p in m.romfs)]
+    built = [m for m in mods if m.id == kaegae_build.BUILT_ID]
+    shipping = [m for m in mods if m.id != kaegae_build.BUILT_ID and any(kaegae_build.is_size_table(p) for p in m.romfs)]
     if not asks:
         return out
     if shipping:
@@ -401,19 +401,19 @@ def _check_size_table(mods):
                                                     f"in it ({', '.join(sorted(asks))}): their requests are lost",
                            tuple(m.name for m in shipping)))
     wanted = {path: max(size for _, size in users) for path, users in asks.items()}
-    table = kaepora_build.built_table(built[0]) if built else None
+    table = kaegae_build.built_table(built[0]) if built else None
     if table is None:
         who = tuple(sorted({m.name for users in asks.values() for m, _ in users}))
         out.append(Problem("warning", "size-table-not-built", f"asks for {len(wanted)} resource size table entr"
-                           f"{'y' if len(wanted) == 1 else 'ies'}, and no built table is installed: run `kaepora build` "
+                           f"{'y' if len(wanted) == 1 else 'ies'}, and no built table is installed: run `kaegae build` "
                            "(the game may not load the larger files without it)", who))
         return out
     for path, size in sorted(wanted.items()):
-        have = kaepora_build.size_of(table, path)
+        have = kaegae_build.size_of(table, path)
         if have is None or have < size:
             who = tuple(m.name for m, _ in asks[path])
             out.append(Problem("error", "size-table-stale", f"needs {path} to be at least {size} in the resource size "
-                               f"table; the built table has {have}. Run `kaepora build` again", who + (built[0].name,)))
+                               f"table; the built table has {have}. Run `kaegae build` again", who + (built[0].name,)))
     return out
 
 

@@ -1,7 +1,7 @@
-"""Kaepora Core's portable parts (mod list, events, symbols, log format, memory pool, text), built for
+"""KaeGae Core's portable parts (mod list, events, symbols, log format, memory pool, text), built for
 this PC and run here. Also checks the symbol packs against symbols/*.ld.
 
-    python3 tests/test_kaepora_unit.py
+    python3 tests/test_kaegae_unit.py
 
 Needs clang (any host) and Python 3.11+. No game files.
 """
@@ -13,8 +13,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
-import kaepora_font  # noqa: E402
-import kaepora_symbols  # noqa: E402
+import kaegae_font  # noqa: E402
+import kaegae_symbols  # noqa: E402
 
 CORE = REPO / "api" / "core"
 SOURCES = [CORE / f for f in ("mods.c", "events.c", "symbols.c", "log.c", "format.c", "alloc.c", "text.c", "menu.c")]
@@ -41,16 +41,16 @@ def packs_match_ld(packs):
 
 
 def main():
-    packs = kaepora_symbols.load_packs()
+    packs = kaegae_symbols.load_packs()
     print(f"symbol packs agree with the .ld files: ok ({packs_match_ld(packs)} addresses)")
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
-        (tmp / "symbols_gen.h").write_text(kaepora_symbols.generate(packs))
-        (tmp / "font_gen.h").write_text(kaepora_font.generate())
+        (tmp / "symbols_gen.h").write_text(kaegae_symbols.generate(packs))
+        (tmp / "font_gen.h").write_text(kaegae_font.generate())
         exe = tmp / "unit"
         command = ["clang", "-std=c11", "-O1", "-g", "-Wall", "-Wextra", "-Werror", "-DKAE_BUILDING_CORE",
                    "-DKP_POOL_BYTES=4096", f"-I{CORE}", f"-I{REPO / 'api' / 'include'}", f"-I{tmp}", *map(str, SOURCES),
-                   str(REPO / "tests" / "kaepora" / "unit.c"), "-o", str(exe)]
+                   str(REPO / "tests" / "kaegae" / "unit.c"), "-o", str(exe)]
         sanitizers = ["-fsanitize=address,undefined", "-fno-sanitize-recover=all"]
         if subprocess.run(command + sanitizers, capture_output=True).returncode:
             print("(this clang has no sanitizer libraries: running without them)")

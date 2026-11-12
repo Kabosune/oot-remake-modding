@@ -1,25 +1,25 @@
-# Kaepora packages: the manifest, the registry and the checker
+# KaeGae packages: the manifest, the registry and the checker
 
-**Manifest version 1. Part of the Kaepora draft ([DESIGN.md](DESIGN.md)); may still change before
+**Manifest version 1. Part of the KaeGae draft ([DESIGN.md](DESIGN.md)); may still change before
 spec 1.0.** This page is the reference for levels 1 and 2 of the standard: what a mod folder
 looks like, what its `mod.toml` says, how space in `main` is shared, and what
-[`tools/kaepora.py`](../tools/kaepora.py) checks. Everything here runs on a PC and needs no game
+[`tools/kaegae.py`](../tools/kaegae.py) checks. Everything here runs on a PC and needs no game
 files.
 
 ## The short version
 
-- An existing mod conforms by adding one file, `mod.toml`, to its folder. `kaepora init` writes a
+- An existing mod conforms by adding one file, `mod.toml`, to its folder. `kaegae init` writes a
   first version from the mod's patch.
-- `kaepora check` reads every installed mod, with or without a manifest, and says which ones can't
+- `kaegae check` reads every installed mod, with or without a manifest, and says which ones can't
   be on together and why, before the game starts.
-- `kaepora install` runs that check first, then copies the mod into the emulator's folder.
+- `kaegae install` runs that check first, then copies the mod into the emulator's folder.
 - The registry (`registry/<build>.toml`) records who uses which bytes of `main`.
 
 ```
-python3 tools/kaepora.py init "My Mod" --id me.my-mod --author Me --license MIT
-python3 tools/kaepora.py check "My Mod" --with-installed
-python3 tools/kaepora.py install my-mod.zip
-python3 tools/kaepora.py list
+python3 tools/kaegae.py init "My Mod" --id me.my-mod --author Me --license MIT
+python3 tools/kaegae.py check "My Mod" --with-installed
+python3 tools/kaegae.py install my-mod.zip
+python3 tools/kaegae.py list
 ```
 
 Needs Python 3.11 or later (3.10 works after `pip install tomli`).
@@ -34,7 +34,7 @@ My Mod/
   mod.toml                     the manifest
   README.txt
   exefs/<build id>.ips         a patch to main (levels 1 and 2)
-  exefs/subsdk2                a module (a core mod; Kaepora Core's own module is subsdk1)
+  exefs/subsdk2                a module (a core mod; KaeGae Core's own module is subsdk1)
   romfs/...                    files added to the game's file system
 ```
 
@@ -84,8 +84,8 @@ written, and a patch for a build with no table is an error.
 
 ```toml
 [modules]
-subsdk1 = "kaepora.core@0.3"
-subsdk2 = "kaepora.hello@0.3.0"
+subsdk1 = "kaegae.core@0.3"
+subsdk2 = "kaegae.hello@0.3.0"
 ```
 
 Each `exefs/subsdkN` in the folder is named: which mod it is, and which version. When several are
@@ -93,9 +93,9 @@ linked into one module (`tools/kaemod.py --bundle`), the value is a list. `tools
 this table, and Core's `[build]` claims, into every folder it builds.
 
 A folder "provides" its own id and every id in its modules. One id may be provided by one folder
-only, which is how two copies of Kaepora Core are caught.
+only, which is how two copies of KaeGae Core are caught.
 
-### `[core]`: a mod that runs on Kaepora Core
+### `[core]`: a mod that runs on KaeGae Core
 
 | Key | Meaning |
 |---|---|
@@ -103,7 +103,7 @@ only, which is how two copies of Kaepora Core are caught.
 | `sources`, `imports`, `symbols`, `events` | Read by the build (`tools/kaemod.py`): source files, system functions the mod imports itself, the symbols and events it uses |
 
 A core mod has no `code` or `hooks` of its own. The only folder that has both `[core]` and claims
-on main is one that also holds Kaepora Core.
+on main is one that also holds KaeGae Core.
 
 ### `[input]`: default buttons
 
@@ -123,7 +123,7 @@ buttons in the Mods menu instead and need not list them.
 
 ```toml
 [relations]
-requires   = ["kaepora.core==0.3"]
+requires   = ["kaegae.core==0.3"]
 conflicts  = ["someone.other-mod"]
 load-after = []
 ```
@@ -153,9 +153,9 @@ ship a whole table gets a warning.
 
 ## Building the shared files
 
-`kaepora build --game-table <file>` collects the size table requests of every installed mod that
+`kaegae build --game-table <file>` collects the size table requests of every installed mod that
 is on, raises those entries in a copy of the game's own table (the largest request wins, nothing
-is ever lowered) and writes the result as a mod folder, `Kaepora Built Files`, in the load folder.
+is ever lowered) and writes the result as a mod folder, `KaeGae Built Files`, in the load folder.
 The game's table is
 `romfs/System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs` from your own
 dump ([docs/romfs.md](../docs/romfs.md)). Needs `pip install zstandard`.
@@ -193,7 +193,7 @@ Rules:
 
 - **Claim by pull request, first come first served, in the smallest amount that works.** A claim
   in the registry and the `[build]` table in the mod's manifest must say the same thing
-  (`tests/test_kaepora_tools.py` checks this for the mods in this repo).
+  (`tests/test_kaegae_tools.py` checks this for the mods in this repo).
 - **Claims may not overlap.** The test fails if two do.
 - **Mods that don't follow the standard are recorded too**, read from their patches, with
   `standard = false`, so the checker knows them. `builtin = ["fritchii"]` marks a patch an
@@ -203,7 +203,7 @@ Rules:
   point and both subscribe.
 - `retired = true` keeps the record of a mod that is no longer distributed.
 
-`kaepora registry` prints the registry with how much of each space is taken.
+`kaegae registry` prints the registry with how much of each space is taken.
 
 ## What `check` reports
 
@@ -219,15 +219,15 @@ the way the player expects. Notes are information. The name in brackets is stabl
 | `romfs-clash` | error | Two folders replace the same romfs file |
 | `duplicate-id` | error | One id is provided by two folders |
 | `requires`, `conflicts` | error | A requirement nobody meets, or a mod its neighbour says it can't run with |
-| `no-core`, `api-mismatch` | error | A core mod without Kaepora Core, or built for another API version |
+| `no-core`, `api-mismatch` | error | A core mod without KaeGae Core, or built for another API version |
 | `undeclared-write`, `undeclared-patch`, `hook-not-written`, `ips-missing`, `undeclared-module`, `module-missing` | error | The manifest and the folder's files disagree |
 | `overwrites-game` | error | With `--main`: new code lands on bytes that aren't zero padding |
 | `input-clash` | warning | Two mods have the same default button |
 | `builtin-clash` | warning | The patch uses bytes an emulator's built-in patch also uses (a note on other emulators) |
 | `unregistered`, `outside-claim` | warning | A mod that patches main has no claim in the registry, or writes outside it |
 | `ships-size-table` | warning | The folder ships a whole resource size table |
-| `size-table-not-built` | warning | Mods ask for resource size table entries and `kaepora build` hasn't been run |
-| `size-table-stale` | error | The built table is too small for a request: run `kaepora build` again |
+| `size-table-not-built` | warning | Mods ask for resource size table entries and `kaegae build` hasn't been run |
+| `size-table-stale` | error | The built table is too small for a request: run `kaegae build` again |
 | `registered-to-other` | note | The patch uses space registered to a mod that isn't installed |
 | `recognised`, `unknown-patch`, `unnamed-core`, `empty` | note | What a folder without a manifest turned out to be |
 
@@ -239,18 +239,18 @@ adds the check that new code replaces only zero padding.
 
 ## Installing
 
-`kaepora install <zip or folder>...`:
+`kaegae install <zip or folder>...`:
 
 1. Unpacks to a temporary place (a zip entry that points outside the zip is refused).
 2. **Assigns module slots.** If a new mod's `subsdkN` is taken by an installed mod, its module is
    renamed to the lowest free slot from `subsdk2` to `subsdk8` and its installed `mod.toml` is
-   updated. `subsdk1` is Kaepora Core's; `subsdk9` is left to standalone mods. The source is never
+   updated. `subsdk1` is KaeGae Core's; `subsdk9` is left to standalone mods. The source is never
    changed.
 3. Runs `check` on the new mods together with the installed ones that are on. Any error stops the
    install (`--force` overrides, `--dry-run` stops here on purpose).
 4. Copies each folder into `load/0400486024DEC000/`, replacing a folder of the same name.
 
-`kaepora remove <folder name>` deletes an installed folder. Neither command switches mods on or
+`kaegae remove <folder name>` deletes an installed folder. Neither command switches mods on or
 off: that stays in the emulator's Add-Ons list.
 
 ### Where the emulators keep mods
@@ -280,7 +280,7 @@ works on any set of folders today.
 
 ## Not done yet
 
-- The rest of `kaepora build` (roadmap M1): the `byml`, `text`, `binary` and `script` kinds, and adding
+- The rest of `kaegae build` (roadmap M1): the `byml`, `text`, `binary` and `script` kinds, and adding
   size table entries for files the game doesn't have.
 - Reading `.pchtxt` patches (they are reported and skipped).
 - Generating the memory map page from the registry.

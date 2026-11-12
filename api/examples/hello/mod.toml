@@ -1,8 +1,8 @@
-# A core mod's manifest: no patches to main, only what it asks of Kaepora Core.
+# A core mod's manifest: no patches to main, only what it asks of KaeGae Core.
 manifest = 1
 
-id       = "kaepora.hello"
-name     = "Kaepora Hello"
+id       = "kaegae.hello"
+name     = "KaeGae Hello"
 version  = "0.4.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Read and check a Kaepora manifest (mod.toml), and read the patches a mod folder holds.
+"""Read and check a KaeGae manifest (mod.toml), and read the patches a mod folder holds.
 
 The format is described in api/MANIFEST.md. This module has no opinion about other mods: it only
 says whether one folder is a well-formed package and whether its manifest tells the truth about
-its own patch. tools/kaepora_check.py compares folders with each other.
+its own patch. tools/kaegae_check.py compares folders with each other.
 
 Needs Python 3.11+ (or 3.10 with `pip install tomli`). Offsets everywhere are module offsets: the address in this repo's
 docs minus 0x80020000, which is also the offset in an IPS32 patch minus the 0x100-byte NSO header.
@@ -29,8 +29,8 @@ TITLE_ID = re.compile(r"[0-9A-F]{16}")
 SLOT = re.compile(r"subsdk[0-9]")
 RELATION = re.compile(r"\s*([a-z0-9.-]+)\s*(?:(>=|<=|==|>|<)\s*([0-9][0-9A-Za-z.+-]*))?\s*")
 
-# Names a manifest may use for controller buttons. The first sixteen are the ones Kaepora Core
-# knows (KAE_A ... KAE_DOWN in kaepora.h); a chord is written with "+" between names: "L+Left".
+# Names a manifest may use for controller buttons. The first sixteen are the ones KaeGae Core
+# knows (KAE_A ... KAE_DOWN in kaegae.h); a chord is written with "+" between names: "L+Left".
 BUTTONS = ("A", "B", "X", "Y", "L", "R", "ZL", "ZR", "L3", "R3", "Plus", "Minus", "Up", "Down", "Left", "Right",
            "SL", "SR", "Home", "Capture", "C")
 MOUSE = ("left", "right", "middle", "back", "forward")
@@ -114,10 +114,10 @@ def version_key(text):
 
 
 def parse_relation(text):
-    """'kaepora.core>=0.3' -> ('kaepora.core', '>=', '0.3'); a bare id -> (id, None, None)."""
+    """'kaegae.core>=0.3' -> ('kaegae.core', '>=', '0.3'); a bare id -> (id, None, None)."""
     m = RELATION.fullmatch(text) if isinstance(text, str) else None
     if not m or not ID.fullmatch(m.group(1)):
-        raise ValueError(f"{text!r} is not \"author.mod-name\" with an optional version, such as \"kaepora.core>=0.3\"")
+        raise ValueError(f"{text!r} is not \"author.mod-name\" with an optional version, such as \"kaegae.core>=0.3\"")
     return m.group(1), m.group(2), m.group(3)
 
 
@@ -397,7 +397,7 @@ def load_manifest(path):
             kind, _, name = entry.partition(":") if isinstance(entry, str) else ("", "", "")
             if kind not in ("function", "field", "global", "vtable", "hookpoint") or not name:
                 err("core", f"[core] symbols: {entry!r}: write \"function:Name\" or \"field:Name\"")
-        holds_core = any(mod_id == "kaepora.core" for mod_id, _ in m.module_ids())
+        holds_core = any(mod_id == "kaegae.core" for mod_id, _ in m.module_ids())
         if not holds_core and any(b.code or b.hooks for b in m.builds.values()):
             err("core", "a core mod doesn't patch main: remove code and hooks from [build.*], or remove [core]")
     return m
@@ -516,8 +516,8 @@ def _check_against_files(mod):
         if SLOT.fullmatch(name) and name not in m.modules:
             err("undeclared-module", f"exefs/{name} is a module the manifest's [modules] table doesn't list")
     for path_ in sorted(mod.romfs):
-        if m.id == "kaepora.built":
-            break       # the folder `kaepora build` writes: the merged table is the point of it
+        if m.id == "kaegae.built":
+            break       # the folder `kaegae build` writes: the merged table is the point of it
         if "ResourceSizeTable" in path_ and path_.endswith((".rsizetable", ".rsizetable.zs")):
             warn("ships-size-table", f"romfs/{path_} is a whole resource size table: a changed copy of a game file, "
                                      "and any two mods that ship one overwrite each other. Ask for the entries "

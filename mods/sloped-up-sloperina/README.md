@@ -1,9 +1,9 @@
-# Super Sloperina
+# Sloped Up Sloperina
 
-Practice tools for the Ocarina of Time remake, running on [Kaepora Core](../../api/README.md).
+Practice tools for the Ocarina of Time remake, running on [KaeGae Core](../../api/README.md).
 The idea and the name come from [sloperinaGZ](https://github.com/PracticeROM/sloperina) by
 PracticeROM, a gz-style practice menu for this game. This is a new mod written from scratch for
-Kaepora, not a copy of their code (theirs is GPL-3.0, this repository is MIT); what was learned
+KaeGae, not a copy of their code (theirs is GPL-3.0, this repository is MIT); what was learned
 from their write-ups is in [docs/sloperina-findings.md](../../docs/sloperina-findings.md).
 
 **Status, 10 November 2026: version 0.1.0, a first slice. It passes its test in an emulated game
@@ -22,17 +22,17 @@ with a stand-in Link. It has not run in the real game yet.** Game version 1.1.1 
 Every tool and button combination is on the mod's page in the Mods menu (- and + together):
 the displays can be switched off, the text made larger or smaller, the combinations changed, and
 the lift speed set. A combination that the mod acts on isn't passed on to the game. Settings are
-not saved between runs yet (that comes with Kaepora Core).
+not saved between runs yet (that comes with KaeGae Core).
 
 ## Install
 
-Super Sloperina needs Kaepora Core. `python3 tools/kaemod.py mods/super-sloperina` builds a zip
+Sloped Up Sloperina needs KaeGae Core. `python3 tools/kaemod.py mods/sloped-up-sloperina` builds a zip
 with Core and the mod; copy its folder into the emulator's mod folder for the game. Turn off
 sloperinaGZ itself while using it: both hook the game's drawing.
 
 ## How it works
 
-One C file, [sloperina.c](sloperina.c), written against the public API ([kaepora.h](../../api/include/kaepora.h)):
+One C file, [sloperina.c](sloperina.c), written against the public API ([kaegae.h](../../api/include/kaegae.h)):
 `kae_on_input` for the controller, `kae_on_actor_move` to find Link and move him with the game's own
 ChangePosition (the function FPV Drone and Mouse Grab use), `kae_draw_text` for the display, and
 `kae_settings` for its page. Game addresses come from Core's symbol pack by name. The walk from

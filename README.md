@@ -24,20 +24,20 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 | [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Keyboard: `,` `.` eye height, `;` show / hide Link. | Works in Lichii / Fritchii |
 | [FPV Drone](mods/fpv-drone/README.md) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | Drone modes tried in Fritchii; Free fly and carry tested in Unicorn only |
 | [Mouse Grab](mods/mouse-grab/README.md) | A mouse cursor that grabs Link as a ragdoll, to move and throw him. | In progress: input findings and a test build (the probe) |
-| [Super Sloperina](mods/super-sloperina/README.md) | Practice tools on Kaepora Core: input display, position watch, save / load position, levitate. | First slice, not tested in the game yet |
+| [Sloped Up Sloperina](mods/sloped-up-sloperina/README.md) | Practice tools on KaeGae Core: input display, position watch, save / load position, levitate. | First slice. Works in Fritchii (11 Nov); levitate still fights gravity |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
 Fritchii: `%APPDATA%\eden\load\`), then close and reopen the emulator. Or let the tool do it, with
-a check for conflicts first: `python3 tools/kaepora.py install releases/first-person.zip`
+a check for conflicts first: `python3 tools/kaegae.py install releases/first-person.zip`
 ([api/MANIFEST.md](api/MANIFEST.md)).
 
 ## A shared modding standard (draft)
 
-[Kaepora](api/README.md) is a proposal for how mods for this game can be packaged, checked for
+[KaeGae](api/README.md) is a proposal for how mods for this game can be packaged, checked for
 conflicts and, later, built on one shared core module so they survive game updates and work
 together. The core runs in the game and the conflict checker works on today's mods
-(`python3 tools/kaepora.py check`); it is still a draft: read [api/DESIGN.md](api/DESIGN.md) and
+(`python3 tools/kaegae.py check`); it is still a draft: read [api/DESIGN.md](api/DESIGN.md) and
 say what's wrong with it.
 
 ## Docs
@@ -56,7 +56,7 @@ say what's wrong with it.
 - [Structures](docs/structures.md): field layouts (camera view, camera manager, Link, controller state).
 - [Memory map](docs/memory-map.md): which code cave and free memory each mod uses, so mods don't collide.
 - [Writing a patch](docs/writing-a-patch.md): how `tools/nxpatch.py` works and the rules for hooks.
-- [Modules](docs/modules.md): mods as their own `subsdk` module (Kaepora Core), hooking from a module, drawing, mouse and motion input.
+- [Modules](docs/modules.md): mods as their own `subsdk` module (KaeGae Core), hooking from a module, drawing, mouse and motion input.
 - [Ragdoll, faces and voices](docs/ragdoll-and-animation.md): starting and ending Link's ragdoll, moving its bodies, playing AS commands.
 - [What sloperinaGZ found](docs/sloperina-findings.md): a summary of the practice menu's findings (save fields, pausing, physics controller, actors) in this repo's addresses, and what they open up for the mods here.
 - [Community projects](docs/community.md): emulators, recomps, other mods and tools.
@@ -78,13 +78,13 @@ tools/asbtool.py           read and check animation graphs (AS/*.root.asb)
 tools/rstb_set.py          raise entries in the resource size table for romfs mods whose files grew
 tools/gen_commands.py      regenerate the script-command table from a flat main
 tools/ghidra_label_commands.py  name those functions in Ghidra
-api/                       Kaepora, the proposed modding standard: the design, Core (api/core), its API (api/include)
-tools/kaemod.py            build Kaepora Core and core mods into exefs modules
-tools/kaepora_symbols.py   symbol packs (symbols/<build>.toml) -> the table compiled into Core
+api/                       KaeGae, the proposed modding standard: the design, Core (api/core), its API (api/include)
+tools/kaemod.py            build KaeGae Core and core mods into exefs modules
+tools/kaegae_symbols.py   symbol packs (symbols/<build>.toml) -> the table compiled into Core
 tools/mknso.py             pack a linked module into an NSO
 mods/<mod>/                source (.S, .c), build.py, README
 tests/                     Unicorn tests that run the hooks on a patched main with fake game objects;
-                           Kaepora's tests (test_kaepora_unit.py, test_kaepora_modules.py, test_kaepora_symbols.py) need no game files
+                           KaeGae's tests (test_kaegae_unit.py, test_kaegae_modules.py, test_kaegae_symbols.py) need no game files
 releases/                  built zips
 ```
 

@@ -1,12 +1,12 @@
 // Mouse Grab was written against Core's first skeleton, whose functions were named kp_. This
-// header gives those names to the public API (kaepora.h), so the mod's files didn't need to change
-// when Core became its own module. New code should use kaepora.h directly.
+// header gives those names to the public API (kaegae.h), so the mod's files didn't need to change
+// when Core became its own module. New code should use kaegae.h directly.
 #pragma once
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include <kaepora.h>
+#include <kaegae.h>
 
 typedef KaeFrame kp_frame_t;
 

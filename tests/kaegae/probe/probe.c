@@ -1,5 +1,5 @@
 // The test's mod. See mod.toml.
-#include <kaepora.h>
+#include <kaegae.h>
 
 typedef struct {
     int64_t sample;
@@ -68,4 +68,4 @@ static int start(void) {
     return 0;
 }
 
-KAE_MOD("kaepora.test-probe", "1.2.3", start, 0);
+KAE_MOD("kaegae.test-probe", "1.2.3", start, 0);

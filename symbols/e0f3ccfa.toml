@@ -1,11 +1,11 @@
-# Kaepora symbol pack for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
+# KaeGae symbol pack for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
 #
-# Everything Kaepora Core knows about this build of the game is in this file. Offsets are module
-# offsets (address in the docs minus 0x80020000). tools/kaepora_symbols.py turns the packs into
+# Everything KaeGae Core knows about this build of the game is in this file. Offsets are module
+# offsets (address in the docs minus 0x80020000). tools/kaegae_symbols.py turns the packs into
 # the table compiled into Core; mods ask for these by name (kae_sym, kae_field).
 #
 # `ld` names the same thing in symbols/e0f3ccfa.ld (the file the IPS mods link against);
-# tests/test_kaepora_symbols.py checks that the two agree. How each was found is in
+# tests/test_kaegae_symbols.py checks that the two agree. How each was found is in
 # docs/address-map.md and docs/structures.md.
 
 build   = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"

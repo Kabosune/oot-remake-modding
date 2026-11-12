@@ -1,4 +1,4 @@
-// A stand-in for the game's main, for tests/test_kaepora_modules.py. It has the few things Core
+// A stand-in for the game's main, for tests/test_kaegae_modules.py. It has the few things Core
 // looks for in the real one at the same places (nnMain, MOD0, the movement update, the import
 // slots) and behaves like the game where Core hooks it. Nothing here comes from the game.
 #include <stddef.h>

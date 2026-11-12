@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the files that several mods share, from the player's own dump: what `kaepora build` does.
+"""Build the files that several mods share, from the player's own dump: what `kaegae build` does.
 
 So far that is one file, the resource size table. Mods ask for entries in it with
 [[romfs-patch]] kind = "size-table" in their mod.toml; this merges every request into one copy of
@@ -12,8 +12,8 @@ import struct
 import zlib
 from pathlib import Path
 
-BUILT_ID = "kaepora.built"
-BUILT_NAME = "Kaepora Built Files"
+BUILT_ID = "kaegae.built"
+BUILT_NAME = "KaeGae Built Files"
 TABLE_DIR = "System/Resource"
 ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
 HEADER = 22         # "RESTBL", u32 version, u32 name size, u32 hashed count, u32 named count
@@ -107,11 +107,11 @@ def collect(mods):
 
 
 def manifest_text(title, table_name, requests, changes):
-    lines = ["# Written by `kaepora build`: files several mods share, made from this player's own dump.",
-             "# Don't share this folder: it holds a changed copy of a game file. Run `kaepora build` again",
+    lines = ["# Written by `kaegae build`: files several mods share, made from this player's own dump.",
+             "# Don't share this folder: it holds a changed copy of a game file. Run `kaegae build` again",
              "# after installing or removing a mod that asks for size table entries.",
              "manifest = 1", "", f'id       = "{BUILT_ID}"', f'name     = "{BUILT_NAME}"', 'version  = "1.0.0"',
-             'authors  = ["kaepora build"]', 'license  = "not for redistribution"', "", "[game]", f'title = "{title}"', "",
+             'authors  = ["kaegae build"]', 'license  = "not for redistribution"', "", "[game]", f'title = "{title}"', "",
              f"# romfs/{TABLE_DIR}/{table_name}: the game's table with these entries raised"]
     done = {path: (old, new) for path, old, new in changes}
     for path, (size, who) in sorted(requests.items()):

@@ -1,6 +1,6 @@
-"""Run Kaepora's hook point stubs (Core's .ips) on a patched main in Unicorn.
+"""Run KaeGae's hook point stubs (Core's .ips) on a patched main in Unicorn.
 
-    python3 tests/test_kaepora_hooks.py <flat main image> <any zip built by tools/kaemod.py>
+    python3 tests/test_kaegae_hooks.py <flat main image> <any zip built by tools/kaemod.py>
 
 With the slot empty and with a function in it (one that trashes every caller-saved register), the
 movement update's second instruction must still do its work (d10 stored, sp down 0x80) and come

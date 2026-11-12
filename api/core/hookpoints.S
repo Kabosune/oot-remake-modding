@@ -1,4 +1,4 @@
-// Kaepora hook points: small patches to main that call into the module.
+// KaeGae hook points: small patches to main that call into the module.
 //
 // Each hook point jumps from a site in main to a stub here. The stub loads a function pointer from
 // KP_HOOK_SLOTS (written by the module at start) and, when it isn't zero, calls it; then it runs

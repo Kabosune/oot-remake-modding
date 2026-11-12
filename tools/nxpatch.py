@@ -245,7 +245,7 @@ def ips32(records):
 
 
 def write_zip(path, title_id, mod_name, build_id, patch, readme=None, manifest=None):
-    """manifest: the mod's mod.toml (a path), put in the mod folder so `kaepora check` knows the mod."""
+    """manifest: the mod's mod.toml (a path), put in the mod folder so `kaegae check` knows the mod."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:

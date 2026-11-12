@@ -39,7 +39,7 @@ BUILDS = [
      "loading the extra subsdk1 is fine on the console. Nothing visible changes in the game.\n"),
     ("mouse-grab-no-debug-log", "Mouse Grab (no debug log)",
      [REPO / "mods/mouse-grab/build.py", "--define", "KAE_NO_DEBUG_OUT"],
-     "Hardware test: Mouse Grab with Kaepora Core's debug log switched off (it never calls\n"
+     "Hardware test: Mouse Grab with KaeGae Core's debug log switched off (it never calls\n"
      "svcOutputDebugString). Otherwise the same as mouse-grab-test.zip.\n"),
 ]
 

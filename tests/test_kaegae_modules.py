@@ -1,8 +1,8 @@
-"""Kaepora Core and core mods, end to end, without the game: the modules are built exactly as
+"""KaeGae Core and core mods, end to end, without the game: the modules are built exactly as
 they ship (tools/kaemod.py), loaded and linked by a small stand-in for the game's rtld, and run
-in Unicorn against a fake game and a fake system module (tests/kaepora/).
+in Unicorn against a fake game and a fake system module (tests/kaegae/).
 
-    python3 tests/test_kaepora_modules.py
+    python3 tests/test_kaegae_modules.py
 
 What this can show: Core's own logic on real AArch64 code, the module format, and that mods work
 as their own modules or linked into Core's, whichever module starts first. What it can't show is
@@ -17,15 +17,15 @@ import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-HERE = REPO / "tests" / "kaepora"
+HERE = REPO / "tests" / "kaegae"
 sys.path.insert(0, str(REPO / "tools"))
 sys.path.insert(0, str(HERE))
 import emu  # noqa: E402
 import kaemod  # noqa: E402
-import kaepora_font  # noqa: E402
-import kaepora_symbols  # noqa: E402
+import kaegae_font  # noqa: E402
+import kaegae_symbols  # noqa: E402
 
-PACK = kaepora_symbols.load_packs()[0]
+PACK = kaegae_symbols.load_packs()[0]
 MAIN_BASE, SDK_BASE, CORE_BASE, MOD_BASE = 0x8052F000, 0x70000000, 0x90000000, 0x91000000
 MOVE_UPDATE = 0x2C215E0
 FAKE_FLAGS = ["--target=aarch64-none-elf", "-O1", "-fPIC", "-ffreestanding", "-fno-builtin", "-fvisibility=hidden",
@@ -180,15 +180,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaepora: Core 0.4 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.4 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
-    g.expect("kaepora: mod kaepora.hello 0.4.0 started", "kaepora: mod kaepora.test-probe 1.2.3 started")
+    g.expect("kaegae: mod kaegae.hello 0.4.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaepora [kaepora.test-probe]: start: api 4 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 4 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaepora [kaepora.hello]: hello from its own start. Core API 0.4, game 1.1.1",
+             "kaegae [kaegae.hello]: hello from its own start. Core API 0.4, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -210,9 +210,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("Kaepora Core 0.4: A is held", white, at its
+    # between them hello's text plate, its text ("KaeGae Core 0.4: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, 27
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.4: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -224,14 +224,14 @@ def check_full_run(g, style_set=1):
             for xx in range(x, x + w):
                 if text_x <= xx < text_x + 8 * size:
                     cell[(yy - text_y) // size][(xx - text_x) // size] = 1
-    assert [sum(bit << (7 - i) for i, bit in enumerate(row)) for row in cell] == kaepora_font.read_bdf()[ord("K")]
+    assert [sum(bit << (7 - i) for i, bit in enumerate(row)) for row in cell] == kaegae_font.read_bdf()[ord("K")]
     picture = [r for r in rects[3:-2] if r[4] in (0xFFD040,) ]
     assert len(text) > 60 and len(picture) >= 6, (len(text), len(picture))
     assert g.sdk_int("sdk_presents") == 3 and g.sdk_int("sdk_submits") == 3
     # one frame per poll (the probe counts them), two controller reads per poll
     g.expect("report: frames 3 inputs 6 moves 3 draws 3 actor 0xabc000 size 1280x720",
              "report: motion 3 0.5 8.5 mouse 1 640,360")
-    g.expect("kaepora [kaepora.hello]: alive: 1 frames, 0 controller reads, 0 actor moves")
+    g.expect("kaegae [kaegae.hello]: alive: 1 frames, 0 controller reads, 0 actor moves")
     LAST_LOG[:] = p.log
 
 
@@ -253,8 +253,8 @@ def main():
                     check_full_run(g)
                     started = [line.split()[2] for line in g.logged(" started")]
                     if files is separate:   # mods start in the order their modules registered
-                        assert started == (["kaepora.hello", "kaepora.test-probe"] if order == "core-first"
-                                           else ["kaepora.test-probe", "kaepora.hello"]), started
+                        assert started == (["kaegae.hello", "kaegae.test-probe"] if order == "core-first"
+                                           else ["kaegae.test-probe", "kaegae.hello"]), started
             print(f"{how}: ok (Core started first or last, main's imports bound or not)")
 
         g = Game(fakes, separate, sdk="old-sdk")
@@ -319,7 +319,7 @@ def main():
         g.expect("hook points off: main isn't patched")
         g.game("game_boot")
         g.expect("event.actor_move: no", "start: has 1110110", "start: subscribed 0 0 -3 0",
-                 "mod kaepora.hello 0.4.0 started", "mod kaepora.test-probe 1.2.3 started")
+                 "mod kaegae.hello 0.4.0 started", "mod kaegae.test-probe 1.2.3 started")
         for _ in range(3):
             g.frame()
         g.expect("report: frames 3 inputs 6 moves 0 draws 3")
@@ -332,7 +332,7 @@ def main():
 
         g = Game(fakes, separate, with_core=False, lazy=False)   # nothing wraps main's imports here
         assert g.p.unresolved == [], g.p.unresolved      # a mod's imports from Core are all weak
-        assert len(g.logged("Kaepora Core isn't loaded")) == 2
+        assert len(g.logged("KaeGae Core isn't loaded")) == 2
         g.game("game_boot")
         for _ in range(2):
             g.frame()
@@ -342,15 +342,15 @@ def main():
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
         g.expect("Core 0.4: unknown game build, doing nothing",
-                 "mod kaepora.hello 0.4.0 is off: this build of the game isn't known to Core",
-                 "mod kaepora.test-probe 1.2.3 is off: this build of the game isn't known to Core")
+                 "mod kaegae.hello 0.4.0 is off: this build of the game isn't known to Core",
+                 "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
         g.set_controller(3)
         for _ in range(2):
             g.frame()
         assert g.states(0)[0][0] == 3 and g.rects() == [] and not g.logged("start:")
         g = Game(other, bundle, patched=False, lazy=False)
-        g.expect("unknown game build", "mod kaepora.hello 0.4.0 is off", "mod kaepora.test-probe 1.2.3 is off")
+        g.expect("unknown game build", "mod kaegae.hello 0.4.0 is off", "mod kaegae.test-probe 1.2.3 is off")
         print("a game build Core doesn't know: ok (nothing hooked, each mod reported off)")
         # Mouse Grab, the first real mod on Core: it loads, starts, draws its cursor at the (fake) mouse
         # and gets every actor's movement update. Grabbing itself needs the game.
@@ -359,19 +359,19 @@ def main():
             g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), grab], bundled, tmp / f"grab-{bundled}"))
             g.p.uc.mem_map(0x40000000, 0x10000)          # an actor that isn't Link: zeroed memory
             g.game("game_boot")
-            g.expect("kaepora [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.2.0 started",
-                     "mod kaepora.hello 0.4.0 started")
+            g.expect("kaegae [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.2.0 started",
+                     "mod kaegae.hello 0.4.0 started")
             for _ in range(3):
                 g.frame(actor=0x40000000)
             rects = g.rects()
             assert len(rects) > 20 and (640, 720 - 360 - 1, 1, 1, 0) in rects, rects[:6]   # the arrow's tip
             assert not g.p.unresolved, g.p.unresolved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors)")
-        # Super Sloperina, the first mod written against the public API only. A Link is built in memory
+        # Sloped Up Sloperina, the first mod written against the public API only. A Link is built in memory
         # the way the game lays him out (actor -> components -> movement inside the player object, whose
         # resource is "Player"; components -> ... -> character controller), and main gets a stand-in
         # for ChangePosition that copies the position it is given into the controller at +0x100.
-        sloperina = kaemod.Mod(REPO / "mods" / "super-sloperina")
+        sloperina = kaemod.Mod(REPO / "mods" / "sloped-up-sloperina")
         g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), sloperina], False, tmp / "sloperina"))
         LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, PLAYER = (0x40000000 + i * 0x1000 for i in range(8))
         MOVEMENT = PLAYER + 0x1D50
@@ -395,7 +395,7 @@ def main():
             return g.states(0)[-1][0], struct.unpack("<3f", g.p.read(CCT + 0x100, 12))
         L, LEFT, UP, RIGHT = 1 << 6, 1 << 12, 1 << 13, 1 << 14
         g.game("game_boot")
-        g.expect("mod kabosune.super-sloperina 0.1.0 started")
+        g.expect("mod kabosune.sloped-up-sloperina 0.1.0 started")
         assert link_frame(0, (1.0, 2.0, 3.0)) == (0, (0.0, 0.0, 0.0))               # nothing asked: Link isn't moved
         assert link_frame(L | LEFT)[0] == 0, "the game saw the save combination"    # saved at (1, 2, 3)
         link_frame(0, (50.0, 60.0, 70.0))
@@ -408,7 +408,7 @@ def main():
         hud = [r for r in g.rects() if r[4] == 0x101820 and r[0] == 720 // 45]
         assert len(hud) == 1 and hud[0][1] == 720 // 45, hud                        # bottom left (origin lower left)
         assert not g.p.unresolved, g.p.unresolved
-        print("Super Sloperina: ok (finds Link, saves / loads his position, levitates, hides its combinations, draws its display)")
+        print("Sloped Up Sloperina: ok (finds Link, saves / loads his position, levitates, hides its combinations, draws its display)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

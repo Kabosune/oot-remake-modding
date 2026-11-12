@@ -1,10 +1,10 @@
-// Super Sloperina: practice tools on Kaepora Core. The first slice: an input display, a position
+// Sloped Up Sloperina: practice tools on KaeGae Core. The first slice: an input display, a position
 // watch, save / load position and levitate. Its settings and buttons are a page of the Mods menu.
 //
 // Everything it asks of the game goes through Core by name (kae_sym, kae_field), except the walk
 // from an actor to Link's player object and character controller, whose offsets are still written
 // out here (finding Link belongs in Core; see the README).
-#include <kaepora.h>
+#include <kaegae.h>
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
 
@@ -294,9 +294,9 @@ static int start(void) {
         return 2;
     if (kae_on_actor_move(actor_move, 0, 0) != KAE_OK)
         KAE_LOG("no actor_move event: the position watch, save / load and levitate are off");
-    kae_settings("Super Sloperina", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("super sloperina 0.1.0: input display, position watch, save / load position, levitate");
+    kae_settings("Sloped Up Sloperina", settings, sizeof settings / sizeof *settings);
+    KAE_LOG("sloped up sloperina 0.1.0: input display, position watch, save / load position, levitate");
     return 0;
 }
 
-KAE_MOD("kabosune.super-sloperina", "0.1.0", start, 0);
+KAE_MOD("kabosune.sloped-up-sloperina", "0.1.0", start, 0);

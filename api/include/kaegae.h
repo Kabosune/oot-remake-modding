@@ -1,8 +1,8 @@
-/* Kaepora Core API 0.2. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.2. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
- *     #include <kaepora.h>
+ *     #include <kaegae.h>
  *
  *     static void draw(const KaeFrame *frame, void *user) {
  *         kae_draw_rect(20, 20, 40, 40, 0x40C0FF);
@@ -17,8 +17,8 @@
  *
  * Until API 1.0, Core only runs mods built against exactly its own version (0.x may still change).
  */
-#ifndef KAEPORA_H
-#define KAEPORA_H
+#ifndef KAEGAE_H
+#define KAEGAE_H
 
 #include <stddef.h>
 #include <stdint.h>

@@ -1,8 +1,8 @@
-# Super Sloperina's manifest: a core mod (no patches of its own; it runs on Kaepora Core).
+# Sloped Up Sloperina's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
 manifest = 1
 
-id       = "kabosune.super-sloperina"
-name     = "Super Sloperina"
+id       = "kabosune.sloped-up-sloperina"
+name     = "Sloped Up Sloperina"
 version  = "0.1.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"

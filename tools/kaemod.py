@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build Kaepora Core and core mods into modules for the game's exefs.
+"""Build KaeGae Core and core mods into modules for the game's exefs.
 
-    python3 tools/kaemod.py                                   # Core alone -> releases/kaepora-core.zip
+    python3 tools/kaemod.py                                   # Core alone -> releases/kaegae-core.zip
     python3 tools/kaemod.py api/examples/hello                # Core + the mod, each its own module
-    python3 tools/kaemod.py api/examples/hello mods/mouse-grab --name "Kaepora Test" --out releases/test.zip
+    python3 tools/kaemod.py api/examples/hello mods/mouse-grab --name "KaeGae Test" --out releases/test.zip
     python3 tools/kaemod.py mods/mouse-grab --bundle          # the mod linked into Core's module
     python3 tools/kaemod.py api/examples/hello --no-core      # the mod alone, for people who have Core installed
 
@@ -14,7 +14,7 @@ Each mod folder has a mod.toml whose [core] table lists its sources. Two ways to
   --bundle            Core and the mods are linked into one module, subsdk1.
 
 The zip holds one mod folder for an emulator's load folder: the modules, Core's patch to main
-(its hook points) and a mod.toml that says what is in it, for `tools/kaepora.py check / install`. Needs clang, ld.lld, llvm-nm, llvm-objcopy (LLVM 15+) and Python 3.11+.
+(its hook points) and a mod.toml that says what is in it, for `tools/kaegae.py check / install`. Needs clang, ld.lld, llvm-nm, llvm-objcopy (LLVM 15+) and Python 3.11+.
 """
 import argparse
 import re
@@ -27,8 +27,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
-import kaepora_font  # noqa: E402
-import kaepora_symbols  # noqa: E402
+import kaegae_font  # noqa: E402
+import kaegae_symbols  # noqa: E402
 import mknso  # noqa: E402
 import nxpatch  # noqa: E402
 
@@ -95,8 +95,8 @@ def dynamic_symbols(elf, which):
 
 
 def api_functions():
-    """The functions kaepora.h promises (every `KAE_API ... kae_name(`)."""
-    return set(re.findall(r"^KAE_API\b[^;(]*?\b(kae_\w+)\s*\(", (INCLUDE / "kaepora.h").read_text(), re.M))
+    """The functions kaegae.h promises (every `KAE_API ... kae_name(`)."""
+    return set(re.findall(r"^KAE_API\b[^;(]*?\b(kae_\w+)\s*\(", (INCLUDE / "kaegae.h").read_text(), re.M))
 
 
 class Mod:
@@ -121,7 +121,7 @@ class Mod:
 
     def check_symbols(self, packs):
         for pack in packs:
-            known = set(kaepora_symbols.symbols(pack))
+            known = set(kaegae_symbols.symbols(pack))
             fields = set(pack.get("field", {}))
             for entry in self.symbols:
                 kind, _, name = entry.partition(":")
@@ -151,7 +151,7 @@ class Mod:
 
 
 def api_version():
-    text = (INCLUDE / "kaepora.h").read_text()
+    text = (INCLUDE / "kaegae.h").read_text()
     return tuple(int(re.search(rf"#define KAE_API_{k}\s+(\d+)", text).group(1)) for k in ("MAJOR", "MINOR"))
 
 
@@ -159,9 +159,9 @@ def build_core(work, bundled=(), defines=()):
     """Core's module (ELF), with the mods in `bundled` linked into it. `defines` are extra -D flags
     for Core's sources only (the hardware test switches in core.h)."""
     work.mkdir(parents=True, exist_ok=True)
-    packs = kaepora_symbols.load_packs()
-    (work / "symbols_gen.h").write_text(kaepora_symbols.generate(packs))
-    (work / "font_gen.h").write_text(kaepora_font.generate())
+    packs = kaegae_symbols.load_packs()
+    (work / "symbols_gen.h").write_text(kaegae_symbols.generate(packs))
+    (work / "font_gen.h").write_text(kaegae_font.generate())
     for mod in bundled:
         mod.check_symbols(packs)
     objs = compile_sources(CORE_SOURCES + [SDK / "libc.c"], work / "core", ["-DKAE_BUILDING_CORE", f"-I{work}",
@@ -174,7 +174,7 @@ def build_core(work, bundled=(), defines=()):
     extra = dynamic_symbols(elf, "undefined") - allowed
     assert not extra, f"the module imports symbols the game isn't known to export: {sorted(extra)}"
     exported, promised = dynamic_symbols(elf, "defined"), api_functions()
-    assert exported == promised, (f"Core's exports and kaepora.h disagree: only exported {sorted(exported - promised)}, "
+    assert exported == promised, (f"Core's exports and kaegae.h disagree: only exported {sorted(exported - promised)}, "
                                   f"only in the header {sorted(promised - exported)}")
     return elf
 
@@ -190,7 +190,7 @@ def hook_patch(verify_main=None):
 def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
     """{path inside the mod folder: bytes} for Core and the given mods (the mods alone if not with_core)."""
     work = Path(work)
-    packs = kaepora_symbols.load_packs()
+    packs = kaegae_symbols.load_packs()
     for mod in mods:
         mod.check_symbols(packs)
     ids = [m.id for m in mods]
@@ -213,7 +213,7 @@ def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
 
 def package_manifest(mods, bundle, name, with_core=True, package_id=None):
     """The mod.toml of a built folder: what each module is, and Core's claims on main if Core is in it."""
-    core = "%s@%d.%d" % (("kaepora.core",) + api_version())
+    core = "%s@%d.%d" % (("kaegae.core",) + api_version())
     q = lambda text: '"' + str(text).replace("\\", "\\\\").replace('"', '\\"') + '"'      # noqa: E731
     if len(mods) == 1:
         ident, version = mods[0].id, mods[0].manifest["version"]
@@ -236,12 +236,12 @@ def package_manifest(mods, bundle, name, with_core=True, package_id=None):
         lines += ["", "[core]", 'api = "%d.%d"      # the Core API the mods are built for' % api_version()]
     if with_core:
         claim = tomllib.loads((REPO / "registry" / "e0f3ccfa.toml").read_text())["claim"]
-        claim = next(c for c in claim if c["owner"] == "kaepora.core")
-        lines += ["", f"[build.{HOOK_BUILD_ID}]      # Kaepora Core's hook points (registry/e0f3ccfa.toml)",
+        claim = next(c for c in claim if c["owner"] == "kaegae.core")
+        lines += ["", f"[build.{HOOK_BUILD_ID}]      # KaeGae Core's hook points (registry/e0f3ccfa.toml)",
                   f'ips    = "exefs/{HOOK_BUILD_ID}.ips"'] + [
                   f"{key:<6} = [{', '.join(q(v) for v in claim[key])}]" for key in ("code", "memory", "hooks")]
     else:
-        lines += ["", "[relations]", f"requires = [{q(core.replace('@', '=='))}]      # install Kaepora Core as well"]
+        lines += ["", "[relations]", f"requires = [{q(core.replace('@', '=='))}]      # install KaeGae Core as well"]
     return "\n".join(lines) + "\n"
 
 
@@ -259,17 +259,17 @@ def readme(mods, bundle, files, with_core=True):
     major, minor = api_version()
     if not with_core:
         lines = [", ".join(f"{m.name} {m.manifest['version']}" for m in mods) + " (Ocarina of Time, Switch 2)", "",
-                 f"A Kaepora mod without Kaepora Core in the folder: it needs Core {major}.{minor} installed as well.",
+                 f"A KaeGae mod without KaeGae Core in the folder: it needs Core {major}.{minor} installed as well.",
                  "Without Core it loads and does nothing.", "", "Files:"]
         return "\n".join(lines + [f"  {rel}  ({len(blob)} bytes)" for rel, blob in sorted(files.items())]) + "\n"
-    lines = [f"Kaepora Core {major}.{minor} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
+    lines = [f"KaeGae Core {major}.{minor} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
     if mods:
         lines.append("With: " + ", ".join(f"{m.name} {m.manifest['version']}" for m in mods)
                      + (" (linked into Core's module)" if bundle else " (each its own module)"))
         lines.append("")
     lines += ["Copy this folder into the emulator's load folder for the game, then close and reopen the",
               "emulator. Only one mod folder with an exefs/subsdk1 can be on at a time: turn off older",
-              "Kaepora or Mouse Grab folders first.", "", "Files:"]
+              "KaeGae or Mouse Grab folders first.", "", "Files:"]
     lines += [f"  {rel}  ({len(blob)} bytes)" for rel, blob in sorted(files.items())]
     return "\n".join(lines) + "\n"
 
@@ -288,7 +288,7 @@ def main(argv=None):
                    help="compile Core with -DNAME (repeatable): KAE_NO_DEBUG_OUT, KAE_LOAD_ONLY")
     a = p.parse_args(argv)
     mods = [Mod(folder) for folder in a.mods]
-    name = a.name or (mods[0].name if len(mods) == 1 else "Kaepora Core")
+    name = a.name or (mods[0].name if len(mods) == 1 else "KaeGae Core")
     out = a.out or REPO / "releases" / (re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".zip")
     assert not (a.no_core and (a.bundle or not mods)), "--no-core builds mods as their own modules: give a mod, without --bundle"
     with tempfile.TemporaryDirectory() as tmp:

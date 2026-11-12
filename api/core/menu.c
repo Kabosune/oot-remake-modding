@@ -66,7 +66,7 @@ int kae_menu_open(void) { return menu.open; }
 
 void kp_menu_start(void) {
     static const char *const about[] = {
-        "Kaepora Core: a shared base for Ocarina of Time mods.",
+        "KaeGae Core: a shared base for Ocarina of Time mods.",
         "github.com/Kabosune/oot-remake-modding",
         "",
         "Open and close this menu with Minus and Plus together.",

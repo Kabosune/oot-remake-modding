@@ -1,4 +1,4 @@
-# Mouse Grab's manifest: a core mod (no patches of its own; it runs on Kaepora Core).
+# Mouse Grab's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
 manifest = 1
 
 id       = "kabosune.mouse-grab"

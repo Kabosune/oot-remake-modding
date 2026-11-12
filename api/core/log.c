@@ -1,4 +1,4 @@
-// The shared log. Core's own lines start "kaepora: ", a mod's "kaepora [its.id]: ".
+// The shared log. Core's own lines start "kaegae: ", a mod's "kaegae [its.id]: ".
 #include "core.h"
 
 #define LINE 200
@@ -6,7 +6,7 @@
 static void line(const char *who, const char *format, va_list args) {
     char text[LINE];
     size_t n = 0;
-    const char *head = "kaepora";
+    const char *head = "kaegae";
     while (*head)
         text[n++] = *head++;
     if (who) {

@@ -1,11 +1,11 @@
-// Kaepora Core: what Core's own source files share. Mods use ../include/kaepora.h instead.
+// KaeGae Core: what Core's own source files share. Mods use ../include/kaegae.h instead.
 #pragma once
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "kaepora.h"
+#include "kaegae.h"
 
 // Hardware test switches (tools/kaemod.py --define NAME), off in normal builds:
 //   KAE_NO_DEBUG_OUT  the log writes nothing (no svcOutputDebugString)
@@ -28,7 +28,7 @@ typedef volatile char kp_lock_t;
 static inline void kp_lock(kp_lock_t *l) { while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE)) {} }
 static inline void kp_unlock(kp_lock_t *l) { __atomic_clear(l, __ATOMIC_RELEASE); }
 
-// ---- the game: one entry per symbol pack (generated, see tools/kaepora_symbols.py) ----
+// ---- the game: one entry per symbol pack (generated, see tools/kaegae_symbols.py) ----
 typedef struct { const char *name; uint32_t offset; } kp_sym_t;
 typedef struct { const char *name; uint32_t site; uint32_t slot; } kp_hookpoint_t;
 typedef struct {

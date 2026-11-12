@@ -1,9 +1,9 @@
-# Kaepora: a shared modding standard for the Ocarina of Time remake
+# KaeGae: a shared modding standard for the Ocarina of Time remake
 
 **Draft 0.4, 10 November 2026. A design with a first implementation.** Core 0.2 exists
 ([README.md](README.md) says what is written and what has run in the game); levels 1 and 2 are
-still design only. Nothing here is implemented or tested unless it says so. "Kaepora" is a working
-name (the game's reported codename is Owl).
+still design only. Nothing here is implemented or tested unless it says so. The standard was first
+called Kaepora; it was renamed KaeGae on 11 November 2026.
 
 ## Why
 
@@ -17,7 +17,7 @@ Four days after release, mods for this game already step on each other:
 - Every mod finds the game's functions and data again for itself, and hard-codes the addresses.
   A wrong one is fixed in one mod and stays wrong in the others.
 
-Kaepora is a set of rules and shared pieces so that mods from different people can be installed
+KaeGae is a set of rules and shared pieces so that mods from different people can be installed
 together, be checked for conflicts before the game starts, and share what is known about the game
 instead of each rediscovering it.
 
@@ -49,7 +49,7 @@ A mod can stop at any level.
 |---|---|---|---|
 | 1. Package | Ships a `mod.toml` manifest in a standard folder layout | Conflict checks, clean install / removal, merged shared files | No |
 | 2. Registered | Takes its code cave, memory and hook sites from the shared registry | Guaranteed not to overlap other registered mods | No |
-| 3. Core mod | Contains no patches to `main` at all; calls the Kaepora Core API | Shares hooks, input and the Mods menu with other mods; no code size limit; no addresses of its own | Yes |
+| 3. Core mod | Contains no patches to `main` at all; calls the KaeGae Core API | Shares hooks, input and the Mods menu with other mods; no code size limit; no addresses of its own | Yes |
 
 Levels 1 and 2 can be built and used now. Level 3 is where the long-term value is.
 
@@ -77,24 +77,24 @@ The manifest ([example](examples/mod.toml)) states what the mod is and everythin
 - **Relations:** `requires`, `conflicts`, `load-after`, by mod ID and version range.
 - **For core mods:** the API version built against, the symbols and hook points it needs.
 
-*Implemented (11 November): [`tools/kaepora.py`](../tools/kaepora.py) has `check`, `install`, `remove`,
+*Implemented (11 November): [`tools/kaegae.py`](../tools/kaegae.py) has `check`, `install`, `remove`,
 `list`, `inspect` and `init`; `build` is not written. The exact format and every finding are in
 [MANIFEST.md](MANIFEST.md).*
 
-A command-line tool, `kaepora`, reads the manifests of everything installed:
+A command-line tool, `kaegae`, reads the manifests of everything installed:
 
-- `kaepora check`: compares each manifest with the mod's real IPS bytes, then reports overlapping
+- `kaegae check`: compares each manifest with the mod's real IPS bytes, then reports overlapping
   patches, doubly hooked instructions, clashing romfs paths, clashing buttons and unmet
   requirements. It also reads the IPS files of mods with no manifest, so it finds byte overlaps
   with those too. (Run by hand today, this is the check that found the sloperinaGZ / Ultrawide
   overlap.)
-- `kaepora install / remove / list`: puts mods in the right place for the target (an emulator's
+- `kaegae install / remove / list`: puts mods in the right place for the target (an emulator's
   `load/<title id>/` folder, or the LayeredFS layout on hardware).
-- `kaepora build`: produces the shared files described below from the user's own dump.
+- `kaegae build`: produces the shared files described below from the user's own dump.
 
 ### Changes to game files without shipping game files
 
-`romfs-patch/` holds descriptions, and `kaepora build` applies them to the user's dump:
+`romfs-patch/` holds descriptions, and `kaegae build` applies them to the user's dump:
 
 | Kind | Describes | Merges with other mods? |
 |---|---|---|
@@ -131,7 +131,7 @@ Rules:
 Raw patching doesn't scale: the cave is 3,632 bytes and the padding between functions comes in
 pieces of at most 28 bytes. Level 2 keeps today's mods honest; level 3 removes the limit.
 
-## Level 3: Kaepora Core
+## Level 3: KaeGae Core
 
 ### What is known to work
 
@@ -154,7 +154,7 @@ memory, which hardware may refuse.
               |  import-table redirects (no addresses needed)
               |  + one generated IPS per build for hook points inside the game's code
               v
-   subsdk1  Kaepora Core      events, hook points, symbols, input, config, log, draw
+   subsdk1  KaeGae Core      events, hook points, symbols, input, config, log, draw
               ^        ^
               |        |      the Core API (C, imported by name)
    subsdk2  mod A    subsdk3  mod B   ...
@@ -172,7 +172,7 @@ memory, which hardware may refuse.
   two mods can't clash. A mod's imports from Core are weak, so a mod loaded without Core does
   nothing.
 - *Implemented 11 November, not yet tried in the game:* `--no-core` builds a mod without Core in its
-  folder, and `kaepora install` renames a new mod's module to a free slot when its own is taken.
+  folder, and `kaegae install` renames a new mod's module to a free slot when its own is taken.
   That is the layout the standard is meant to end up with: Core installed once, each mod in its
   own folder. It rests on the emulator combining the `exefs` folders of several mods, which it
   does for patches and should do for modules.
@@ -218,7 +218,7 @@ context = "x20 = view"
 - A mod asks Core `kae_sym("CctChangePosition")` and gets a pointer, or null on a build where it
   isn't known. Field offsets are symbols too (`kae_field("Actor.position")`), so no mod compiles
   a game structure layout into itself.
-- The manifest lists the names a mod needs. `kaepora check` says "this mod isn't supported on
+- The manifest lists the names a mod needs. `kaegae check` says "this mod isn't supported on
   your game version yet" before launch; Core says it again at run time and leaves the mod off.
 - With one final game version, an address found once stays true. The pack only grows, and a
   correction to it fixes every mod at once.
@@ -297,7 +297,7 @@ Helpers are added when two mods need the same thing, not before.
 7. Core never crashes the game on a mod's behalf: unknown build, missing symbol, failed byte
    check or version mismatch each switch off the affected mod, with a logged and on-screen reason.
 
-A draft header is in [include/kaepora.h](include/kaepora.h).
+A draft header is in [include/kaegae.h](include/kaegae.h).
 
 ### Living with mods outside the standard
 
@@ -328,8 +328,8 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 
 | Step | Delivers | Proves |
 |---|---|---|
-| M0 | Manifest schema, registry for build E0F3CCFA, `kaepora check` | Level 1 and 2 on today's installed mods. **Written (11 Nov): `check` run on a real Fritchii mod folder; it also found that a Fritchii built-in patch now sits inside First Person's range** |
-| M1 | `kaepora build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped. **Size table merge written (11 Nov), same result as the hand-made table; the rest is open** |
+| M0 | Manifest schema, registry for build E0F3CCFA, `kaegae check` | Level 1 and 2 on today's installed mods. **Written (11 Nov): `check` run on a real Fritchii mod folder; it also found that a Fritchii built-in patch now sits inside First Person's range** |
+| M1 | `kaegae build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped. **Size table merge written (11 Nov), same result as the hand-made table; the rest is open** |
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1, 4 and 6 answered. Results in [README.md](README.md)** |
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |

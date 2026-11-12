@@ -1,4 +1,4 @@
-// Kaepora hook points: the module's side. See hookpoints.S for the patch to main.
+// KaeGae hook points: the module's side. See hookpoints.S for the patch to main.
 //
 // A hook point is a place in main's code, named in the symbol pack, where Core's patch jumps to
 // a stub. The stub calls the function pointer in the hook point's slot, when there is one. Core

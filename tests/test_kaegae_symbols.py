@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Check that the two symbol lists for a build agree.
 
-    python3 tests/test_kaepora_symbols.py
+    python3 tests/test_kaegae_symbols.py
 
 symbols/<build>.ld is what the IPS mods link against, symbols/<build>.toml is the pack compiled
-into Kaepora Core. Needs no game files. It fails when:
+into KaeGae Core. Needs no game files. It fails when:
 
 - a pack entry names an `ld` symbol that the linker file doesn't have, or has at another address;
 - a vtable, function or global in the linker file isn't in the pack (add it, with `ld = "<NAME>"`);
@@ -16,7 +16,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
-import kaepora_symbols  # noqa: E402
+import kaegae_symbols  # noqa: E402
 
 BASE = 0x80020000
 SHARED = ("vtables", "functions", "globals")  # sections of the linker file that the pack must cover
@@ -39,7 +39,7 @@ def read_ld(path):
 
 def main():
     checked = 0
-    for pack in kaepora_symbols.load_packs():
+    for pack in kaegae_symbols.load_packs():
         ld_path = pack["path"].with_suffix(".ld")
         if not ld_path.exists():
             print(f"{pack['path'].name}: no linker file next to it, skipped")

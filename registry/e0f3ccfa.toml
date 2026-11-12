@@ -1,12 +1,12 @@
-# Kaepora registry for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
+# KaeGae registry for main build E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348 (game version 1.1.1).
 #
 # Who uses which bytes of main: free space that mods may claim, and every claim on it, including
-# mods that don't follow the standard (read from their patches). `tools/kaepora.py check` reads
+# mods that don't follow the standard (read from their patches). `tools/kaegae.py check` reads
 # this file; docs/memory-map.md explains the spaces in words. Format: api/MANIFEST.md, "The registry".
 #
 # All numbers are module offsets (address in the docs minus 0x80020000), ranges leave the end out.
 # To claim space: add a [[claim]] with your mod's id by pull request, in the smallest amount that
-# works. tests/test_kaepora_tools.py fails if two claims overlap.
+# works. tests/test_kaegae_tools.py fails if two claims overlap.
 
 build   = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
 version = "1.1.1"
@@ -31,8 +31,8 @@ note  = "writable, zeroed at boot, referenced by nothing in the game"
 # ---- claims by mods that follow the standard ----
 
 [[claim]]
-owner  = "kaepora.core"
-name   = "Kaepora Core"
+owner  = "kaegae.core"
+name   = "KaeGae Core"
 code   = ["0x3C46310..0x3C46400"]          # hook point stubs
 memory = ["0x4E9FB00..0x4E9FC00"]          # one function pointer per hook point
 hooks  = ["0x2C215E4"]                     # hook point Actor.MoveUpdate
@@ -120,4 +120,4 @@ standard = false
 retired  = true
 code     = ["0x177CB68..0x177D1C0"]         # slots 113 to 127
 hooks    = ["0x3C427EC", "0x3C428AC", "0x3C4480C"]
-note     = "it also used Kaepora Core's cave range, so it can't be installed alongside Core"
+note     = "it also used KaeGae Core's cave range, so it can't be installed alongside Core"

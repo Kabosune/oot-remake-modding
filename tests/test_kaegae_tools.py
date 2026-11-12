@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Tests for the manifest reader, the registry and `kaepora check / install / init`.
+"""Tests for the manifest reader, the registry and `kaegae check / install / init`.
 
-    python3 tests/test_kaepora_tools.py
+    python3 tests/test_kaegae_tools.py
 
 Needs no game files. It builds small mod folders in a temporary place and checks that each kind
 of conflict is reported, that the registry agrees with the released patches and with the mods'
@@ -17,9 +17,9 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "tools"))
-import kaepora  # noqa: E402
-import kaepora_check as kc  # noqa: E402
-import kaepora_manifest as km  # noqa: E402
+import kaegae  # noqa: E402
+import kaegae_check as kc  # noqa: E402
+import kaegae_manifest as km  # noqa: E402
 import nxpatch  # noqa: E402
 
 B111 = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
@@ -67,7 +67,7 @@ def run(*argv):
     """The command line tool: (exit code, what it printed)."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
-        code = kaepora.main([str(a) for a in argv])
+        code = kaegae.main([str(a) for a in argv])
     return code, out.getvalue()
 
 
@@ -87,7 +87,7 @@ def test_values():
             ok(False, f"{bad!r} should not be a binding")
         except ValueError:
             ok(True, "")
-    ok(km.parse_relation("kaepora.core>=0.3") == ("kaepora.core", ">=", "0.3"), "relation")
+    ok(km.parse_relation("kaegae.core>=0.3") == ("kaegae.core", ">=", "0.3"), "relation")
     ok(km.relation_holds(">=", "0.3", "0.3.1") and not km.relation_holds("==", "0.3", "0.4"), "versions compare by number")
     ok(km.relation_holds("==", "0.3", "0.3.0") and km.relation_holds("<", "1.10", "1.9"), "0.3 is 0.3.0; 1.9 is below 1.10")
 
@@ -129,7 +129,7 @@ def test_registry():
     seen = set()
     with tempfile.TemporaryDirectory() as work:
         for n, release in enumerate(sorted((REPO / "releases").glob("*.zip"))):
-            for root in kaepora.unpack(release, Path(work) / str(n)):
+            for root in kaegae.unpack(release, Path(work) / str(n)):
                 mod = km.load_folder(root)
                 ok(not codes(mod.problems, "error"), f"{release.name}: {[str(p) for p in mod.problems]}")
                 if B111 not in mod.patches or "probe" in release.name or "diagnostic" in release.name:
@@ -138,7 +138,7 @@ def test_registry():
                 ok(claim is not None, f"{release.name}: its patch writes outside every claim in {reg.path.name}")
                 ok(mod.id in (None, claim.owner) or kc.CORE_ID == claim.owner, f"{release.name}: recognised as {claim.owner}")
                 seen.add(claim.owner)
-    ok({"kabosune.first-person", "kabosune.fpv-drone", "kaepora.core"} <= seen, f"releases recognised: {seen}")
+    ok({"kabosune.first-person", "kabosune.fpv-drone", "kaegae.core"} <= seen, f"releases recognised: {seen}")
     for example in ("api/examples/mod.toml", "api/examples/hello/mod.toml"):
         m = km.load_manifest(REPO / example)
         ok(not m.problems, f"{example}: {[str(p) for p in m.problems]}")
@@ -204,7 +204,7 @@ def test_conflicts(work):
     ok("conflicts" in codes(check(need, make(work, "L3", manifest("x.lib", version="2.1.0")), make(work, "En", manifest("x.enemy"))), "error"),
        "a declared conflict")
 
-    core = make(work, "Core", manifest("kaepora.core", '[modules]\nsubsdk1 = "kaepora.core@0.3"\n', version="0.3"), exefs={"subsdk1": b"c"})
+    core = make(work, "Core", manifest("kaegae.core", '[modules]\nsubsdk1 = "kaegae.core@0.3"\n', version="0.3"), exefs={"subsdk1": b"c"})
     def core_mod(name, api, slot="subsdk2"):
         return make(work, name, manifest(f"x.{name.lower()}", f'[modules]\n{slot} = "x.{name.lower()}@1.0.0"\n[core]\napi = "{api}"\n'), exefs={slot: b"m"})
     ok(not codes(check(core, core_mod("Fits", "0.3")), "error"), "a core mod with its Core")
@@ -235,13 +235,13 @@ def test_install(work):
         "[Other]\nx=1\n\n[DisabledAddOns]\nsize=2\n1\\title_id=1\n1\\disabled\\size=1\n1\\disabled\\1\\d=Nope\n"
         f"2\\title_id={int(TITLE, 16)}\n2\\disabled\\size=2\n2\\disabled\\1\\d=Off Mod\n2\\disabled\\2\\d=Max Resolution (built-in)\n"
         "2\\disabled\\3\\d=Stale Entry\n\n[UI]\ny=2\n")
-    ok(kaepora.read_disabled(load.parent / "config" / "qt-config.ini", TITLE) == {"Off Mod", "Max Resolution (built-in)"},
+    ok(kaegae.read_disabled(load.parent / "config" / "qt-config.ini", TITLE) == {"Off Mod", "Max Resolution (built-in)"},
        "the emulator's Add-Ons list: this title's entries, up to its size")
     src = Path(work) / "src"
-    core = make(src, "Kaepora Core", manifest("kaepora.core", '[modules]\nsubsdk1 = "kaepora.core@0.3"\n', version="0.3"), exefs={"subsdk1": b"c"})
+    core = make(src, "KaeGae Core", manifest("kaegae.core", '[modules]\nsubsdk1 = "kaegae.core@0.3"\n', version="0.3"), exefs={"subsdk1": b"c"})
     def core_mod(name):
         ident = "x." + name.lower()
-        return make(src, name, manifest(ident, f'[modules]\nsubsdk2 = "{ident}@1.0.0"\n[core]\napi = "0.3"\n[relations]\nrequires = ["kaepora.core==0.3"]\n'),
+        return make(src, name, manifest(ident, f'[modules]\nsubsdk2 = "{ident}@1.0.0"\n[core]\napi = "0.3"\n[relations]\nrequires = ["kaegae.core==0.3"]\n'),
                     exefs={"subsdk2": name.encode()})
     one, two = core_mod("One"), core_mod("Two")
     code, text = run("install", one, "--load-dir", load)
@@ -274,11 +274,11 @@ def test_install(work):
     z = Path(work) / "titled.zip"
     with zipfile.ZipFile(z, "w") as f:
         f.writestr(f"{TITLE}/Zipped/exefs/{B111}.ips", nxpatch.ips32([(0x3C461D0, b"\x01" * 4, b"")]))
-    ok([r.name for r in kaepora.unpack(z, Path(work) / "u1")] == ["Zipped"], "a zip with <title id>/<mod>/")
+    ok([r.name for r in kaegae.unpack(z, Path(work) / "u1")] == ["Zipped"], "a zip with <title id>/<mod>/")
     z2 = Path(work) / "Flat Mod.zip"
     with zipfile.ZipFile(z2, "w") as f:
         f.writestr("romfs/a.txt", "x")
-    ok([r.name for r in kaepora.unpack(z2, Path(work) / "u2")] == ["Flat Mod"], "a zip that is the mod folder itself takes the zip's name")
+    ok([r.name for r in kaegae.unpack(z2, Path(work) / "u2")] == ["Flat Mod"], "a zip that is the mod folder itself takes the zip's name")
     evil = Path(work) / "evil.zip"
     with zipfile.ZipFile(evil, "w") as f:
         f.writestr("../outside/exefs/x", "x")
@@ -313,7 +313,7 @@ def test_built_package(work):
         with contextlib.redirect_stdout(io.StringIO()):
             kaemod.main([str(a) for a in argv] + ["--out", str(out / f"{name}.zip")])
     def one(name):
-        return km.load_folder(kaepora.unpack(out / f"{name}.zip", Path(work) / "unz" / name)[0])
+        return km.load_folder(kaegae.unpack(out / f"{name}.zip", Path(work) / "unz" / name)[0])
     core, hello, both, bundle = one("core"), one("hello"), one("both"), one("bundle")
     for mod in (core, hello, both, bundle):
         ok(not mod.problems, f"{mod.name}: a built folder's manifest agrees with its files: {[str(p) for p in mod.problems]}")
@@ -339,9 +339,9 @@ def test_build(work):
     try:
         import zstandard  # noqa: F401
     except ImportError:
-        print("  (no zstandard here: `kaepora build` was not tested)")
+        print("  (no zstandard here: `kaegae build` was not tested)")
         return
-    import kaepora_build as kb
+    import kaegae_build as kb
     game = fake_table({"AS/King.asb": 5344, "AS/Other.asb": 800, "Model/Big.bfres": 1 << 20}, [("Named/File.bin", 64)])
     merged, changes, missing = kb.merge(game, {"AS/King.asb": 6361, "AS/Other.asb": 100, "Named/File.bin": 100, "Not/There.x": 5})
     ok(changes == [("AS/King.asb", 5344, 6368), ("AS/Other.asb", 800, 800), ("Named/File.bin", 64, 104)] and missing == ["Not/There.x"],
@@ -394,7 +394,7 @@ def main():
     for test in (test_manifest_against_files, test_conflicts, test_install, test_init, test_build, test_built_package):
         with tempfile.TemporaryDirectory() as work:
             test(work)
-    print(f"all kaepora tool tests passed ({count} checks)")
+    print(f"all kaegae tool tests passed ({count} checks)")
 
 
 if __name__ == "__main__":

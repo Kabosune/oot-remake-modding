@@ -2,13 +2,13 @@
 
 Code caves and padding slots hold a few KB at most. A bigger mod can be a module of its own, loaded
 by the game's dynamic loader (rtld) from an `exefs/subsdkN` file, the way sloperinaGZ is.
-[Kaepora Core](../api/README.md) (`api/core/`) is a shared one that mods build on;
+[KaeGae Core](../api/README.md) (`api/core/`) is a shared one that mods build on;
 [Mouse Grab](../mods/mouse-grab/README.md) is the first mod on it. This page is what was learned
-about modules; the API a mod uses is in `api/include/kaepora.h`.
+about modules; the API a mod uses is in `api/include/kaegae.h`.
 
 ## What's free
 
-The game ships `main`, `rtld`, `sdk` and `subsdk0`. Kaepora Core uses `subsdk1` and gives `subsdk2`
+The game ships `main`, `rtld`, `sdk` and `subsdk0`. KaeGae Core uses `subsdk1` and gives `subsdk2`
 to `subsdk8` to mods; sloperinaGZ uses `subsdk9`. A mod folder's `exefs/` can hold modules and an
 `.ips` for `main` side by side.
 
@@ -43,7 +43,7 @@ to `subsdk8` to mods; sloperinaGZ uses `subsdk9`. A mod folder's `exefs/` can ho
   movement update, `f_82c415e0`'s second instruction (its first is FPV Drone's); it runs on the
   game's thread for every physics actor every frame with `x0` = actor. Mods get it as the
   `actor_move` event. Core checks the stub's tag before writing the slot.
-  `tests/test_kaepora_hooks.py` runs the stub on a real main.
+  `tests/test_kaegae_hooks.py` runs the stub on a real main.
 
 ## Drawing (tested)
 

@@ -10,7 +10,7 @@
 __kp_module_start:
     .word   0
     .word   __kp_mod0 - __kp_module_start
-    .ascii  "KAEPORA\0"
+    .ascii  "KAEGAE\0\0"
 
     .section .rodata.mod0, "a", %progbits
     .p2align 2

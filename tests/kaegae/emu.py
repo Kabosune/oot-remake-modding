@@ -1,4 +1,4 @@
-"""A small stand-in for the game's process, for the Kaepora module tests: Unicorn runs the real
+"""A small stand-in for the game's process, for the KaeGae module tests: Unicorn runs the real
 AArch64 modules, and this file does what the game's rtld and the system do around them.
 
   load      puts a module (an NSO, or an ELF for the fakes) in memory

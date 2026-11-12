@@ -1,27 +1,42 @@
-# Kaepora changelog
+# KaeGae changelog
 
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
+
+## Draft 0.8: the new names (11 November 2026)
+
+No change in behaviour. The standard **Kaepora** is now **KaeGae**, Kaepora Core is **KaeGae Core**,
+and Super Sloperina is **Sloped Up Sloperina**. Older entries below use the new names too.
+
+- Mod ids: `kaepora.core` → `kaegae.core`, `kaepora.hello` → `kaegae.hello`, `kaepora.built` →
+  `kaegae.built`, `kabosune.super-sloperina` → `kabosune.sloped-up-sloperina`. A manifest that
+  requires `kaepora.core` must say `kaegae.core` now.
+- Files: `tools/kaegae.py` (was `kaepora.py`) and `tools/kaegae_*.py`, `api/include/kaegae.h` (was
+  `kaepora.h`: change the `#include`), `tests/test_kaegae_*.py`, `mods/sloped-up-sloperina/`.
+- Release zips: `kaegae-test.zip`, `kaegae-hello-without-core.zip`, `sloped-up-sloperina.zip`.
+- The log prefix is `kaegae:`; environment variables `KAEGAE_TARGET`, `KAEGAE_LOAD_DIR`.
+- Kept: the `kae_*` functions, `KAE_*` names and `Kae*` types, so a mod's code only needs the new
+  `#include`. Modules built before the rename still link to the new Core.
 
 ## Draft 0.7: the tools for levels 1 and 2 (11 November 2026)
 
 No change to Core or its API. Everything here runs on a PC.
 
-- **`tools/kaepora.py`**: `check` (which installed mods can't be on together, and why), `install`
+- **`tools/kaegae.py`**: `check` (which installed mods can't be on together, and why), `install`
   (check first, then copy), `remove`, `list`, `inspect` (what a patch writes and whose space that
   is), `init` (write a `mod.toml` for an existing mod), `registry`, `targets`.
 - **The manifest is specified**: [MANIFEST.md](MANIFEST.md). Changes from the draft example: the
   ranges a patch fills are `code` (was `cave`, since padding slots count too); `[modules]` names
-  each `exefs/subsdkN`; `[relations] requires` takes a version (`"kaepora.core==0.3"`); romfs files
+  each `exefs/subsdkN`; `[relations] requires` takes a version (`"kaegae.core==0.3"`); romfs files
   need no listing.
 - **The registry exists**: `registry/e0f3ccfa.toml` for 1.1.1, with the free spaces and every known
   claim, including mods outside the standard and the emulators' built-in patches.
   `registry/33fa6c2c.toml` for 1.0.0 holds the one claim known there.
 - First Person and FPV Drone have manifests, and their zips carry them (the patches are byte for
   byte the same). `tools/kaemod.py` writes a manifest into every folder it builds.
-- **A mod without Core in its folder**: `tools/kaemod.py <mod> --no-core`. `kaepora install` gives
+- **A mod without Core in its folder**: `tools/kaemod.py <mod> --no-core`. `kaegae install` gives
   such a mod a free module slot. Not tried in the game yet.
-- **`kaepora build`** makes one resource size table from the requests in every mod's manifest
+- **`kaegae build`** makes one resource size table from the requests in every mod's manifest
   (`[[romfs-patch]] kind = "size-table"`), from the player's own dump, as a mod folder of its own.
   On a real dump it reproduces the table Slow King Zora v4 was given by hand.
 - The emulator's folder is no longer assumed to be `%APPDATA%\eden`: Fritchii v5.8 moved to
@@ -68,7 +83,7 @@ Text and small pictures.
   fullest frame took.
 - The pack for 1.1.1 gains 38 symbols contributed by gleedgleed (the pouch, GameData, EventFlow,
   event requests, dungeon items, actor position and transform, the framework's frame function).
-- `tests/test_kaepora_symbols.py` checks that a pack and its linker file agree, and fails when the
+- `tests/test_kaegae_symbols.py` checks that a pack and its linker file agree, and fails when the
   linker file has a vtable, function or global the pack lacks.
 - API 0.3: mods built for 0.2 need a rebuild (0.x versions don't mix).
 
@@ -76,7 +91,7 @@ Text and small pictures.
 
 Core is now its own module with a public API, instead of a skeleton compiled together with one mod.
 
-- **API 0.2** (`include/kaepora.h`): `KAE_MOD`, `kae_register`; events `kae_on_frame`,
+- **API 0.2** (`include/kaegae.h`): `KAE_MOD`, `kae_register`; events `kae_on_frame`,
   `kae_on_input`, `kae_on_draw`, `kae_on_actor_move`, each with any number of subscribers in
   priority order; `kae_draw_rect`; `kae_sym`, `kae_field`, `kae_game_base`, `kae_game_version`,
   `kae_game_build`; `kae_has`, `kae_api_version`; `kae_motion_direction`; `kae_logf` / `KAE_LOG`;

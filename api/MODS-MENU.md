@@ -1,8 +1,8 @@
 # The Mods menu
 
-**Draft 0.2, 10 November 2026.** Part of [Kaepora](DESIGN.md). The menu's logic and drawing are
+**Draft 0.2, 10 November 2026.** Part of [KaeGae](DESIGN.md). The menu's logic and drawing are
 portable C in [`menu/`](menu/) and pass their host tests. From API 0.4 the same code is built into
-Kaepora Core (`core/menu.c`), drawn with Core's rectangles and built-in font, and a mod declares
+KaeGae Core (`core/menu.c`), drawn with Core's rectangles and built-in font, and a mod declares
 its page with `kae_settings`. It opens in the emulated game of the module tests; **it has not run
 inside the real game yet**. Inside Core it looks plainer than the screenshots here, which come
 from the host renderer's smooth font. Not done yet: saving settings, the keyboard key, and the
@@ -36,7 +36,7 @@ opposite of what the standard is for.
 
 **Decision:**
 
-1. The Mods menu is drawn by Kaepora Core itself, over the game's picture. It needs nothing from
+1. The Mods menu is drawn by KaeGae Core itself, over the game's picture. It needs nothing from
    the game's UI, so it works on every game version.
 2. It opens with **− and + pressed together**, anywhere: in play, in the pause menu, on the title
    screen. The combination is rebindable; emulator players also get a keyboard key.

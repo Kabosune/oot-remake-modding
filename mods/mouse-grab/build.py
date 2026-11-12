@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Mouse Grab with Kaepora Core.
+"""Build Mouse Grab with KaeGae Core.
 
     python3 mods/mouse-grab/build.py              # releases/mouse-grab-test.zip: Core and the mod in exefs/subsdk1
     python3 mods/mouse-grab/build.py --separate   # Core in subsdk1, the mod its own module in subsdk2

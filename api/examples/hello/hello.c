@@ -1,8 +1,8 @@
-// Hello: a small Kaepora mod. A square in the top left corner that turns green while A is held, a
+// Hello: a small KaeGae mod. A square in the top left corner that turns green while A is held, a
 // line of text and a small picture next to it, a log line every 300 frames, and a page of settings
 // in the Mods menu (- and + together) that change what it draws. It is also Core's test mod: its log lines show
 // which parts of Core work in the running game.
-#include <kaepora.h>
+#include <kaegae.h>
 
 static uint64_t frames, inputs, moves;
 static int a_held, combo_held;
@@ -72,7 +72,7 @@ static void draw(const KaeFrame *f, void *user) {
     }
     // text on a dark plate so it reads over anything
     int scale = settings[TEXT_SIZE].value;
-    const char *text = a_held ? "Kaepora Core 0.4: A is held" : "Kaepora Core 0.4: - and + open Mods";
+    const char *text = a_held ? "KaeGae Core 0.4: A is held" : "KaeGae Core 0.4: - and + open Mods";
     int x = unit * 7, y = unit * 2;
     kae_draw_rect(x - 4, y - 4, kae_text_width(scale, text) + 8 * scale * 3 + 12, kae_text_height(scale, text) + 8, 0x101820);
     x = kae_draw_text(x, y, scale, colour_rgb[settings[TEXT_COLOUR].value], text);
@@ -100,4 +100,4 @@ static int start(void) {
     return 0;
 }
 
-KAE_MOD("kaepora.hello", "0.4.0", start, 0);
+KAE_MOD("kaegae.hello", "0.4.0", start, 0);

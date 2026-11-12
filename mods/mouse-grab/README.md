@@ -12,8 +12,8 @@ Still in progress. This folder holds the findings and the builds.
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 with Kaepora Core 0.2, tested in Fritchii on 10 November 2026 | Playing around with the mod |
-| [`mouse-grab-test.zip`](../../releases/mouse-grab-test.zip) | Mouse Grab 0.2.0 with the newest Kaepora Core (0.3: text and small pictures), not tested in the game yet | Testing Kaepora Core |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 with KaeGae Core 0.2, tested in Fritchii on 10 November 2026 | Playing around with the mod |
+| [`mouse-grab-test.zip`](../../releases/mouse-grab-test.zip) | Mouse Grab 0.2.0 with the newest KaeGae Core (0.3: text and small pictures), not tested in the game yet | Testing KaeGae Core |
 
 On a real Switch 2, use the [hardware test builds](#hardware-test-builds-11-november-2026) for now.
 
@@ -24,7 +24,7 @@ zip; `mouse-grab.zip` stays the tested build until a newer one has been tried in
 
 Both zips have two files under `0400486024DEC000/Mouse Grab/exefs/`:
 
-- `subsdk1`: the mod itself (Kaepora Core and Mouse Grab in one module). The game's loader loads it
+- `subsdk1`: the mod itself (KaeGae Core and Mouse Grab in one module). The game's loader loads it
   next to `main`.
 - `E0F3CCFA....ips`: a 141-byte patch to `main` that jumps from one spot in the game to the module.
   On its own it does nothing: without `subsdk1` the game runs as normal.
@@ -150,7 +150,7 @@ has to be on for the emulated mouse.
 
 ## The cursor build (`module/`, `build.py`)
 
-Mouse Grab is a core mod: it runs on [Kaepora Core](../../api/README.md) and patches nothing in
+Mouse Grab is a core mod: it runs on [KaeGae Core](../../api/README.md) and patches nothing in
 `main` itself. The build links Core and the mod into `exefs/subsdk1` (add `--separate` to make the
 mod its own module in `subsdk2` instead) and adds Core's `.ips` for its hook point.
 
@@ -162,7 +162,7 @@ python3 mods/mouse-grab/build.py
   the mod imports itself (`GetMouseStates`).
 - `module/cursor.c` holds the mod's start (`KAE_MOD`): it subscribes to Core's `draw` and
   `actor_move` events. `module/core.h` maps the names of Core's first skeleton (`kp_...`), which
-  the other files were written against, onto the public API in `api/include/kaepora.h`.
+  the other files were written against, onto the public API in `api/include/kaegae.h`.
 - It is still a research build: it calls the game's functions by raw offset from `kae_game_base()`,
   so it only supports game version 1.1.1.
 - `api/core/core.c`: finds main from the exported `nnMain` and recognises the build from the
@@ -178,7 +178,7 @@ Known clash: sloperinaGZ 0.0.3 also takes over main's `nvnBootstrapLoader` slot 
 the call on to a hook that was there before it. With both installed, whichever module rtld
 initialises last wins, so disable sloperinaGZ while testing this.
 
-What it logs (Core's lines start with `kaepora:`, the mod's with `kaepora [kabosune.mouse-grab]:`):
+What it logs (Core's lines start with `kaegae:`, the mod's with `kaegae [kabosune.mouse-grab]:`):
 `Core 0.2 loaded, game 1.1.1, main at ...`, `the game asked for NVN`,
 `drawing ready`, `first frame, picture size W H`, and the cursor position every 300 frames.
 
@@ -195,10 +195,10 @@ Right click drops Link into ragdoll; right click again gets him up. All of it is
   from Link's movement update. It doesn't copy the node's state change or its per-frame update.
 - Ending uses `OneShotRagdollReactionEnd`'s call (`f_82eb2f80` on the reaction component at
   `[components + 0x390]`); not known to be the right one for this kind of ragdoll.
-- Game logic must run on the game's thread, so this build adds Kaepora's first **hook point**:
+- Game logic must run on the game's thread, so this build adds KaeGae's first **hook point**:
   `api/core/hookpoints.S`, patched in by Core's `.ips`, jumps from the movement update's second
   instruction to a stub that calls the function the module put in `KP_HOOK_SLOTS`. It sits right
-  after FPV Drone's hook, so both work together. `tests/test_kaepora_hooks.py` checks the stub.
+  after FPV Drone's hook, so both work together. `tests/test_kaegae_hooks.py` checks the stub.
 - Mouse Probe is retired: the hook stubs use its code cave space, so the two can't be installed
   together.
 
@@ -284,7 +284,7 @@ between pulling every body and pulling only the first. The throw gives every bod
 
 1. Probe: what does the emulator feed the game (this step).
 2. A module of its own (the code cave is too small): loads, runs every frame, reads input, draws a
-   cursor. This became the start of Kaepora Core (`api/`). (Done.)
+   cursor. This became the start of KaeGae Core (`api/`). (Done.)
 3. Link ragdolls on a button; then move him with the cursor; depth from pitch; throw; other things.
 
 ## Credits
