@@ -19,7 +19,8 @@ typedef struct {
     float rate;
     float minus_one[2];
     uint8_t ignore_same;
-    uint8_t zero[7];
+    uint8_t whole_body;   // +0x21: 1 takes the other branch (f_7000202610, no partial); every caller seen leaves it 0
+    uint8_t zero[6];
     void *node;
 } as_request_t;
 _Static_assert(sizeof(as_request_t) == 0x30, "AS request");
@@ -57,7 +58,7 @@ static const Emote emotes[] = {
 };
 #define N_EMOTES ((int)(sizeof emotes / sizeof *emotes))
 
-enum { BUTTON, BLOCK, TAP, HOLD, VOICE, KEEP, KEEP_FOR, ROWS, SLOT, DEBUG, N_SETTINGS };
+enum { BUTTON, BLOCK, TAP, HOLD, VOICE, KEEP, KEEP_FOR, ROWS, SLOT, WHOLE, UPPER, DEBUG, N_SETTINGS };
 enum { BLOCK_OFF, BLOCK_WHILE_OPEN, BLOCK_ALWAYS };
 static const char *const block_names[] = { "Off", "While the list is open", "Always" };
 enum { KEEP_OFF, KEEP_BEFORE, KEEP_AFTER };
@@ -68,10 +69,12 @@ static KaeItem settings[] = {
     [TAP]    = { KAE_TOGGLE, "Tap goes to the game", "With \"While the list is open\": a short tap still does the button's own thing.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
     [HOLD]   = { KAE_NUMBER, "Hold time (frames)", "How long to hold before the list opens. 60 frames = 1 second.", 10, 10, 2, 40, 1, 0, 0, 0, 0, 0 },
     [VOICE]  = { KAE_TOGGLE, "Voice", "Link's voice with the emotes that have one.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
-    [KEEP]   = { KAE_CHOICE, "Keep the emote playing (test)", "Asks for the emote again every frame so the game's own animation doesn't replace it. Try both.", KEEP_AFTER, KEEP_AFTER, 0, 2, 1, keep_names, 0, 0, 0, 0 },
+    [KEEP]   = { KAE_CHOICE, "Keep it playing (test)", "Asks for the emote again every frame so the game's own animation doesn't replace it. Try both.", KEEP_OFF, KEEP_OFF, 0, 2, 1, keep_names, 0, 0, 0, 0 },
     [KEEP_FOR] = { KAE_NUMBER, "Keep it for (frames)", "How long, at most. Moving the stick or pressing a button ends it sooner. 0 = until then.", 180, 180, 0, 600, 30, 0, 0, 0, 0, 0 },
     [ROWS]   = { KAE_NUMBER, "List rows", "How many emotes the list shows at once.", 10, 10, 4, 20, 1, 0, 0, 0, 0, 0 },
     [SLOT]   = { KAE_NUMBER, "Body slot (test)", "Animation slot the emote plays in: 0 whole body?, 1 upper body, 4 face. For testing.", 0, 0, 0, 8, 1, 0, 0, 0, 0, 0 },
+    [WHOLE]  = { KAE_TOGGLE, "Whole-body flag (test)", "Sets the request's +0x21 byte: the game's other way of playing an animation.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
+    [UPPER]  = { KAE_TOGGLE, "Also on the upper body (test)", "Plays the emote on slot 1 (upper body) as well.", 0, 0, 0, 1, 1, 0, 0, 0, 0, 0 },
     [DEBUG]  = { KAE_TOGGLE, "Debug log", "Logs every emote played and the list's state.", 1, 1, 0, 1, 1, 0, 0, 0, 0, 0 },
 };
 
@@ -107,6 +110,7 @@ static void close_list(void) {
 }
 
 static void as_play(void *actor, const char *command, int partial);
+static void emote_play(void *actor, const char *command);
 
 static void stop_keeping(const char *why) {
     if (keep_index >= 0) LOG("emotes: %s ended after %d frames (%s)", emotes[keep_index].name, keep_frames, why);
@@ -126,7 +130,7 @@ static void keep(uint64_t pressed, int lx, int ly) {
     if (most && keep_frames >= most) { stop_keeping("time"); return; }
     keep_frames++;
     if (settings[KEEP].value == KEEP_AFTER)
-        as_play(link_actor, emotes[keep_index].command, settings[SLOT].value);
+        emote_play(link_actor, emotes[keep_index].command);
 }
 
 static void frame(void *user) {
@@ -232,28 +236,40 @@ static void input(KaeInput *seen_by_game, const KaeInput *real, void *user) {
     }
 }
 
-static void as_play(void *actor, const char *command, int partial) {
+static void as_request(void *actor, const char *command, int partial, int whole) {
     static _Alignas(16) uint8_t stand_in_node[0x200];
     // IsIgnoreSameCommand = 1: asking again for what is already playing doesn't restart it
-    as_request_t r = { actor, command, partial, 1.0f, { -1.0f, -1.0f }, 1, { 0 }, stand_in_node };
+    as_request_t r = { actor, command, partial, 1.0f, { -1.0f, -1.0f }, 1, (uint8_t)whole, { 0 }, stand_in_node };
     ((void (*)(as_request_t *))(game_base + F_AS_PLAY))(&r);
+}
+
+static void as_play(void *actor, const char *command, int partial) {
+    as_request(actor, command, partial, 0);
+}
+
+// An emote: with the test settings, on the whole-body branch and / or the upper body as well.
+static void emote_play(void *actor, const char *command) {
+    as_request(actor, command, settings[SLOT].value, settings[WHOLE].value);
+    if (settings[UPPER].value && settings[SLOT].value != 1)
+        as_request(actor, command, 1, 0);
 }
 
 static void player_move(const KaePlayer *link, void *user) {
     (void)user;
     link_actor = link->actor, frames_since_link = 0;
     if (keep_index >= 0 && settings[KEEP].value == KEEP_BEFORE && link->actor)
-        as_play(link->actor, emotes[keep_index].command, settings[SLOT].value);
+        emote_play(link->actor, emotes[keep_index].command);
     int i = play_index;
     if (i < 0 || i >= N_EMOTES || !link->actor)
         return;
     play_index = -1;
     keep_index = (i == 0 || settings[KEEP].value == KEEP_OFF) ? -1 : i, keep_frames = 0;   // "Stop" isn't kept
     const Emote *e = &emotes[i];
-    as_play(link->actor, e->command, settings[SLOT].value);
+    emote_play(link->actor, e->command);
     if (e->voice && settings[VOICE].value)
         as_play(link->actor, e->voice, PARTIAL_MOUTH);
-    LOG("emotes: played %s (%s) in slot %d", e->name, e->command, settings[SLOT].value);
+    LOG("emotes: played %s (%s) in slot %d, whole-body flag %d, upper body too %d", e->name, e->command,
+        settings[SLOT].value, settings[WHOLE].value, settings[UPPER].value);
 }
 
 static void draw(const KaeFrame *f, void *user) {
@@ -299,8 +315,8 @@ static int start(void) {
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_input(input, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Emotes", settings, N_SETTINGS);
-    KAE_LOG("emotes 0.1.1: %d emotes, hold the button to open the list", N_EMOTES);
+    KAE_LOG("emotes 0.1.2: %d emotes, hold the button to open the list", N_EMOTES);
     return 0;
 }
 
-KAE_MOD("kabosune.emotes", "0.1.1", start, 0);
+KAE_MOD("kabosune.emotes", "0.1.2", start, 0);
