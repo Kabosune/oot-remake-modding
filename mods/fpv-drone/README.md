@@ -82,7 +82,7 @@ First Person (both can be installed: when both are on, the drone wins; leave the
 + or −), Ultrawide, the FPS mods, and Lichii's built-ins. No shared bytes, see
 [memory-map](../../docs/memory-map.md).
 
-Works on: Lichii / Fritchii (target). Should work anywhere exefs IPS32 patches load for this build;
+Works on: Lichii / Fritchii (all modes, Free fly and carrying Link confirmed in Fritchii). Should work anywhere exefs IPS32 patches load for this build;
 untested elsewhere.
 
 ## Install
