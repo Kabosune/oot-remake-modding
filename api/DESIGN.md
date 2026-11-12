@@ -177,6 +177,37 @@ memory, which hardware may refuse.
   own folder. The emulator combines the `exefs` folders of several mods, modules included
   (Core, Hello and Slopped Up Sloperina from three folders, in Fritchii v5.8.3).
 
+### To do: a mod loader, so any number of mods install by hand (agreed 12 November)
+
+The limit of seven is a real problem already: KaboWabo had eight core mods, copied two in by hand
+at the slot they were built with, and three ended up in `subsdk2`. The emulator loads one file per
+name, so two of them were skipped with **no message anywhere**: a skipped file never reaches the
+game, so Core can't see that it was meant to be there. Most players will install by copying
+folders, not with `kaegae install`, so they would have to work this out themselves.
+
+Agreed direction, in this order:
+
+1. **Core loads mods from a folder on the SD card**: `sdmc:/kaegae/mods/` (in Fritchii
+   `%APPDATA%\fritchii\sdmc\kaegae\mods\`; on a Switch the microSD card). Core stays in
+   `subsdk1`; at start it lists that folder, loads each mod file as code (the system's own way of
+   loading code at runtime, `nn::ro`), links it to Core and starts it like a module mod. Installing
+   a mod is copying one file into that folder, removing it is deleting the file. No slots, nothing
+   to rename, no clashes; Core's own limits stay well above any real setup (64 mods, 32 subscribers
+   an event, 32 settings pages). Mods already in `subsdk2`–`subsdk8` keep working.
+2. **Clear messages in the Mods menu** for anything Core can see is wrong: a mod file it couldn't
+   load, a mod built for a newer Core, two mods that clash. Until the loader exists: say plainly in
+   the README and in each mod's `README.txt` that every core mod takes one slot and there are seven,
+   and show "mod slots used: N of 7" in the menu.
+3. **A mod manager app later, as an extra**, not a requirement: installing by hand must always work,
+   since that is how Switch and emulator players already mod (a zip from GameBanana, a folder
+   copied in). An app (add / remove / update, warnings, copying to a Switch's SD card) can be built
+   on the same documented folder layout, by us or by anyone.
+
+Unknown: real hardware checks code loaded at runtime more strictly than the emulator (registered
+hashes for `nn::ro`); existing Switch mod loaders such as Skyline work around it. Core doesn't run
+on hardware yet (issue #2), so check this as part of that work. Workaround until then, tested in
+the game: link many mods into Core's own module with `kaemod.py --bundle`.
+
 ### What Core gets without knowing any addresses
 
 By wrapping the game's imports, which are found by name:
@@ -338,6 +369,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 | M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_move`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
 | M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
+| M6 | The mod loader: Core loads mods from `sdmc:/kaegae/mods/`, with messages in the Mods menu (see "To do: a mod loader" above). Agreed 12 Nov, not started | Any number of mods, installed by copying one file each |
 
 ## Open questions (each needs an experiment)
 
