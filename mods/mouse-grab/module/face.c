@@ -39,12 +39,21 @@ void as_play(void *actor, const char *command, int partial) {
     KP_FN(void (*)(as_request_t *), F_AS_PLAY)(&r);
 }
 
-static bool was_down;
+static bool was_down, hurt;
 static uint32_t frames;
 
 // Called every frame for Link with whether he's down.
 void face_update(void *actor, bool down) {
+    if (!MG(MG_FACE)) {   // switched off: only undo a hurt face already shown
+        if (hurt && !down) {
+            as_play(actor, "FaceDefault", PARTIAL_FACE);
+            hurt = false;
+        }
+        was_down = down;
+        return;
+    }
     if (down && !was_down) {
+        hurt = true;
         as_play(actor, "FaceDamageL", PARTIAL_FACE);
         kp_log("face: FaceDamageL");
         frames = 0;
@@ -52,6 +61,7 @@ void face_update(void *actor, bool down) {
         as_play(actor, "FaceDamageL", PARTIAL_FACE);   // ignored if it's still playing
     } else if (!down && was_down) {
         as_play(actor, "FaceDefault", PARTIAL_FACE);
+        hurt = false;
         kp_log("face: FaceDefault");
     }
     was_down = down;
@@ -59,6 +69,8 @@ void face_update(void *actor, bool down) {
 
 // A scream: called when he's dropped, grabbed or thrown.
 void link_voice(void *actor, const char *command) {
+    if (!MG(MG_VOICE))
+        return;
     as_play(actor, command, PARTIAL_MOUTH);
     kp_log(command);
 }

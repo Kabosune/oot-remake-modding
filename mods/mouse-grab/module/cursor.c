@@ -43,16 +43,17 @@ static void on_actor_move(void *actor, void *user) {
 }
 
 static int start(void) {
-    kp_log("mouse grab: build 2026-11-10 g (on KaeGae Core 0.4)");
+    KAE_LOG("%s", "mouse grab: build 2026-11-11 h (on KaeGae Core 0.5, with settings)");
+    mg_settings_start();
     mg_main = kae_game_base();
     if (kae_on_actor_move(on_actor_move, 0, 0) != KAE_OK)
-        kp_log("mouse grab: no movement hook (Core's .ips is missing): the cursor works, grabbing doesn't");
+        KAE_LOG("%s", "mouse grab: no movement hook (Core's .ips is missing): the cursor works, grabbing doesn't");
     if (!kae_has("motion"))
-        kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
+        KAE_LOG("%s", "motion off: main's GetSixAxisSensorStates import wasn't found");
     return kae_on_draw(on_draw, 0, 0);
 }
 
-KAE_MOD("kabosune.mouse-grab", "0.2.0", start, 0);
+KAE_MOD("kabosune.mouse-grab", "0.3.0", start, 0);
 
 // One rectangle for each run of the same kind of cell in a row.
 static void draw_arrow(int left, int top, int scale, uint32_t fill) {
@@ -79,11 +80,13 @@ static void on_draw(const KaeFrame *frame, void *user) {
     if (!connected) {
         if (!logged_missing) {
             logged_missing = true;
-            kp_log("mouse grab: no mouse connected (in the emulator, turn on the emulated mouse)");
+            KAE_LOG("%s", "mouse grab: no mouse connected (in the emulator, turn on the emulated mouse)");
         }
         return;
     }
-    int scale = (frame->height + 360) / 720;
+    if (!MG(MG_CURSOR))
+        return;
+    int scale = MG(MG_CURSOR_SIZE) ? MG(MG_CURSOR_SIZE) * frame->height / 720 : (frame->height + 360) / 720;
     if (scale < 1)
         scale = 1;
     int x = (int)((int64_t)m.x * frame->width / MOUSE_WIDTH);

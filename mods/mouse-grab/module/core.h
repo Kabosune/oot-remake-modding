@@ -16,9 +16,13 @@ extern uintptr_t mg_main;
 #define kp_main mg_main
 #define KP_FN(type, offset) ((type)(kp_main + (offset)))
 
-#define kp_log(text)             KAE_LOG("%s", (text))
-#define kp_log_hex(text, value)  KAE_LOG("%s 0x%llx", (text), (unsigned long long)(value))
-#define kp_log_2(text, a, b)     KAE_LOG("%s %lld %lld", (text), (long long)(a), (long long)(b))
+// Research output, written only with the "Debug log" setting on. Lines a player needs (the build,
+// something missing) use KAE_LOG directly.
+#include "settings.h"
+#define kp_debug                 (MG(MG_DEBUG_LOG) != 0)
+#define kp_log(text)             do { if (kp_debug) KAE_LOG("%s", (text)); } while (0)
+#define kp_log_hex(text, value)  do { if (kp_debug) KAE_LOG("%s 0x%llx", (text), (unsigned long long)(value)); } while (0)
+#define kp_log_2(text, a, b)     do { if (kp_debug) KAE_LOG("%s %lld %lld", (text), (long long)(a), (long long)(b)); } while (0)
 void kp_log_floats(const char *text, const float *values, int count);   // in thousandths, up to 12
 
 #define kp_readable(address, size)                 (kae_readable((const void *)(address), (size)) != 0)
