@@ -41,4 +41,18 @@ extern int32_t input_force_stick[4];     /* lx, ly, rx, ry */
 /* KaeGae Core's input event: edits the game's copy of a controller read (a KaeInput *). */
 void input_filter(void *kae_input);
 
+/* Actions: gz's shortcuts as bindings on KaeGae Core's Mods page, each with a controller combination
+ * (rebindable, gz's by default) and a keyboard key (none by default). Worked out by input_update. */
+enum {
+  ACT_MENU, ACT_BACK, ACT_SAVE_POS, ACT_LOAD_POS, ACT_LEVITATE, ACT_FRAME_ADVANCE, ACT_RUN,
+  ACT_TIMER, ACT_TIMER_RESET, ACT_LAG_RESET, ACT_JUMP_RESET, ACT_WATCHES, ACT_COUNT,
+};
+void     actions_register(void);       /* in the mod's start: gives Core the page */
+bool     action_held(int action);
+bool     action_pressed(int action);   /* went down this update */
+uint32_t action_buttons(int action);   /* its controller combination */
+/* Its controller combination, held: those buttons are the action's, not the game's. */
+uint32_t action_buttons_held(int action);
+void     action_set_buttons(int action, uint32_t buttons);
+
 #endif

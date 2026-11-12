@@ -187,15 +187,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.6 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.7 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 6 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 7 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaegae [kaegae.hello]: hello from its own start. Core API 0.6, game 1.1.1",
+             "kaegae [kaegae.hello]: hello from its own start. Core API 0.7, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -217,9 +217,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("KaeGae Core 0.6: A is held", white, at its
+    # between them hello's text plate, its text ("KaeGae Core 0.7: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.6: A is held")
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.7: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -401,7 +401,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.6: unknown game build, doing nothing",
+        g.expect("Core 0.7: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -434,7 +434,7 @@ def main():
             saved = sd_file(g)
             assert "[kabosune.mouse-grab]\n(on) = 1\nGyro depth speed = 100\n" in saved and "Debug log = 0\n" in saved, saved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors, has its settings page)")
-        # mods built for API 0.5 and released before 0.6, unchanged, on this Core (0.6 runs them):
+        # mods built for API 0.5 and released before 0.6, unchanged, on this Core (0.6 and later run them):
         # tests/kaegae/old-mods holds the zips as they were released
         old = {}
         for zip_name, slot in (("slopped-up-sloperina-0.2.1-api0.5.zip", "subsdk2"), ("mouse-grab-0.2.0-api0.5.zip", "subsdk3")):
@@ -448,9 +448,106 @@ def main():
         g.game("game_boot")
         for _ in range(3):
             g.frame(actor=0x40000000)
-        g.expect("Core 0.6 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        g.expect("Core 0.7 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
         assert not g.logged(" is off"), g.logged(" is off")
-        print("mods built for API 0.5 on Core 0.6: ok (the released Slopped Up Sloperina and Mouse Grab start)")
+        print("mods built for API 0.5 on Core 0.7: ok (the released Slopped Up Sloperina and Mouse Grab start)")
+
+        # keys (0.7): bindings get a keyboard key in the Mods menu, kept in the settings file. A 0.7 mod
+        # reads them with kae_binding_held / kae_binding_pressed; for older mods (Hello, 0.5) Core adds
+        # the binding's buttons to their input while its key is held, and keeps them from the game.
+        keys_files = kaemod.build([kaemod.Mod(HELLO), kaemod.Mod(HERE / "keys-test")], False, tmp / "keys")
+        F5, SPACE, ZR, L3 = 62, 44, 1 << 9, 1 << 4
+
+        def set_keys(*codes):
+            words = [0, 0, 0, 0]
+            for code in codes:
+                words[code >> 6] |= 1 << (code & 63)
+            g.p.write(g.sdk.exports["sdk_keys"], struct.pack("<4Q", *words))
+
+        def keyboard():
+            return g.sdk_int("sdk_keyboard_inits"), g.sdk_int("sdk_keyboard_early_reads")
+
+        def keys_line():
+            return [line.split("keys: ")[1] for line in g.logged("keys: held")][-1]
+
+        def diamond_area():
+            return sum(r[2] * r[3] for r in g.rects() if r[4] == 0xFFD040)
+
+        def with_file(text):
+            game = Game(fakes, keys_files)
+            game.p.write(game.sdk.exports["sdk_file"], text.encode())
+            game.p.write(game.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+            return game
+
+        g = Game(fakes, keys_files)
+        g.game("game_boot")
+        frames(0, 3)
+        assert keyboard() == (0, 0), keyboard()                       # no key bound: never set up or read
+        assert keys_line() == "held 0 presses 0 saw 0x0 keyboard 1", keys_line()
+        frames(ZR)
+        assert keys_line().startswith("held 1 presses 1"), keys_line()  # the controller, as before
+        frames(ZR, 2)
+        assert keys_line().startswith("held 1 presses 1"), keys_line()  # one press, however long it's held
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        assert keyboard() == (1, 0), keyboard()                       # the open menu reads keys: set up first
+        assert keys_line().startswith("held 0"), keys_line()          # nothing is held while it's open
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        saved = sd_file(g)
+        assert "[kaegae.core]\n(on) = 1\nKeyboard = 1\n" in saved and "(key)" not in saved, saved
+
+        g = with_file("[kaegae.hello]\nFlash the diamond (key) = F5\n[kaegae.keys-test]\nJump (key) = space\n")
+        g.game("game_boot")
+        frames(0, 2)
+        g.expect("settings: 2 loaded")
+        small = diamond_area()
+        set_keys(F5)
+        assert not frames(0) & L3, "the game saw the buttons of a key"
+        assert diamond_area() > small, "Hello didn't get L3 for its key"
+        set_keys()
+        frames(0)
+        assert diamond_area() == small
+        set_keys(SPACE)
+        assert not frames(0) & ZR
+        line = keys_line()
+        assert line.startswith("held 1 presses 1") and "saw 0x0" in keys_line(), line   # held by its key; no buttons
+        set_keys(SPACE, F5)
+        frames(0, 2)                                                  # (the mod logs the last frame's input)
+        assert keys_line().startswith("held 1 presses 1"), keys_line()
+        assert keys_line().split()[5] == hex(L3), keys_line()         # other mods see an older mod's buttons
+        set_keys()
+        frames(0)
+        set_keys(SPACE)
+        frames(0)
+        assert keys_line().startswith("held 1 presses 2"), keys_line()
+        assert keyboard() == (1, 0), keyboard()
+        set_keys()
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        saved = sd_file(g)
+        assert "Flash the diamond = 0x10\nFlash the diamond (key) = F5\n" in saved, saved
+        assert "Jump = 0x200\nJump (key) = Space\n" in saved, saved
+
+        g = with_file("[kaegae.core]\nKeyboard = 0\n[kaegae.keys-test]\nJump (key) = Space\n")   # switched off
+        g.game("game_boot")
+        set_keys(SPACE)
+        frames(0, 3)
+        assert keys_line() == "held 0 presses 0 saw 0x0 keyboard 0", keys_line()
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        assert keyboard() == (0, 0), keyboard()                       # never set up, even with the menu open
+
+        g = Game(fakes, keys_files, sdk="old-sdk")
+        g.p.unresolved.clear()
+        g.game("game_boot")
+        g.expect("keyboard: the system has no keyboard functions")
+        g.frame(style_set=0)
+        assert keys_line().endswith("keyboard 0"), keys_line()
+        print("keys: ok (none bound: never read; the menu sets the keyboard up before reading; 0.7 mods hold and "
+              "press by key; older mods get their buttons, the game doesn't; saved as \"(key)\" lines; the switch)")
         # Core's player_move event under the player test mod (Slopped Up Sloperina 0.2, the first mod
         # written against the public API only). A Link is built in memory the way the game lays him out (actor -> components
         # -> movement inside the player object, whose resource is "Player"; components -> ... ->
@@ -549,6 +646,41 @@ def main():
         assert not g.p.unresolved, g.p.unresolved
         print(f"Slopped Up Sloperina: ok (starts on 1.1.1, opens and draws its menu through Core, hides the controller "
               f"from the game while it's open; {sdk_rect_total(g)} rectangles in its last frame)")
+
+        # its shortcuts are bindings on Core's page (0.4.0): saved with their buttons, and with a key
+        # from the settings file F1 opens its menu, Backspace closes it (fixed keys inside the menu)
+        text = "[kabosune.slopped-up-sloperina]\nOpen / close the menu (key) = F1\nSave position (key) = F5\n"
+        g = Game(fakes, kaemod.build([slopped], False, tmp / "slopped"))
+        g.p.write(g.sdk.exports["sdk_file"], text.encode())
+        g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+        g.game("game_boot")
+        for _ in range(3):
+            slopped_frame(0)
+        g.expect("settings: 2 loaded")
+        F1, BACKSPACE = 58, 42
+
+        def press_key(code):
+            g.p.write(g.sdk.exports["sdk_keys"], struct.pack("<4Q", *[(1 << (code & 63)) if i == code >> 6 else 0 for i in range(4)]))
+            seen, panels = slopped_frame(0)
+            g.p.write(g.sdk.exports["sdk_keys"], bytes(32))
+            slopped_frame(0)
+            return seen, [r for r in g.rects() if r[4] == BACKGROUND and r[0] == 1280 * 35 // 1000]
+        seen, menu = press_key(F1)
+        assert menu, "F1 didn't open the menu"
+        assert slopped_frame(A)[0] == 0, "the game saw A while the menu was open"
+        seen, menu = press_key(BACKSPACE)
+        assert not menu, "Backspace didn't close the menu at its top level"
+        assert slopped_frame(A)[0] & A
+        assert g.sdk_int("sdk_keyboard_early_reads") == 0
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        saved = sd_file(g)
+        assert "Open / close the menu = 0x800080\nOpen / close the menu (key) = F1\n" in saved, saved
+        assert "Save position = 0x2080\nSave position (key) = F5\n" in saved and "Watches: show / hide = 0x4080\n" in saved, saved
+        print("Slopped Up Sloperina's shortcuts on Core's page: ok (saved with their buttons and keys; F1 opens its menu, "
+              "Backspace closes it)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

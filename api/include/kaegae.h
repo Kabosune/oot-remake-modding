@@ -1,4 +1,4 @@
-/* KaeGae Core API 0.6. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.7. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
@@ -15,7 +15,7 @@
  *
  *     KAE_MOD("author.mod-name", "1.0.0", start, 0);
  *
- * Until API 1.0, Core only runs mods built against exactly its own version (0.x may still change).
+ * A Core runs mods built for its own API version or an older one of the same major version (from 0.6).
  */
 #ifndef KAEGAE_H
 #define KAEGAE_H
@@ -28,11 +28,11 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 6
+#define KAE_API_MINOR 7
 
 /* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
-   Core keeps running older mods, back to the oldest minor version it still supports (Core 0.6:
-   mods built for 0.5 and 0.6). Before 0.6 the minor versions had to match exactly. */
+   Core keeps running older mods, back to the oldest minor version it still supports (Core 0.7:
+   mods built for 0.5, 0.6 and 0.7). Before 0.6 the minor versions had to match exactly. */
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -83,7 +83,9 @@ KAE_API uint32_t    kae_api_version(void);         /* (major << 16) | minor of t
 KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in this game, else 0. Features:
                                                       "event.frame" "event.draw" "event.input" "event.actor_move"
                                                       "draw.rect" "draw.text" "draw.image" "motion" "symbols"
-                                                      "alloc" "menu" "player" "event.player_move" */
+                                                      "alloc" "menu" "player" "event.player_move"
+                                                      "keyboard" (0.7: the system has one and the
+                                                      Mods menu's Keyboard switch is on) */
 KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -113,7 +115,8 @@ typedef struct {
     uint32_t size;
     uint32_t controller;       /* 0 = player 1 ... ; 0x20 = handheld */
     uint64_t buttons;          /* bit 0 A, 1 B, 2 X, 3 Y, 4 L3, 5 R3, 6 L, 7 R, 8 ZL, 9 ZR, 10 +, 11 -,
-                                  12 left, 13 up, 14 right, 15 down */
+                                  12 left, 13 up, 14 right, 15 down; the sticks as directions:
+                                  16-19 left stick left, up, right, down; 20-23 the right stick's */
     int32_t  lx, ly, rx, ry;   /* sticks, -32767..32767 */
     uint32_t style;            /* 0 FullKey (Pro Controller), 1 handheld, 2 Joy-Con pair, 3 left, 4 right */
     uint32_t connected;
@@ -155,6 +158,9 @@ enum {
     KAE_A = 1 << 0, KAE_B = 1 << 1, KAE_X = 1 << 2, KAE_Y = 1 << 3, KAE_L3 = 1 << 4, KAE_R3 = 1 << 5,
     KAE_L = 1 << 6, KAE_R = 1 << 7, KAE_ZL = 1 << 8, KAE_ZR = 1 << 9, KAE_PLUS = 1 << 10,
     KAE_MINUS = 1 << 11, KAE_LEFT = 1 << 12, KAE_UP = 1 << 13, KAE_RIGHT = 1 << 14, KAE_DOWN = 1 << 15,
+    /* 0.7: the sticks pushed in a direction, usable in a binding */
+    KAE_LS_LEFT = 1 << 16, KAE_LS_UP = 1 << 17, KAE_LS_RIGHT = 1 << 18, KAE_LS_DOWN = 1 << 19,
+    KAE_RS_LEFT = 1 << 20, KAE_RS_UP = 1 << 21, KAE_RS_RIGHT = 1 << 22, KAE_RS_DOWN = 1 << 23,
 };
 
 typedef enum { KAE_TOGGLE, KAE_CHOICE, KAE_NUMBER, KAE_BINDING, KAE_ACTION } KaeItemType;
@@ -187,6 +193,21 @@ KAE_API int kae_settings_sized(const char *name, KaeItem *items, int count, uint
 #define kae_settings(name, items, count) kae_settings_sized((name), (items), (count), (uint32_t)sizeof(KaeItem))
 /* 1 while the Mods menu is open. A mod that reacts to buttons itself should hold still then. */
 KAE_API int kae_menu_open(void);
+
+/* Keys (0.7). The menu gives every KAE_BINDING item a keyboard key next to its buttons, chosen by
+   the player (no key by default) and saved with the settings ("Label (key) = F5"). Read a binding
+   with these and it works from either: */
+/* 1 while the item's buttons (all of them) or its key are held, read now from the system, so it
+   also works in a loop that holds the game's thread. 0 while the Mods menu is open, and for a mod
+   switched off. Any thread. */
+KAE_API int kae_binding_held(const KaeItem *item);
+/* 1 if the item went from not held to held since the last time this was asked for the item: ask
+   once a frame per item. Same rules as kae_binding_held; the game's thread. */
+KAE_API int kae_binding_pressed(const KaeItem *item);
+/* Mods written before 0.7 read bindings from the controller themselves. So while a binding's key is
+   held Core adds the binding's buttons to the input every mod is handed (kae_on_input's `real` and
+   `seen_by_game`), and takes them out again before the game gets it; other mods see them too. Once
+   a mod asks kae_binding_held or kae_binding_pressed about an item, that item's key adds nothing. */
 
 /* actor_move: the movement update of every physics actor, every frame, on the game's thread,
    before the game moves it. Needs Core's patch to main (kae_has("event.actor_move")). */
@@ -240,8 +261,8 @@ KAE_API void kae_logf(const KaeMod *mod, const char *format, ...) __attribute__(
 KAE_API void *kae_alloc(size_t size);
 KAE_API void  kae_free(void *p);
 
-/* Planned (see DESIGN.md): kae_hook (any hook point by name, with the registers), input bindings
-   (kae_action, kae_pressed, kae_held, kae_capture), config, the view event. A mod can't use them by accident: its build refuses any kae_ function
+/* Planned (see DESIGN.md): kae_hook (any hook point by name, with the registers), config, the view
+   event. A mod can't use them by accident: its build refuses any kae_ function
    Core doesn't export. */
 
 #ifdef __cplusplus

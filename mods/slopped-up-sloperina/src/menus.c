@@ -2498,9 +2498,12 @@ static int get_fa_button(menu_item_t *it)
   return frame_advance_button;
 }
 
+/* L or R: moves frame advance's binding (and run's) on Core's Mods page with it */
 static void set_fa_button(menu_item_t *it, int button)
 {
-  frame_advance_button = button;
+  uint32_t b = button ? BTN_R : BTN_L;
+  action_set_buttons(ACT_FRAME_ADVANCE, b);
+  action_set_buttons(ACT_RUN, b | BTN_LSTICK);
 }
 
 static void build_frame_advance(void)

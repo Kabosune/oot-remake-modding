@@ -64,5 +64,7 @@ int kae_has(const char *feature) {
         return kp_main != 0;
     if (compare(feature, "alloc") == 0)
         return 1;
+    if (compare(feature, "keyboard") == 0)
+        return kp_keyboard_on();
     return 0;
 }

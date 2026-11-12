@@ -1,6 +1,7 @@
 #include "input.h"
 
 #include <kaegae.h>
+#include "menu.h"
 #include "sys.h"
 
 /* nn::hid state structs (Switch 1 layout: sampling number, buttons, two sticks, attributes;
@@ -91,6 +92,9 @@ int input_controller(void)
   return controller;
 }
 
+static void actions_update(void);
+static void keyboard_menu_keys(void);
+
 void input_update(void)
 {
   uint32_t previously_held = buttons_held;
@@ -104,7 +108,9 @@ void input_update(void)
   for (int i = 0; i < 3; i++)
     if (used[i] || (!connected[controller] && connected[i]))
       controller = i;
+  keyboard_menu_keys();
   buttons_pressed = buttons_held & ~previously_held;
+  actions_update();
 
   buttons_fired = buttons_pressed;
   if (buttons_pressed) {
@@ -173,4 +179,122 @@ void input_filter(void *kae_input)
     }
   }
   state->buttons &= ~(uint64_t)input_hide_from_game;
+}
+
+/* --- actions --------------------------------------------------------------------------------
+ * Each of gz's shortcuts is a KAE_BINDING item on Core's Mods page, so it can be rebound there and
+ * given a keyboard key. The controller part is read here from this module's own controller read (so
+ * it works while frame advance holds the game's thread); the key through kae_binding_held, which
+ * reads the keyboard right away. A combination inside a bigger one that is held doesn't count (R +
+ * D-right is the watches, R + A + D-right resets the jump height): gz's three-button commands came
+ * first. Frame advance's button is left out of that: it handles its own shortcuts. */
+#define BINDING(label, help, buttons) \
+  { KAE_BINDING, label, help, 0, 0, 0, 0, 0, 0, buttons, buttons, action_changed, 0 }
+
+int frame_advance_button; /* 0 L, 1 R: gz's own setting, kept in step with the binding */
+
+static void action_changed(KaeItem *item, void *user);
+
+static KaeItem actions[ACT_COUNT] = {
+  [ACT_MENU]          = BINDING("Open / close the menu", "gz's menu (R + C-down on the N64).", BTN_R | BTN_RS_DOWN),
+  [ACT_BACK]          = BINDING("Menu: back", "Up one level in the menu; closes it at the top.", BTN_R | BTN_DLEFT),
+  [ACT_SAVE_POS]      = BINDING("Save position", "Remembers where Link stands.", BTN_R | BTN_DUP),
+  [ACT_LOAD_POS]      = BINDING("Load position", "Puts Link back where he was saved.", BTN_R | BTN_DDOWN),
+  [ACT_LEVITATE]      = BINDING("Levitate: start / stop", "While levitate is on in the menu.", BTN_LSTICK),
+  [ACT_FRAME_ADVANCE] = BINDING("Frame advance", "Tap: pause, then a frame a tap. Hold: frames in a row.", BTN_L),
+  [ACT_RUN]           = BINDING("Frame advance: run", "Runs the game again after frame advance.", BTN_L | BTN_LSTICK),
+  [ACT_TIMER]         = BINDING("Timer: start / stop", 0, BTN_R | BTN_A | BTN_DLEFT),
+  [ACT_TIMER_RESET]   = BINDING("Timer: reset", 0, BTN_R | BTN_B | BTN_DLEFT),
+  [ACT_LAG_RESET]     = BINDING("Lag counter: reset", 0, BTN_R | BTN_B | BTN_DRIGHT),
+  [ACT_JUMP_RESET]    = BINDING("Jump height: reset", 0, BTN_R | BTN_A | BTN_DRIGHT),
+  [ACT_WATCHES]       = BINDING("Watches: show / hide", 0, BTN_R | BTN_DRIGHT),
+};
+static uint32_t actions_held, actions_pressed;
+
+static void action_changed(KaeItem *item, void *user)
+{
+  if (item == &actions[ACT_FRAME_ADVANCE])
+    frame_advance_button = (item->binding & BTN_R) != 0;
+}
+
+void actions_register(void)
+{
+  if (kae_settings("Slopped Up Sloperina", actions, ACT_COUNT) != KAE_OK)
+    KAE_LOG("slopped up sloperina: Core refused the settings page; gz's own buttons only");
+}
+
+/* gz's frame advance button setting (L or R): moves the binding and frame advance's run with it */
+void action_set_buttons(int action, uint32_t buttons)
+{
+  actions[action].binding = buttons;
+  action_changed(&actions[action], 0);
+}
+
+static bool all_held(uint32_t mask) { return mask && (buttons_held & mask) == mask; }
+
+static void actions_update(void)
+{
+  uint32_t before = actions_held, pad = 0;
+  actions_held = 0;
+  for (int i = 0; i < ACT_COUNT; i++)
+    if (all_held((uint32_t)actions[i].binding))
+      pad |= 1u << i;
+  for (int i = 0; i < ACT_COUNT; i++) {
+    uint32_t mine = (uint32_t)actions[i].binding;
+    bool held = pad >> i & 1;
+    if (held && i != ACT_FRAME_ADVANCE)
+      for (int j = 0; j < ACT_COUNT && held; j++)
+        if (j != i && (pad >> j & 1) && ((uint32_t)actions[j].binding & mine) == mine && actions[j].binding != mine)
+          held = false;   /* part of a bigger combination that is held */
+    /* not held on the controller: its key (kae_binding_held also looks at the controller, which this
+     * module read itself just now) */
+    if (!(pad >> i & 1) && kae_binding_held(&actions[i]))
+      held = true;
+    if (held)
+      actions_held |= 1u << i;
+  }
+  actions_pressed = actions_held & ~before;
+}
+
+bool action_held(int action) { return actions_held >> action & 1; }
+bool action_pressed(int action) { return actions_pressed >> action & 1; }
+uint32_t action_buttons(int action) { return (uint32_t)actions[action].binding; }
+uint32_t action_buttons_held(int action)
+{
+  uint32_t mine = (uint32_t)actions[action].binding;
+  return all_held(mine) ? mine : 0;
+}
+
+/* --- the keyboard in the menu ------------------------------------------------------------------
+ * While gz's menu is open: the arrow keys are the D-pad, Enter is L (choose) and Backspace is B
+ * (back). Read from the system directly, only when Core says the keyboard is on (kae_has), and only
+ * after nn::hid::InitializeKeyboard: GetKeyboardState stops the game without it. */
+typedef struct {
+  int64_t sample;
+  uint32_t modifiers, attributes;
+  uint64_t keys[4];   /* bit n = USB HID usage n */
+} keyboard_state_t;
+void hid_initialize_keyboard(void) __asm__("_ZN2nn3hid18InitializeKeyboardEv");
+void hid_get_keyboard_state(keyboard_state_t *out) __asm__("_ZN2nn3hid16GetKeyboardStateEPNS0_13KeyboardStateE");
+
+enum { KEY_ENTER = 40, KEY_BACKSPACE = 42, KEY_RIGHT = 79, KEY_LEFT = 80, KEY_DOWN = 81, KEY_UP = 82 };
+
+static void keyboard_menu_keys(void)
+{
+  static bool ready;
+  if (!menu_current || !kae_has("keyboard"))
+    return;
+  if (!ready) {
+    ready = true;
+    hid_initialize_keyboard();
+  }
+  keyboard_state_t state = { 0 };
+  hid_get_keyboard_state(&state);
+  static const struct { int key; uint32_t button; } map[] = {
+    { KEY_UP, BTN_DUP }, { KEY_DOWN, BTN_DDOWN }, { KEY_LEFT, BTN_DLEFT }, { KEY_RIGHT, BTN_DRIGHT },
+    { KEY_ENTER, BTN_L }, { KEY_BACKSPACE, BTN_B },
+  };
+  for (unsigned i = 0; i < sizeof map / sizeof *map; i++)
+    if (state.keys[map[i].key >> 6] >> (map[i].key & 63) & 1)
+      buttons_held |= map[i].button;
 }

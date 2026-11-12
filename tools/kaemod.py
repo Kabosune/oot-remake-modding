@@ -42,7 +42,7 @@ MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]   # subsdk9 is left to standalon
 
 CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "symbols.c", "log.c", "format.c",
                                    "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "menu.c", "input.c", "input_wrap.S", "motion.c",
-                                   "hooks.c", "player.c", "settings.c")]
+                                   "hooks.c", "player.c", "settings.c", "keyboard.c")]
 # What Core imports, and which of the game's modules exports it. The second group is imported
 # weakly: Core runs without them (the build can't check the system's exports, only the game can).
 CORE_IMPORTS = {
@@ -66,6 +66,9 @@ CORE_IMPORTS = {
     "_ZN2nn2fs11SetFileSizeENS0_10FileHandleEl": "sdk (weak)",
     "_ZN2nn2fs9CloseFileENS0_10FileHandleE": "sdk (weak)",
     "_ZN2nn2fs19SetEnabledAutoAbortEb": "sdk (weak)",
+    # the keyboard, for mods' keys (core/keyboard.c); names read from the game's sdk module
+    "_ZN2nn3hid18InitializeKeyboardEv": "sdk (weak)",
+    "_ZN2nn3hid16GetKeyboardStateEPNS0_13KeyboardStateE": "sdk (weak)",
 }
 CFLAGS = ["--target=aarch64-none-elf", "-O2", "-fPIC", "-ffreestanding", "-fno-builtin", "-fno-plt", "-fvisibility=hidden",
           "-fno-stack-protector", "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-mno-outline-atomics",

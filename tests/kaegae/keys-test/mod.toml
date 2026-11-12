@@ -1,0 +1,15 @@
+# A mod that exists only for tests/test_kaegae_modules.py: a binding read with the 0.7 functions,
+# kae_binding_held and kae_binding_pressed, which reports what it saw through the log.
+manifest = 1
+id       = "kaegae.keys-test"
+name     = "Keys Test"
+version  = "1.0.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.7"
+sources = ["keys_test.c"]

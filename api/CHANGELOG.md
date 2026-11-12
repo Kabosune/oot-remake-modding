@@ -1,8 +1,52 @@
 # KaeGae changelog
 
 Until API 1.0 anything here may still change. From 0.6 Core runs mods built for its own API
-version and for older ones back to the oldest it still supports (0.5 for Core 0.6); before 0.6
-the version had to match exactly.
+version and for older ones back to the oldest it still supports (0.5 for Core 0.6 and 0.7);
+before 0.6 the version had to match exactly.
+
+## Core 0.7, API 0.7: keyboard keys (11 November 2026; not tested in the game yet)
+
+Only additions: mods built for 0.5 and 0.6 run unchanged (the first real use of 0.6's rule).
+
+- **Every binding gets a keyboard key.** The Mods menu has a Keyboard column next to the
+  controller one, on a mod's page and on the Controls tab: Left / Right picks the cell, A waits for
+  a key, Y takes the key away (keys have no default), B gives up. Two actions on one key are shown
+  in orange, as two on the same buttons are. Saved in `kaegae/settings.txt` as a second line,
+  `Save position (key) = F5`. Key names: letters, digits, `F1`-`F12`, `Space`, `Enter`, `Left`,
+  `Num 7` and the like (USB HID usages, which is how `nn::hid` reports them; any other is
+  `Key 123`).
+- **`kae_binding_held(item)`, `kae_binding_pressed(item)`**: a binding, from its buttons or its
+  key. Read from the system right away, so it also works in a loop that holds the game's thread
+  (Slopped Up Sloperina's frame advance).
+- **Mods written before 0.7 get keys without a rebuild**: while a key is held, Core adds its
+  binding's buttons to the input every mod is handed and takes them out before the game gets it.
+  Once a mod asks `kae_binding_held` / `_pressed` about an item, that item's key adds nothing.
+- **Bindings can use the sticks as directions** (`KAE_LS_LEFT` ... `KAE_RS_DOWN`, bits 16-23), shown
+  as `RS Down` and so on. Slopped Up Sloperina's menu combination is R + RS Down.
+- **The keyboard is set up before it is read.** The sdk's `nn::hid::GetKeyboardState` stops the
+  game if `nn::hid::InitializeKeyboard` wasn't called first (read in the game's sdk module: its
+  detail function returns `0xa2ca`, and the public one aborts on any error). That is the main
+  suspect for First Person's R3 crash on a console (issue #2), which reads the keyboard without
+  it. Core calls `InitializeKeyboard` once, on the game's thread, the first time something needs
+  a key, and reads nothing when nothing is bound to a key and the menu is closed.
+- **A Keyboard switch on the About tab** (`[kaegae.core]` `Keyboard = 0` in the settings file):
+  off, Core never sets up or reads the keyboard. `kae_has("keyboard")` says whether it's on.
+- Core's own settings are a section of the settings file, `[kaegae.core]`.
+- Tested on a PC (module tests in an emulated game): keys from the file, a 0.5-style mod (Hello)
+  getting its buttons, a 0.7 mod by `kae_binding_held` / `_pressed`, the game not seeing them,
+  the switch, a system without keyboard functions, the keyboard never read before it's set up.
+
+## Slopped Up Sloperina 0.4.0: its shortcuts on Core's page (11 November 2026; not tested in the game yet)
+
+Built for API 0.7, so it needs Core 0.7.
+
+- gz's 12 shortcuts are bindings on its page in Core's Mods menu, rebindable, each with a keyboard
+  key: open / close the menu (R + RS Down), back (R + D-left), save / load position (R + D-up /
+  down), levitate (L3), frame advance (L) and run (L + L3), timer start / stop and reset, lag
+  counter reset, jump height reset, watches show / hide. gz's own "frame advance button" (L / R)
+  setting moves the binding.
+- In its menu: arrow keys move, Enter chooses (L), Backspace goes back (B). Fixed keys, read only
+  while its menu is open and Core's Keyboard switch is on.
 
 ## Core 0.6, API 0.6 (11 November 2026; tested in the game the same day)
 

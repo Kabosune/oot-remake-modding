@@ -50,8 +50,7 @@ typedef uint64_t (*gd_unlock_t)(void *lock);
 static bool started;
 static uint32_t frames_run;
 
-#define MENU_COMBO (BTN_R | BTN_RS_DOWN) /* gz: R + C-down */
-#define BACK_COMBO (BTN_R | BTN_DLEFT)   /* up one level; closes at the top */
+/* the menu's combinations are actions (input.h): ACT_MENU (gz: R + C-down) and ACT_BACK */
 #define BACK_BUTTON BTN_B
 
 /* --- frame advance ---------------------------------------------------------------------------
@@ -71,7 +70,6 @@ bool frame_advance = false;
 bool frame_advance_in_pause = false;
 bool pause_display = true;
 bool hide_in_game_menus = true;
-int frame_advance_button; /* 0 L, 1 R */
 
 /* settings > hide in game menus: the game's own menus (Plus, Minus) are open, or opening (from the frame
  * they start to fade in). gfx_frame keeps the HUD shown while sloperinaGZ's menu is open (it can be moved
@@ -112,19 +110,20 @@ typedef enum {
   FA_REPEAT = 3, /* held while paused: another frame */
 } fa_event_t;
 
-static uint32_t fa_button_bit(void) { return frame_advance_button ? BTN_R : BTN_L; }
-
-/* What, held or pressed with the button, makes it a shortcut rather than a tap. */
-static uint32_t fa_shortcut_keys(void)
+/* Another action pressed while the button is held makes it a shortcut (R + D-up saves the
+ * position), not a tap. */
+static bool fa_other_action_pressed(void)
 {
-  return frame_advance_button ? (BTN_DUP | BTN_DDOWN | BTN_DLEFT | BTN_DRIGHT | BTN_RS_DOWN) : 0;
+  for (int a = 0; a < ACT_COUNT; a++)
+    if (a != ACT_FRAME_ADVANCE && action_pressed(a))
+      return true;
+  return false;
 }
 
 static fa_event_t fa_read_button(void)
 {
-  uint32_t button = fa_button_bit();
-  uint32_t pressed = input_pressed();
-  uint32_t held = input_held();
+  bool pressed = action_pressed(ACT_FRAME_ADVANCE);
+  bool held = action_held(ACT_FRAME_ADVANCE);
   uint64_t ticks_per_ms = sys_tick_freq() / 1000;
   uint64_t now = sys_tick();
 
@@ -135,29 +134,28 @@ static fa_event_t fa_read_button(void)
     return FA_NOTHING;
   }
   if (fa_blocked_after_menu) {
-    if ((held & button) || now - fa_menu_closed_at < FA_AFTER_MENU_MS * ticks_per_ms)
+    if (held || now - fa_menu_closed_at < FA_AFTER_MENU_MS * ticks_per_ms)
       return FA_NOTHING;
     fa_blocked_after_menu = false;
   }
 
-  if (pressed & button) {
+  if (pressed) {
     fa_button_down = true;
-    fa_not_a_tap = (held & fa_shortcut_keys()) != 0;
+    fa_not_a_tap = false;
     fa_button_down_at = sys_tick();
     fa_repeating = false;
   }
   if (!fa_button_down)
     return FA_NOTHING;
 
-  bool run_combo_pressed = (pressed & button) || (pressed & BTN_LSTICK);
-  if ((held & button) && (held & BTN_LSTICK) && run_combo_pressed) {
+  if (action_pressed(ACT_RUN)) {
     fa_not_a_tap = true;
     return FA_RUN;
   }
-  if (pressed & fa_shortcut_keys())
+  if (fa_other_action_pressed())
     fa_not_a_tap = true;
 
-  if (!(held & button)) {
+  if (!held) {
     bool tap = !fa_not_a_tap && !fa_repeating; /* a hold already advanced: no extra frame */
     fa_button_down = false;
     fa_repeating = false;
@@ -178,11 +176,11 @@ static fa_event_t fa_read_button(void)
 /* Opens, closes and drives the menu. Returns true if the input was the menu's. */
 static bool menu_controls(void)
 {
-  if (!menu_current && input_combo(MENU_COMBO))
+  if (!menu_current && action_pressed(ACT_MENU))
     menu_open(&menu_root);
-  else if (menu_current && input_combo(MENU_COMBO))
+  else if (menu_current && action_pressed(ACT_MENU))
     menu_close(); /* the open combo toggles it */
-  else if (menu_current && (input_combo(BACK_COMBO) || (input_pressed() & BACK_BUTTON)))
+  else if (menu_current && (action_pressed(ACT_BACK) || (input_pressed() & BACK_BUTTON)))
     menu_back();
   else if (menu_current) {
     watches_sync();
@@ -207,10 +205,8 @@ static void fa_buffer_input(void)
   if (menu_current) /* what's pressed for the menu isn't for the game */
     return;
   uint32_t held = input_held();
-  uint32_t button = fa_button_bit();
-  uint32_t for_game = held & ~button & BUTTON_BITS;
-  if (held & button)
-    for_game &= ~BTN_LSTICK; /* L3 with the button means "run", not something for the game */
+  /* the button, and run's combination, are frame advance's, not the game's */
+  uint32_t for_game = held & ~action_buttons_held(ACT_FRAME_ADVANCE) & ~action_buttons_held(ACT_RUN) & BUTTON_BITS;
   buffered_buttons |= for_game;
 
   int32_t axes[4];
@@ -257,10 +253,7 @@ static void fa_hold_game(void)
     input_update();
     /* The button + L3 always runs again, even with the menu open: nothing is drawn while paused, so a
      * menu opened here can't be seen, and it would take the button. Checked before the menu gets it. */
-    uint32_t held = input_held();
-    uint32_t pressed = input_pressed();
-    uint32_t button = fa_button_bit();
-    if ((held & button) && (held & BTN_LSTICK) && (pressed & (button | BTN_LSTICK))) {
+    if (action_pressed(ACT_RUN)) {
       if (menu_current)
         menu_close();
       fa_button_down = false;
@@ -320,13 +313,12 @@ static void fa_frame(void)
     fa_menu_closed_at = sys_tick();
     return;
   }
-  input_hide_from_game |= fa_button_bit();
+  input_hide_from_game |= action_buttons_held(ACT_FRAME_ADVANCE) | action_buttons_held(ACT_RUN);
   if (!fa_paused)
     input_force_active = false;
   if (!fa_paused && fa_read_button() == FA_TAP) {
     fa_paused = true;
-    gfx_notice(frame_advance_button ? "frame advance: R a frame, R + L3 to run"
-                                    : "frame advance: L a frame, L + L3 to run");
+    gfx_notice("frame advance: paused (tap for a frame; run to go on)");
     /* The game shows nothing new while it's held, so this frame is let through first, with the pause
      * icon on it: the screen shows the game is paused (and hasn't crashed). Held from the next one. */
     gfx_pause_icon = pause_display ? 1 : 0;
@@ -423,6 +415,7 @@ static int start(void)
   }
   z64hd_main = (uintptr_t)&nnMain - z64hd_game->nnmain;
   /* frame first, then the others: the game's thread, before any of them is used */
+  actions_register();
   if (kae_on_frame(on_frame, 0, 0) || kae_on_input(on_input, 0, 0) || kae_on_draw(kaedraw_frame, 0, 0)) {
     KAE_LOG("slopped up sloperina: Core refused an event");
     return -1;

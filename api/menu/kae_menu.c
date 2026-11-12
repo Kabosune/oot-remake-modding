@@ -28,13 +28,108 @@ static void int_text(int v, char *out, int size)
 
 char *kae_binding_text(uint64_t mask, char *out, int size)
 {
-    static const char *const names[16] = { "A", "B", "X", "Y", "L3", "R3", "L", "R", "ZL", "ZR",
-                                           "Plus", "Minus", "Left", "Up", "Right", "Down" };
+    static const char *const names[24] = { "A", "B", "X", "Y", "L3", "R3", "L", "R", "ZL", "ZR",
+                                           "Plus", "Minus", "Left", "Up", "Right", "Down",
+                                           "LS Left", "LS Up", "LS Right", "LS Down",
+                                           "RS Left", "RS Up", "RS Right", "RS Down" };
     out[0] = 0;
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < 24; i++)
         if (mask >> i & 1) { if (out[0]) str_add(out, size, " + "); str_add(out, size, names[i]); }
     if (!out[0]) str_add(out, size, "none");
     return out;
+}
+
+/* ---------------------------------------------------------------- keyboard keys */
+
+/* USB HID usages, as nn::hid's KeyboardState reports them (bit n of its keys = usage n). */
+static const char *key_names(int key, char *tmp)
+{
+    static const char *const low[] = {                         /* 40 .. 57 */
+        "Enter", "Escape", "Backspace", "Tab", "Space", "-", "=", "[", "]", "\\", "#", ";", "'", "`", ",", ".", "/",
+        "Caps Lock" };
+    static const char *const mid[] = {                         /* 70 .. 99 */
+        "Print Screen", "Scroll Lock", "Pause", "Insert", "Home", "Page Up", "Delete", "End", "Page Down",
+        "Right", "Left", "Down", "Up", "Num Lock", "Num /", "Num *", "Num -", "Num +", "Num Enter",
+        "Num 1", "Num 2", "Num 3", "Num 4", "Num 5", "Num 6", "Num 7", "Num 8", "Num 9", "Num 0", "Num ." };
+    static const char *const mods[] = {                        /* 224 .. 231 */
+        "Left Ctrl", "Left Shift", "Left Alt", "Left Win", "Right Ctrl", "Right Shift", "Right Alt", "Right Win" };
+    if (key >= 4 && key <= 29) { tmp[0] = (char)('A' + key - 4); tmp[1] = 0; return tmp; }
+    if (key >= 30 && key <= 39) { tmp[0] = (char)(key == 39 ? '0' : '1' + key - 30); tmp[1] = 0; return tmp; }
+    if (key >= 40 && key <= 57) return low[key - 40];
+    if (key >= 58 && key <= 69) { tmp[0] = 'F'; int_text(key - 57, tmp + 1, 4); return tmp; }
+    if (key >= 70 && key <= 99) return mid[key - 70];
+    if (key >= 224 && key <= 231) return mods[key - 224];
+    return 0;
+}
+
+const char *kae_key_name(int key, char *out, int size)
+{
+    char tmp[16];
+    out[0] = 0;
+    if (key <= 0 || key > 255) { str_add(out, size, "none"); return out; }
+    const char *name = key_names(key, tmp);
+    if (name) str_add(out, size, name);
+    else { char n[12]; int_text(key, n, sizeof n); str_add(out, size, "Key "); str_add(out, size, n); }
+    return out;
+}
+
+static int lower(int c) { return c >= 'A' && c <= 'Z' ? c + 32 : c; }
+
+int kae_key_from_name(const char *name, int n)
+{
+    char buf[24];
+    for (int key = 0; key < 256; key++) {
+        kae_key_name(key, buf, sizeof buf);
+        int i = 0;
+        while (i < n && buf[i] && lower(buf[i]) == lower(name[i])) i++;
+        if (i == n && !buf[i]) return key;
+    }
+    return -1;
+}
+
+static int key_down(const uint64_t *keys, int key) { return key > 0 && key < 256 && (int)(keys[key >> 6] >> (key & 63) & 1); }
+
+unsigned char *kae_menu_key_of(const KaeMenu *m, const KaeItem *item, const KaePage **owner)
+{
+    for (int p = 0; p < m->npages; p++) {
+        const KaePage *pg = m->pages[p];
+        if (pg->items && item >= pg->items && item < pg->items + pg->count) {
+            int i = (int)(item - pg->items);
+            if (owner) *owner = pg;
+            return pg->keys && i < KAE_MAX_KEYED && item->type == KAE_BINDING ? &pg->keys[i] : 0;
+        }
+    }
+    return 0;
+}
+
+/* The selected cell of a binding is its key. */
+static int on_key_cell(const KaeMenu *m, const KaeItem *it)
+{
+    return it->type == KAE_BINDING && m->keyboard && m->column && kae_menu_key_of(m, it, 0);
+}
+
+static int key_of(const KaeMenu *m, const KaeItem *item)
+{
+    const unsigned char *k = kae_menu_key_of(m, item, 0);
+    return k ? *k : 0;
+}
+
+const KaeItem *kae_menu_key_clash(const KaeMenu *m, const KaeItem *item, const KaePage **owner)
+{
+    int key = key_of(m, item);
+    if (!key) return 0;
+    for (int p = 0; p < m->npages; p++) {
+        const KaePage *pg = m->pages[p];
+        if (!pg->enabled || !pg->keys) continue;
+        for (int i = 0; i < pg->count && i < KAE_MAX_KEYED; i++) {
+            const KaeItem *o = &pg->items[i];
+            if (o != item && o->type == KAE_BINDING && pg->keys[i] == key) {
+                if (owner) *owner = pg;
+                return o;
+            }
+        }
+    }
+    return 0;
 }
 
 void kae_menu_add(KaeMenu *m, KaePage *page)
@@ -90,15 +185,17 @@ static void adjust(KaeItem *it, int dir)
     if (it->value != old) notify(it);
 }
 
-static void reset_item(KaeItem *it)
+static void reset_item(KaeMenu *m, KaeItem *it)
 {
+    if (on_key_cell(m, it)) { *kae_menu_key_of(m, it, 0) = 0; return; }   /* keys have no default: back to none */
     if (it->type == KAE_BINDING) { if (it->binding != it->def_binding) { it->binding = it->def_binding; notify(it); } }
     else if (it->type != KAE_ACTION && it->value != it->def) { it->value = it->def; notify(it); }
 }
 
 static void activate(KaeMenu *m, KaeItem *it)
 {
-    if (it->type == KAE_BINDING) { m->capture = it; m->capture_stage = 0; m->capture_frames = 0; m->capture_mask = 0; }
+    if (on_key_cell(m, it)) { m->capture = it; m->key_capture = 1; m->capture_stage = 0; m->capture_frames = 0; }
+    else if (it->type == KAE_BINDING) { m->key_capture = 0; m->capture = it; m->capture_stage = 0; m->capture_frames = 0; m->capture_mask = 0; }
     else if (it->type == KAE_ACTION) notify(it);
     else adjust(it, 1);
 }
@@ -120,7 +217,7 @@ static void navigate(KaeMenu *m, uint64_t press)
         if (press & KAE_DOWN) move(&m->item_cursor, count, 1);
         if (press & KAE_B) m->depth = 0;
     } else {
-        count = m->tab == TAB_MODS ? m->npages : m->tab == TAB_CONTROLS ? control_count(m) : 0;
+        count = m->tab == TAB_MODS ? m->npages : m->tab == TAB_CONTROLS ? control_count(m) : m->ncore;
         if (press & KAE_UP) move(&m->cursor[m->tab], count, -1);
         if (press & KAE_DOWN) move(&m->cursor[m->tab], count, 1);
         if (press & KAE_L) m->tab = (m->tab + TAB_COUNT - 1) % TAB_COUNT;
@@ -133,12 +230,17 @@ static void navigate(KaeMenu *m, uint64_t press)
             return;
         }
         if (m->tab == TAB_CONTROLS && count) it = control_at(m, m->cursor[TAB_CONTROLS], 0);
+        if (m->tab == TAB_ABOUT && count) it = &m->core_items[m->cursor[TAB_ABOUT] % count];
     }
     if (!it) return;
+    if (it->type == KAE_BINDING && m->keyboard && kae_menu_key_of(m, it, 0)) {   /* Left / Right: the other cell */
+        if (press & KAE_LEFT) m->column = 0;
+        if (press & KAE_RIGHT) m->column = 1;
+    }
     if (press & KAE_A) activate(m, it);
     if (press & KAE_LEFT) adjust(it, -1);
     if (press & KAE_RIGHT) adjust(it, 1);
-    if (press & KAE_Y) reset_item(it);
+    if (press & KAE_Y) reset_item(m, it);
 }
 
 /* Waits for all buttons up, then records everything pressed until all are up again. */
@@ -148,6 +250,21 @@ static void capture_step(KaeMenu *m, uint64_t down)
     m->capture_mask |= down;
     if (m->capture_mask && !down) { m->capture->binding = m->capture_mask; notify(m->capture); m->capture = 0; }
     else if (!m->capture_mask && ++m->capture_frames > 300) m->capture = 0;   /* nothing pressed: give up */
+}
+
+/* Waits for all keys up, then takes the first key pressed. B on the controller gives up. */
+static void key_capture_step(KaeMenu *m, uint64_t press)
+{
+    int any = 0, first = 0;
+    for (int key = 1; key < 256; key++)
+        if (key_down(m->keys, key)) { any = 1; if (!first && !key_down(m->keys_prev, key)) first = key; }
+    if (press & KAE_B || ++m->capture_frames > 300) { m->capture = 0; return; }
+    if (m->capture_stage == 0) { if (!any) m->capture_stage = 1; return; }
+    if (first) {
+        unsigned char *k = kae_menu_key_of(m, m->capture, 0);
+        if (k) *k = (unsigned char)first;
+        m->capture = 0;
+    }
 }
 
 void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
@@ -167,7 +284,8 @@ void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
         m->pending = 0;
     } else if (m->open) {
         game->buttons = 0; game->lx = game->ly = game->rx = game->ry = 0;
-        if (m->capture) capture_step(m, real->buttons & 0xffff);
+        if (m->capture && m->key_capture) key_capture_step(m, press);
+        else if (m->capture) capture_step(m, real->buttons & KAE_BINDING_MASK);
         else if (chord == KAE_OPEN_CHORD) { m->open = 0; m->swallow = 1; }
         else {
             uint64_t dirs = down & (KAE_UP | KAE_DOWN | KAE_LEFT | KAE_RIGHT);
@@ -192,6 +310,7 @@ void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
         }
     }
     m->prev = down;
+    for (int i = 0; i < 4; i++) m->keys_prev[i] = m->keys[i];
 }
 
 /* ---------------------------------------------------------------- drawing */
@@ -310,6 +429,34 @@ static void row(Canvas *c, int n, int selected, const char *left, const char *ri
     if (right) text_right(c, PX + PW - 52, y + 12, right, 26, selected ? C_DARK : right_rgb);
 }
 
+#define KEY_W 220.0f   /* the Keyboard column */
+
+static int keyed(const KaeMenu *m, const KaeItem *it) { return it->type == KAE_BINDING && m->keyboard && kae_menu_key_of(m, it, 0); }
+
+/* A binding's two cells, controller and keyboard, at the right of row n; the selected one boxed. */
+static void binding_cells(Canvas *c, const KaeMenu *m, int n, int selected, const KaeItem *it, const char *pad,
+                          uint32_t pad_rgb, uint32_t key_rgb)
+{
+    char key[32];
+    float y = PY + 118 + n * ROW, right = PX + PW - 52, pad_right = right - KEY_W - 24;
+    if (m->capture == it && m->key_capture) { key[0] = 0; str_add(key, sizeof key, "press a key"); }
+    else kae_key_name(key_of(m, it), key, sizeof key);
+    for (int cell = 0; cell < 2; cell++) {
+        const char *t = cell ? key : pad;
+        float r = cell ? right : pad_right, w = text_width(t, 26);
+        int boxed = selected && m->column == cell;
+        if (boxed) rect(c, r - w - 12, y + 5, w + 24, ROW - 16, C_PANEL);
+        text_right(c, r, y + 12, t, 26, boxed ? (cell ? key_rgb : pad_rgb) : selected ? C_DARK : cell ? key_rgb : pad_rgb);
+    }
+}
+
+static void column_titles(Canvas *c)
+{
+    float right = PX + PW - 52;
+    text_right(c, right - KEY_W - 24, PY + 94, "Controller", 20, C_DIM);
+    text_right(c, right, PY + 94, "Keyboard", 20, C_DIM);
+}
+
 static void value_text(const KaeItem *it, char *out, int size)
 {
     out[0] = 0;
@@ -323,6 +470,7 @@ static void draw_menu(const KaeMenu *m, Canvas *c)
 {
     char buf[96], buf2[96];
     const char *help = 0, *hints;
+    int titles = 0, bind_hints = 0;
     uint32_t help_rgb = C_DIM;
 
     rect(c, PX - 4, PY - 4, PW + 8, PH + 8, C_LINE);
@@ -340,19 +488,30 @@ static void draw_menu(const KaeMenu *m, Canvas *c)
             const KaeItem *it = &pg->items[i];
             int sel = i == m->item_cursor;
             value_text(it, buf, sizeof buf);
-            if (m->capture == it) { buf[0] = 0; str_add(buf, sizeof buf, "press buttons, then let go"); }
-            int clash = kae_menu_clash(m, it, 0) != 0;
-            row(c, i - first, sel, it->label, it->type == KAE_ACTION ? 0 : buf, C_TEXT, clash ? C_WARN : C_TEXT);
+            if (m->capture == it && !m->key_capture) { buf[0] = 0; str_add(buf, sizeof buf, "press buttons, then let go"); }
+            int clash = kae_menu_clash(m, it, 0) != 0, key_clash = kae_menu_key_clash(m, it, 0) != 0;
+            if (keyed(m, it)) {
+                row(c, i - first, sel, it->label, 0, C_TEXT, C_TEXT);
+                binding_cells(c, m, i - first, sel, it, buf, clash ? C_WARN : C_TEXT, key_clash ? C_WARN : C_TEXT);
+                titles = 1;
+            } else
+                row(c, i - first, sel, it->label, it->type == KAE_ACTION ? 0 : buf, C_TEXT, clash ? C_WARN : C_TEXT);
             if (sel) help = it->help;
-            if (sel && clash) {
-                const KaePage *o = 0; const KaeItem *oi = kae_menu_clash(m, it, &o);
-                buf2[0] = 0; str_add(buf2, sizeof buf2, "Same buttons as "); str_add(buf2, sizeof buf2, o->name);
+            if (sel && (clash || key_clash)) {
+                const KaePage *o = 0;
+                int by_key = key_clash && (m->column || !clash);
+                const KaeItem *oi = by_key ? kae_menu_key_clash(m, it, &o) : kae_menu_clash(m, it, &o);
+                buf2[0] = 0; str_add(buf2, sizeof buf2, by_key ? "Same key as " : "Same buttons as ");
+                str_add(buf2, sizeof buf2, o->name);
                 str_add(buf2, sizeof buf2, ": "); str_add(buf2, sizeof buf2, oi->label);
                 help = buf2; help_rgb = C_WARN;
             }
+            if (sel && keyed(m, it)) bind_hints = 1;
         }
+        if (titles) column_titles(c);
         if (!pg->count) text(c, PX + 52, PY + 130, "This mod has no settings.", 26, C_DIM);
-        hints = "A  Change      Left / Right  Adjust      Y  Default      B  Back";
+        hints = bind_hints ? "A  Change      Left / Right  Controller / Keyboard      Y  Default      B  Back"
+                           : "A  Change      Left / Right  Adjust      Y  Default      B  Back";
     } else {
         text(c, PX + 40, PY + 26, "Mods", 38, C_TEXT);
         float x = PX + PW - 40;
@@ -380,16 +539,33 @@ static void draw_menu(const KaeMenu *m, Canvas *c)
                 const KaePage *pg = 0; const KaeItem *it = control_at(m, i, &pg);
                 buf[0] = 0; str_add(buf, sizeof buf, pg->name); str_add(buf, sizeof buf, ": "); str_add(buf, sizeof buf, it->label);
                 kae_binding_text(it->binding, buf2, sizeof buf2);
-                if (m->capture == it) { buf2[0] = 0; str_add(buf2, sizeof buf2, "press buttons, then let go"); }
-                int clash = pg->enabled && kae_menu_clash(m, it, 0);
-                row(c, i - first, i == cur, buf, buf2, pg->enabled ? C_TEXT : C_OFF, clash ? C_WARN : C_TEXT);
+                if (m->capture == it && !m->key_capture) { buf2[0] = 0; str_add(buf2, sizeof buf2, "press buttons, then let go"); }
+                int clash = pg->enabled && kae_menu_clash(m, it, 0), key_clash = pg->enabled && kae_menu_key_clash(m, it, 0);
+                if (keyed(m, it)) {
+                    row(c, i - first, i == cur, buf, 0, pg->enabled ? C_TEXT : C_OFF, C_TEXT);
+                    binding_cells(c, m, i - first, i == cur, it, buf2, clash ? C_WARN : C_TEXT, key_clash ? C_WARN : C_TEXT);
+                    titles = 1;
+                    if (i == cur) bind_hints = 1;
+                } else
+                    row(c, i - first, i == cur, buf, buf2, pg->enabled ? C_TEXT : C_OFF, clash ? C_WARN : C_TEXT);
                 if (i == cur && clash) { help = "Another mod that is switched on uses the same buttons."; help_rgb = C_WARN; }
+                else if (i == cur && key_clash) { help = "Another mod that is switched on uses the same key."; help_rgb = C_WARN; }
             }
+            if (titles) column_titles(c);
             if (!n) text(c, PX + 52, PY + 130, "No mod has buttons to set.", 26, C_DIM);
-            hints = "A  Rebind      Y  Default      L / R  Tab      B  Close";
+            hints = bind_hints ? "A  Rebind      Left / Right  Controller / Keyboard      Y  Default      B  Close"
+                               : "A  Rebind      Y  Default      L / R  Tab      B  Close";
         } else {
             for (int i = 0; i < m->nabout; i++) text(c, PX + 52, PY + 124 + i * 40, m->about[i], 26, C_TEXT);
-            hints = "L / R  Tab      B  Close";
+            int first_row = (m->nabout * 40 + 30 + (int)ROW - 1) / (int)ROW;
+            for (int i = 0; i < m->ncore && first_row + i < ROWS; i++) {
+                const KaeItem *it = &m->core_items[i];
+                int sel = i == m->cursor[TAB_ABOUT];
+                value_text(it, buf, sizeof buf);
+                row(c, first_row + i, sel, it->label, buf, C_TEXT, C_TEXT);
+                if (sel) help = it->help;
+            }
+            hints = m->ncore ? "A  Change      Y  Default      L / R  Tab      B  Close" : "L / R  Tab      B  Close";
         }
     }
     if (help) text(c, PX + 52, PY + PH - 112, help, 24, help_rgb);

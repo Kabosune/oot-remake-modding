@@ -23,8 +23,7 @@
 #include "lock.h"
 #include "sys.h"
 
-#define SAVE_COMBO (BTN_R | BTN_DUP)
-#define LOAD_COMBO (BTN_R | BTN_DDOWN)
+/* the shortcuts are actions (input.h): ACT_SAVE_POS (R + D-up), ACT_LOAD_POS (R + D-down) */
 #define SETTLE 20       /* frames for a load to show: checked each frame, then given up */
 #define MAX_WRITES 4    /* written again every RETRY_EVERY frames until Link is there */
 #define RETRY_EVERY 3
@@ -153,9 +152,9 @@ static void settle_step(void)
 
 void position_frame(bool menu_open)
 {
-  if (!menu_open && input_combo(SAVE_COMBO))
+  if (!menu_open && action_pressed(ACT_SAVE_POS))
     position_save();
-  else if (!menu_open && input_combo(LOAD_COMBO))
+  else if (!menu_open && action_pressed(ACT_LOAD_POS))
     position_load();
 
   link_record_status_t st = link_record_status();
@@ -167,7 +166,7 @@ void position_frame(bool menu_open)
     gfx_notice("Link's position not found, move around and try again");
   }
 
-  if (pending && st == REC_READY && !(input_held() & LOAD_COMBO)) {
+  if (pending && st == REC_READY && !action_held(ACT_LOAD_POS) && !(input_held() & action_buttons(ACT_LOAD_POS))) {
     pending = false;
     writes = 0;
     lock_hold_set(true); /* the write holds: the game's stores can't pull him off it while it settles */

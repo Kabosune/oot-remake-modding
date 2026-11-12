@@ -91,10 +91,11 @@ void kp_fire_frame(void) {
 void kp_fire_input(KaeInput *seen, const KaeInput *real) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_INPUT, s);
-    kp_menu_input(seen, real);
+    KaeInput for_mods = *real;   // keys held for older mods' bindings are added to it
+    kp_menu_input(seen, &for_mods);
     for (int i = 0; i < n; i++)
         if (!kp_mod_off(s[i].owner))
-            ((KaeInputFn)s[i].fn)(seen, real, s[i].user);
+            ((KaeInputFn)s[i].fn)(seen, &for_mods, s[i].user);
     kp_menu_input_done(seen);
 }
 

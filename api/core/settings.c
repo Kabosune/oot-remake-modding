@@ -5,9 +5,11 @@
 //   (on) = 1
 //   Show the square = 1
 //   Flash the diamond = 0x10
+//   Flash the diamond (key) = F5
 //
 // One section per mod (its id), one line per setting (its label). Values: 0 / 1, a choice's index,
-// a number, a binding's button mask in hex. Read on the first frame, written when the menu closes
+// a number, a binding's button mask in hex. A binding with a keyboard key (0.7) has a second line,
+// its label and " (key)", with the key's name (kae_key_name). Core's own settings are [kaegae.core]. Read on the first frame, written when the menu closes
 // with something changed. Sections of mods that aren't installed now are written back unchanged.
 //
 // The file functions are the system's (nn::fs in the sdk module), found by name like the
@@ -214,9 +216,37 @@ static void each_line(const char *text, line_fn fn, void *user) {
 
 typedef struct { KaePage **pages; int count; int applied; } apply_t;
 
+static bool ends_with(const char *s, size_t n, const char *end, size_t end_n) {
+    return n > end_n && same_n(s + n - end_n, end_n, end);
+}
+
+// "Label (key) = F5": the key of the binding called Label.
+static bool apply_key(KaePage *page, const char *label, size_t label_n, const char *value, size_t value_n) {
+    static const char suffix[] = " (key)";
+    size_t n = sizeof suffix - 1;
+    if (!ends_with(label, label_n, suffix, n) || !page->keys)
+        return false;
+    for (int j = 0; j < page->count && j < KAE_MAX_KEYED; j++) {
+        const KaeItem *item = &page->items[j];
+        if (item->type == KAE_BINDING && item->label && same_n(label, label_n - n, item->label)) {
+            int key = kae_key_from_name(value, (int)value_n);
+            if (key < 0)
+                return false;
+            page->keys[j] = (unsigned char)key;
+            return true;
+        }
+    }
+    return false;
+}
+
 static void apply_line(const char *id, size_t id_n, const char *label, size_t label_n, const char *value,
                        size_t value_n, void *user) {
     apply_t *a = user;
+    for (int i = 0; i < a->count; i++)
+        if (same_n(id, id_n, a->pages[i]->id) && apply_key(a->pages[i], label, label_n, value, value_n)) {
+            a->applied++;
+            return;
+        }
     int64_t v;
     if (!number(value, value_n, &v))
         return;
@@ -240,7 +270,7 @@ static void apply_line(const char *id, size_t id_n, const char *label, size_t la
             case KAE_TOGGLE: item->value = v != 0; break;
             case KAE_CHOICE: item->value = clamp(v, 0, item->max); break;
             case KAE_NUMBER: item->value = clamp(v, item->min, item->max); break;
-            case KAE_BINDING: item->binding = (uint64_t)v & 0xFFFF; break;   // the 16 buttons the menu binds
+            case KAE_BINDING: item->binding = (uint64_t)v & KAE_BINDING_MASK; break;   // what the menu binds
             default: return;
             }
             a->applied++;
@@ -303,6 +333,13 @@ static size_t render(KaePage **pages, int count) {
             else
                 put_number(&w, item->value, false);
             put(&w, "\n");
+            if (item->type == KAE_BINDING && page->keys && j < KAE_MAX_KEYED && page->keys[j]) {
+                char name[24];
+                put(&w, item->label);
+                put(&w, " (key) = ");
+                put(&w, kae_key_name(page->keys[j], name, sizeof name));
+                put(&w, "\n");
+            }
         }
     }
     keep_t keep = { &w, pages, count, 0, 0 };

@@ -109,3 +109,25 @@ bool kp_input_start(void) {
             real_style ? "GetNpadStyleSet" : found ? "GetNpadStates" : "nothing");
     return found > 0;
 }
+
+uint64_t kp_input_live(void) {
+    static uint64_t last_tick, last;
+    uint64_t now = kp_tick();
+    if (last_tick && now >= last_tick && now - last_tick < KP_TICKS_PER_MS)
+        return last;
+    static const uint32_t player1 = 0, handheld = 0x20;
+    static const struct { states_fn fn; const uint32_t *id; } reads[] = {
+        { _ZN2nn3hid13GetNpadStatesEPNS0_16NpadFullKeyStateEiRKj, &player1 },
+        { _ZN2nn3hid13GetNpadStatesEPNS0_16NpadJoyDualStateEiRKj, &player1 },
+        { _ZN2nn3hid13GetNpadStatesEPNS0_17NpadHandheldStateEiRKj, &handheld },
+    };
+    uint64_t buttons = 0;
+    for (unsigned i = 0; i < sizeof reads / sizeof *reads; i++) {
+        npad_state_t state = { 0 };
+        if (reads[i].fn && reads[i].fn(&state, 1, reads[i].id) > 0 && (state.attributes & 1))
+            buttons |= state.buttons;
+    }
+    last = buttons;
+    last_tick = now ? now : 1;
+    return buttons;
+}
