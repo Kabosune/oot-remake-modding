@@ -180,15 +180,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.4 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.5 loaded (build 0.5.1, locks sleep), game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
-    g.expect("kaegae: mod kaegae.hello 0.4.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
+    g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 4 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 5 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaegae [kaegae.hello]: hello from its own start. Core API 0.4, game 1.1.1",
+             "kaegae [kaegae.hello]: hello from its own start. Core API 0.5, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -210,9 +210,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("KaeGae Core 0.4: A is held", white, at its
+    # between them hello's text plate, its text ("KaeGae Core 0.5: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.4: A is held")
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.5: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -319,7 +319,7 @@ def main():
         g.expect("hook points off: main isn't patched")
         g.game("game_boot")
         g.expect("event.actor_move: no", "start: has 1110110", "start: subscribed 0 0 -3 0",
-                 "mod kaegae.hello 0.4.0 started", "mod kaegae.test-probe 1.2.3 started")
+                 "mod kaegae.hello 0.5.0 started", "mod kaegae.test-probe 1.2.3 started")
         for _ in range(3):
             g.frame()
         g.expect("report: frames 3 inputs 6 moves 0 draws 3")
@@ -341,8 +341,8 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.4: unknown game build, doing nothing",
-                 "mod kaegae.hello 0.4.0 is off: this build of the game isn't known to Core",
+        g.expect("Core 0.5: unknown game build, doing nothing",
+                 "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
         g.set_controller(3)
@@ -350,7 +350,7 @@ def main():
             g.frame()
         assert g.states(0)[0][0] == 3 and g.rects() == [] and not g.logged("start:")
         g = Game(other, bundle, patched=False, lazy=False)
-        g.expect("unknown game build", "mod kaegae.hello 0.4.0 is off", "mod kaegae.test-probe 1.2.3 is off")
+        g.expect("unknown game build", "mod kaegae.hello 0.5.0 is off", "mod kaegae.test-probe 1.2.3 is off")
         print("a game build Core doesn't know: ok (nothing hooked, each mod reported off)")
         # Mouse Grab, the first real mod on Core: it loads, starts, draws its cursor at the (fake) mouse
         # and gets every actor's movement update. Grabbing itself needs the game.
@@ -360,32 +360,39 @@ def main():
             g.p.uc.mem_map(0x40000000, 0x10000)          # an actor that isn't Link: zeroed memory
             g.game("game_boot")
             g.expect("kaegae [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.2.0 started",
-                     "mod kaegae.hello 0.4.0 started")
+                     "mod kaegae.hello 0.5.0 started")
             for _ in range(3):
                 g.frame(actor=0x40000000)
             rects = g.rects()
             assert len(rects) > 20 and (640, 720 - 360 - 1, 1, 1, 0) in rects, rects[:6]   # the arrow's tip
             assert not g.p.unresolved, g.p.unresolved
         print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors)")
-        # Sloped Up Sloperina, the first mod written against the public API only. A Link is built in memory
-        # the way the game lays him out (actor -> components -> movement inside the player object, whose
-        # resource is "Player"; components -> ... -> character controller), and main gets a stand-in
-        # for ChangePosition that copies the position it is given into the controller at +0x100.
+        # Sloped Up Sloperina, the first mod written against the public API only, and Core's player_move
+        # event under it. A Link is built in memory the way the game lays him out (actor -> components
+        # -> movement inside the player object, whose resource is "Player"; components -> ... ->
+        # character controller -> body), and main gets stand-ins: ChangePosition copies the position
+        # it is given into the controller at +0x100, BodySetLinearVelocity the velocity into the
+        # body at +0x200.
         sloperina = kaemod.Mod(REPO / "mods" / "sloped-up-sloperina")
         g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), sloperina], False, tmp / "sloperina"))
-        LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, PLAYER = (0x40000000 + i * 0x1000 for i in range(8))
+        LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, BODY, PLAYER = (0x40000000 + i * 0x1000 for i in range(9))
         MOVEMENT = PLAYER + 0x1D50
         g.p.uc.mem_map(0x40000000, 0x10000)
         for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
                           (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
                           (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
                           (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
-                          (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"])):
+                          (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                          (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"])):
             g.p.write(at, struct.pack("<Q", value))
         g.p.write(RESOURCE + 0x58, b"Player\0")
         # ldr q0, [x1] ; str q0, [x0, #0x100] ; ret
         g.p.write(MAIN_BASE + PACK["function"]["CctChangePosition"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D804000, 0xD65F03C0))
+        # ldr q0, [x1] ; str q0, [x0, #0x200] ; ret
+        g.p.write(MAIN_BASE + PACK["function"]["BodySetLinearVelocity"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D808000, 0xD65F03C0))
         position = LINK + PACK["field"]["Actor.position"]["offset"]
+        velocity = BODY + PACK["field"]["CctBody.velocity"]["offset"]
+        set_velocity = lambda: struct.unpack("<3f", g.p.read(BODY + 0x200, 12))      # noqa: E731
 
         def link_frame(buttons, at=None):
             if at:
@@ -395,7 +402,7 @@ def main():
             return g.states(0)[-1][0], struct.unpack("<3f", g.p.read(CCT + 0x100, 12))
         L, LEFT, UP, RIGHT = 1 << 6, 1 << 12, 1 << 13, 1 << 14
         g.game("game_boot")
-        g.expect("mod kabosune.sloped-up-sloperina 0.1.0 started")
+        g.expect("mod kabosune.sloped-up-sloperina 0.2.0 started")
         assert link_frame(0, (1.0, 2.0, 3.0)) == (0, (0.0, 0.0, 0.0))               # nothing asked: Link isn't moved
         assert link_frame(L | LEFT)[0] == 0, "the game saw the save combination"    # saved at (1, 2, 3)
         link_frame(0, (50.0, 60.0, 70.0))
@@ -403,12 +410,28 @@ def main():
         assert seen == 0 and moved == (1.0, 2.0, 3.0), (seen, moved)                # loaded
         seen, moved = link_frame(L | UP, (5.0, 6.0, 7.0))
         assert seen == 0 and moved[0] == 5.0 and abs(moved[1] - 6.1) < 1e-5 and moved[2] == 7.0, moved   # levitate: 10 cm
+        assert set_velocity() == (0.0, 0.0, 0.0)                                    # he wasn't falling
+        g.p.write(velocity, struct.pack("<3f", 1.5, -9.0, 2.5))                     # falling while walking
+        link_frame(L | UP)
+        assert set_velocity() == (1.5, 0.0, 2.5), set_velocity()                    # the fall is gone, the walk stays
+        g.p.write(velocity, struct.pack("<3f", 1.5, 4.0, 2.5))                      # rising: left alone
+        link_frame(L | UP)
+        assert set_velocity() == (1.5, 4.0, 2.5), set_velocity()
+        g.p.write(BODY + 0x200, bytes(12))
+        link_frame(0)
+        assert set_velocity() == (0.0, 0.0, 0.0)                                    # not levitating: velocity untouched
+        g.expect("levitate: holding Link's falling speed at zero")
+        g.p.write(CCT + 0x20, struct.pack("<Q", 0))                                 # a Link whose body isn't found
+        seen, moved = link_frame(L | UP, (5.0, 6.0, 7.0))
+        assert abs(moved[1] - 6.1) < 1e-5 and set_velocity() == (0.0, 0.0, 0.0), moved   # still lifted, nothing called
+        g.expect("levitate: Link's velocity is out of reach here")
+        g.p.write(CCT + 0x20, struct.pack("<Q", BODY))
         assert link_frame(1)[0] & 1                                                 # other buttons reach the game
         g.frame(actor=0xABC000)                                                     # an actor that isn't Link
         hud = [r for r in g.rects() if r[4] == 0x101820 and r[0] == 720 // 45]
         assert len(hud) == 1 and hud[0][1] == 720 // 45, hud                        # bottom left (origin lower left)
         assert not g.p.unresolved, g.p.unresolved
-        print("Sloped Up Sloperina: ok (finds Link, saves / loads his position, levitates, hides its combinations, draws its display)")
+        print("Sloped Up Sloperina and player_move: ok (Core finds Link, saves / loads his position, levitates without falling, hides its combinations, draws its display)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

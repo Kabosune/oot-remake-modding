@@ -1,4 +1,4 @@
-/* KaeGae Core API 0.2. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.5. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
@@ -28,7 +28,7 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 4
+#define KAE_API_MINOR 5
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -79,7 +79,7 @@ KAE_API uint32_t    kae_api_version(void);         /* (major << 16) | minor of t
 KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in this game, else 0. Features:
                                                       "event.frame" "event.draw" "event.input" "event.actor_move"
                                                       "draw.rect" "draw.text" "draw.image" "motion" "symbols"
-                                                      "alloc" "menu" */
+                                                      "alloc" "menu" "player" "event.player_move" */
 KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -181,6 +181,38 @@ KAE_API int kae_menu_open(void);
 typedef void (*KaeActorFn)(void *actor, void *user);
 KAE_API int kae_on_actor_move(KaeActorFn fn, void *user, int priority);
 
+/* ---- Link ---------------------------------------------------------------------------------- */
+
+/* Link as the game has him right now. The pointers are the game's own objects: use them inside
+   the function they were handed to and don't keep them (Link is rebuilt when an area loads). */
+typedef struct {
+    uint32_t size;
+    void    *actor;          /* his physics actor, the one actor_move is handed */
+    void    *object;         /* his player object */
+    void    *controller;     /* his character controller: what moves him */
+    void    *body;           /* the controller's physics body: his velocity. Null if it wasn't found */
+    float    position[3];    /* where he stands: x, up, z in the game's units (metres) */
+} KaePlayer;
+
+/* player_move: Link's own movement update, every frame he is in the world, on the game's thread,
+   before the game moves him. The place to move him or change his velocity. Needs the actor_move
+   hook point and this game version's symbols (kae_has("event.player_move")). */
+typedef void (*KaePlayerFn)(const KaePlayer *link, void *user);
+KAE_API int kae_on_player_move(KaePlayerFn fn, void *user, int priority);
+
+/* Link, if `actor` is his physics actor, else null. For an actor_move function that treats Link
+   differently from other actors. The answer is Core's own and holds until the next call; game's
+   thread only. */
+KAE_API const KaePlayer *kae_player_of(void *actor);
+
+/* Puts Link at a position (the game's own character controller move: he keeps his rotation and
+   collides from there on). Game's thread only, best inside player_move. */
+KAE_API int kae_player_move(const KaePlayer *link, const float position[3]);
+/* His velocity, in the same units a second. Reading gives all zeros and KAE_ERR_UNAVAILABLE if he has no
+   body. Setting replaces all three, so read first to keep a part. Game's thread only. */
+KAE_API int kae_player_velocity(const KaePlayer *link, float out[3]);
+KAE_API int kae_player_set_velocity(const KaePlayer *link, const float velocity[3]);
+
 /* ---- services --------------------------------------------------------------------------- */
 
 /* The controller's motion sensor: the newest direction matrix (3x3, rows). Returns how many
@@ -196,9 +228,8 @@ KAE_API void kae_logf(const KaeMod *mod, const char *format, ...) __attribute__(
 KAE_API void *kae_alloc(size_t size);
 KAE_API void  kae_free(void *p);
 
-/* Planned, not in 0.2 (see DESIGN.md): kae_hook (any hook point by name, with the registers),
-   input bindings (kae_action, kae_pressed, kae_held, kae_capture), config, text drawing, the
-   view and player events. A mod can't use them by accident: its build refuses any kae_ function
+/* Planned (see DESIGN.md): kae_hook (any hook point by name, with the registers), input bindings
+   (kae_action, kae_pressed, kae_held, kae_capture), config, the view event. A mod can't use them by accident: its build refuses any kae_ function
    Core doesn't export. */
 
 #ifdef __cplusplus

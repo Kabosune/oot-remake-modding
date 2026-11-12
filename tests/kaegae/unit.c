@@ -21,6 +21,7 @@ bool kp_readable(uintptr_t address, size_t size) { (void)size; return address !=
 uintptr_t kp_main;
 const kp_build_t *kp_build;
 bool kp_motion_on;
+bool kp_player_on;
 KaeMod *__kae_mods_start[1], *__kae_mods_end[1];
 
 static bool logged_line(const char *part) {

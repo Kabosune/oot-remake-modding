@@ -374,6 +374,11 @@ ld     = "VT_PLAYER"
 offset = 0x4C34F10
 ld     = "VT_CCT"
 
+[vtable.CctBody]
+offset = 0x4C34658
+note   = "the physics body of a character controller, [controller+0x20]; what BodySetLinearVelocity takes"
+source = "disassembly, tested (Mouse Grab); sloperina"
+
 # ---- fields ----
 
 [field."Actor.position"]
@@ -395,3 +400,60 @@ type   = "f64[3]"
 [field."View.target"]
 offset = 0x78
 type   = "f64[3]"
+
+# Link, from the actor his movement update is handed (docs/structures.md). Core's kae_player_of
+# walks these; a mod asks Core instead of reading them.
+
+[field."Actor.components"]
+offset = 0x270
+type   = "ptr"
+
+[field."Components.movement"]
+offset = 0x320
+type   = "ptr"
+note   = "the movement component; Link's sits inside his player object"
+
+[field."Movement.actor"]
+offset = 0x18
+type   = "ptr"
+
+[field."Player.movement"]
+offset = 0x1D50
+type   = "embedded"
+note   = "player object = movement component - this"
+
+[field."Player.resource"]
+offset = 0x10
+type   = "ptr"
+
+[field."Resource.name"]
+offset = 0x58
+type   = "char[]"
+note   = "\"Player\" for Link"
+
+# actor -> character controller: [[[[[actor + Actor.components] + 0x50] + 0x20] + 0x10] + 0x08]
+[field."Components.physics"]
+offset = 0x50
+type   = "ptr"
+
+[field."Physics.owner"]
+offset = 0x20
+type   = "ptr"
+
+[field."PhysicsOwner.holder"]
+offset = 0x10
+type   = "ptr"
+
+[field."Holder.controller"]
+offset = 0x08
+type   = "ptr"
+
+[field."Cct.body"]
+offset = 0x20
+type   = "ptr"
+
+[field."CctBody.velocity"]
+offset = 0xE0
+type   = "f32[3]"
+note   = "read only; set it with BodySetLinearVelocity"
+source = "sloperina (not checked against main by us)"

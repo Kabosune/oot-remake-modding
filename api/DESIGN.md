@@ -256,14 +256,14 @@ an event when one exists:
 | `input` | controller state read | read it, change what the game sees |
 | `view` | the gameplay camera's matrix is final | read or replace it |
 | `actor_move` | every physics actor's movement update (a hook point; in 0.2) | read or move it |
-| `player_update` | Link's movement update | read or move him |
+| `player_move` | Link's movement update (in 0.5; first called `player_update` here) | read or move him, read or set his velocity |
 | `scene_change` | a map starts loading / is ready | reset its state |
 | `pause_change` | the game pauses or resumes | stop its own work |
 | `draw` | before the frame is shown | draw text and simple shapes |
 
 The first two and `draw` need no symbol pack. The rest are hook points with a stable meaning,
 so a mod doesn't depend on where in the game's code they come from. Core 0.2 has `frame`, `input`,
-`draw` and `actor_move`.
+`draw` and `actor_move`; 0.5 adds `player_move`.
 
 ### Services
 
@@ -331,7 +331,7 @@ Core are MIT-licensed like the rest of this repo, so GPL and proprietary mods ca
 | M0 | Manifest schema, registry for build E0F3CCFA, `kaegae check` | Level 1 and 2 on today's installed mods. **Written (11 Nov): `check` run on a real Fritchii mod folder; it also found that a Fritchii built-in patch now sits inside First Person's range** |
 | M1 | `kaegae build`: size table merge, BYML patches, scripts. Slow King Zora as a package | No game files shipped. **Size table merge written (11 Nov), same result as the hand-made table; the rest is open** |
 | M2 | Core skeleton in `subsdk1`: `frame`, `input`, log. One tiny test mod in `subsdk2` | The open questions below. **Built and tested in the game (10 Nov, Fritchii, game 1.1.1): questions 1, 4 and 6 answered. Results in [README.md](README.md)** |
-| M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_update`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
+| M3 | Symbol packs for 1.1.1 and 1.0.0, hook points, `view` and `player_move`. First Person rebuilt as a core mod | A real mod with no patch to `main`, running on both versions |
 | M4 | Input bindings, config, the shared settings screen, `draw` | FPV Drone and a second author's mod side by side |
 | M5 | A hardware test and a second author's mod. Version 1.0 of the spec | It works outside our own setup |
 

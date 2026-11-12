@@ -25,7 +25,22 @@ bool kp_readable(uintptr_t address, size_t size);   // mapped and readable
 
 // ---- locks (two threads call into Core: the game's and its render thread) ----
 typedef volatile char kp_lock_t;
-static inline void kp_lock(kp_lock_t *l) { while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE)) {} }
+// Spins a little, then sleeps between tries. Never only spin: the game runs threads of different
+// priorities on the same core, and a thread that spins forever never lets a lower-priority thread
+// that holds the lock run again (the game hangs, it doesn't crash).
+static inline void kp_sleep_ns(int64_t ns) {
+#if defined(__aarch64__)
+    register int64_t x0 __asm__("x0") = ns;
+    __asm__ volatile("svc #0xB" : "+r"(x0) : : "x1", "x2", "x3", "x4", "x5", "x6", "x7", "memory");
+#else
+    (void)ns;   // the PC unit tests: one thread, the lock is never contended
+#endif
+}
+static inline void kp_lock(kp_lock_t *l) {
+    for (int tries = 0; __atomic_test_and_set(l, __ATOMIC_ACQUIRE); tries++)
+        if (tries >= 64)
+            kp_sleep_ns(1000);
+}
 static inline void kp_unlock(kp_lock_t *l) { __atomic_clear(l, __ATOMIC_RELEASE); }
 
 // ---- the game: one entry per symbol pack (generated, see tools/kaegae_symbols.py) ----
@@ -66,13 +81,15 @@ void kp_mods_ready(void);
 KaeMod *kp_mod_starting(void);
 
 // ---- events ----
-enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_COUNT };
+enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_PLAYER_MOVE, KP_EV_COUNT };
 extern bool kp_event_on[KP_EV_COUNT];   // set by the service that feeds the event
 
 void kp_fire_frame(void);
 void kp_fire_input(KaeInput *seen, const KaeInput *real);
 void kp_fire_draw(const KaeFrame *frame);
 void kp_fire_actor_move(void *actor);
+bool kp_wants_player_move(void);                 // someone subscribed: worth looking for Link
+void kp_fire_player_move(const KaePlayer *link);
 void kp_unsubscribe_mod(const KaeMod *mod);
 
 // ---- the Mods menu (menu.c) ----
@@ -90,6 +107,8 @@ bool kp_draw_start(void);
 bool kp_motion_start(void);
 bool kp_input_start(void);
 bool kp_hooks_start(void);
+bool kp_player_start(void);                      // after kp_hooks_start
+extern bool kp_player_on;
 extern bool kp_motion_on;
 
 // Mods linked into Core's own module (bundle builds); empty otherwise.

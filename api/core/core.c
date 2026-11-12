@@ -29,7 +29,7 @@ void kp_module_init(void) {
         kp_mods_ready();   // nothing will run: say so for each mod, now and as they register
         return;
     }
-    kp_logf("Core %d.%d loaded, game %s, main at %p", KAE_API_MAJOR, KAE_API_MINOR, kp_build->version,
+    kp_logf("Core %d.%d loaded (build 0.5.1, locks sleep), game %s, main at %p", KAE_API_MAJOR, KAE_API_MINOR, kp_build->version,
             (void *)kp_main);
     if (!kp_draw_start())
         kp_log("drawing off: main's nvnBootstrapLoader import wasn't found");
@@ -37,6 +37,7 @@ void kp_module_init(void) {
         kp_log("input off: main's GetNpadStates imports weren't found");
     if (!kp_motion_start())
         kp_log("motion off: main's GetSixAxisSensorStates import wasn't found");
-    kp_hooks_start();
+    if (kp_hooks_start() && !kp_player_start())
+        kp_log("player off: this build's symbol pack doesn't say where Link is");
     kp_menu_start();
 }
