@@ -266,8 +266,8 @@ def test_install(work):
     code, text = run("list", "--load-dir", load)
     ok("off Off Mod" in text and "on  One  [x.one 1.0.0]" in text, f"list shows on and off: {text}")
     import os
-    locked = load / TITLE / "One" / "exefs"
-    os.chmod(locked, 0o500)                   # a folder whose files can't be removed, as when the emulator runs
+    locked = load / TITLE
+    os.chmod(locked, 0o500)                   # nothing in the game's folder can be moved, as when the emulator holds a file
     try:
         code, text = run("install", one, "--load-dir", load)
     finally:
