@@ -24,8 +24,7 @@ v5.8.4): Link rises steadily while levitating.** Game version 1.1.1 only.
 Every tool and button combination is on the mod's page in the Mods menu (- and + together):
 the displays can be switched off, the text made larger or smaller, the combinations changed, and
 the lift speed set. A combination that the mod acts on isn't passed on to the game. From KaeGae
-Core 0.5.2 the settings are saved between runs (Core keeps them on the SD card; not tested in the
-game yet).
+Core 0.5.2 the settings are saved between runs (Core keeps them on the SD card).
 
 ## Install
 

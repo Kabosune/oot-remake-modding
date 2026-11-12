@@ -7,7 +7,7 @@ its page with `kae_settings`. It opens in the emulated game of the module tests;
 inside the real game yet**. Inside Core it looks plainer than the screenshots here, which come
 from the host renderer's smooth font. Not done yet: the keyboard key and the reminder on the pause
 menu. Saving settings between runs is in Core 0.5.2 (a file on the SD card, see the
-[changelog](CHANGELOG.md)), not tested in the game yet.
+[changelog](CHANGELOG.md)), tested in the game.
 
 One screen, called **Mods**, where a player sees every installed mod, switches mods on and off,
 changes their settings and rebinds their buttons.
