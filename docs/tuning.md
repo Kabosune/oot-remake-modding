@@ -153,6 +153,11 @@ python tools/zsmod.py set Pack/Actor/Player_Child.pack.zs mod/romfs/Pack/Actor/P
 (byte-identical to the one in `Player_Base`, checked 11 November; the 493 files `Player_Base` and `Player_Child`
 share are all identical), and the child file sets `GroundSpeedScale` itself (1.0) but not `JumpHeight`. Which copy
 the game reads is not known, so the test edits every copy (add a third command like the first for
-`Player_Adult.pack.zs`); each pack then differs from the original in 5–6 bytes. **Not tried in game.** If Link
-doesn't change, the cause is either the field (`GroundSpeedScale` may not be the global speed) or a copy that was
-left out; if only one age changes, the copies are read per age.
+`Player_Adult.pack.zs`); each pack then differs from the original in 5–6 bytes.
+
+**Tried in game (Fritchii, 11 November 2026):** `JumpHeight` 2.0 makes adult and child Link jump much higher.
+`GroundSpeedScale` 1.5 does **not** change walk or run speed at either age: the real speed is elsewhere (code,
+animation root motion, or another field; not found yet). A second test that also set `HoverBootsFloatingTime`
+84 → 600 and, in the damage file, `FallDamageStartHeight` 10 → 1000 and `FallDamageHighStart` 20 → 2000 worked
+too: much longer Hover Boots floating and no fall damage. Which of the three identical copies the game reads is
+still not known, since every copy was edited.

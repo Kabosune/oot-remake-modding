@@ -64,4 +64,5 @@ A child Hyrule Field mod that sets `Enemy_Stalchild`'s `CreateActorCountMaxAtOnc
 python tools/zsmod.py set Scene/Component/AutoPlacementMgrParam/Enemy_Stalchild.game__scene__AutoPlacementMgrParam.bgyml mod/romfs/Scene/Component/AutoPlacementMgrParam/Enemy_Stalchild.game__scene__AutoPlacementMgrParam.bgyml CreateActorCountMaxAtOnce=12 IntervalToCreateFrame=30 MinExistActorCountToCreate=6
 ```
 
-(four bytes differ from the original). **Not tried in game.**
+(four bytes differ from the original). **Tried in game (Fritchii, 11 November 2026):** clearly more Stalchildren
+spawn in Hyrule Field at night as child Link. Loose data files in a romfs mod replace the game's own.
