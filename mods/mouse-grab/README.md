@@ -12,8 +12,8 @@ Still in progress. This folder holds the findings and the builds.
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.4. Tested in Fritchii on 11 November 2026, next to Core and Sloped Up Sloperina | Playing around with the mod |
-| [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.4, needed by the mod | Install once, with any KaeGae mods |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.2.0 on its own, built for KaeGae Core 0.5. Tested in Fritchii on 11 November 2026 with Core 0.5.1, next to Sloped Up Sloperina | Playing around with the mod |
+| [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.5.1, needed by the mod | Install once, with any KaeGae mods |
 
 Install both: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`,
 or copy both zips' folders into the emulator's load folder by hand. If another mod already uses
@@ -27,7 +27,7 @@ On a real Switch 2, use the [hardware test builds](#hardware-test-builds-11-nove
 Mouse Grab needs two downloads, each in its own mod folder:
 
 - [`kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/kaegae-core.zip):
-  KaeGae Core 0.4. `exefs/subsdk1` is Core itself; `E0F3CCFA....ips` is a 141-byte patch to `main`
+  KaeGae Core 0.5.1. `exefs/subsdk1` is Core itself; `E0F3CCFA....ips` is a 141-byte patch to `main`
   that jumps from one spot in the game to Core. On its own the patch does nothing.
 - [`mouse-grab.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/mouse-grab.zip):
   the mod, `exefs/subsdk2`. Without Core it loads and does nothing.

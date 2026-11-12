@@ -8,8 +8,8 @@ from their write-ups is in [docs/sloperina-findings.md](../../docs/sloperina-fin
 
 **Status, 11 November 2026: version 0.2.0. 0.1.0 ran in the real game (Fritchii v5.8.3): everything
 worked except that levitate struggled against gravity. 0.2.0 has the fix for that and needs KaeGae
-Core 0.5; it passes its test in an emulated game with a stand-in Link and has not run in the real
-game yet.** Game version 1.1.1 only.
+Core 0.5.1 (0.5 itself could hang the game); it works in the real game too (11 November, Fritchii
+v5.8.4): Link rises steadily while levitating.** Game version 1.1.1 only.
 
 ## What it does
 

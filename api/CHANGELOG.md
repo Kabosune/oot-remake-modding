@@ -3,7 +3,20 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
-## Draft 0.9, API 0.5 (11 November 2026; not tested in the game yet)
+## Core 0.5.1 (11 November 2026)
+
+Same API (0.5), a fix in Core only: mods need no rebuild.
+
+- **The game could hang** (freeze for good, no crash) a few seconds after an area loaded, with
+  Core 0.5, Sloped Up Sloperina and Mouse Grab on. Core's locks only spun while waiting; the game
+  runs threads of different priorities on one core, so a thread spinning on a lock held by a
+  lower-priority one kept it from ever running again. 0.5 takes these locks far more often (it
+  looks at every actor's movement update to find Link), so it hit this often. Locks now spin
+  briefly and then sleep between tries. Tested in the game: no hang in 7 minutes of play with area
+  loads, levitate, and Link ragdolled and thrown six times.
+- The start line in the log says `Core 0.5 loaded (build 0.5.1, locks sleep)`.
+
+## Draft 0.9, API 0.5 (11 November 2026; tested in the game the same day, with Core 0.5.1)
 
 Link, from Core.
 
