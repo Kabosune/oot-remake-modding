@@ -295,6 +295,5 @@ None of these are built or tested.
 | FPV Drone, First Person | A live FOV setting without a romfs mod | camera `+0x130` and the values derived from it |
 | First Person | Child / adult eye height from the game's own state | our `f_804d6db0`; their `LINK_SIZE` by age is from the map name |
 | any | A simpler way to read Link's position and velocity | `NaviMgr` copy |
-| Slopped Up Sloperina | An air wall view that tells pushing walls from blocking ones, from our own export of `PhiveConfig.byml` and the maps' walls | 0.0.4.2's collision filter rule |
-| Slopped Up Sloperina | Amiibo masks and the spin attack upgrade in an inventory page | GameData names above |
+| Slopped Up Sloperina | The air wall view that tells pushing walls from blocking ones, amiibo masks, the spin attack upgrade | Came with the port of sloperinaGZ 0.0.4.2 itself (Slopped Up Sloperina 0.3.0) |
 | any bigger mod | A `subsdk9` module instead of code caves: real C, no size limit, one small hook in main | their `docs/BUILDING.md` |

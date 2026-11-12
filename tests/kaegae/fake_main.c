@@ -34,6 +34,7 @@ EXPORT void *aligned_alloc(size_t align, size_t size) {
     heap_used = at + size;
     return heap + at;
 }
+EXPORT void free(void *p) { (void)p; }   // nothing is given back in the fake game
 
 // ---- what the test reads back ----
 EXPORT npad_state_t game_states[2][4];   // [0] player 1, [1] handheld: the states the game was handed

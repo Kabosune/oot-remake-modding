@@ -1,17 +1,49 @@
 # Slopped Up Sloperina's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+# sloperinaGZ (PracticeROM) ported onto KaeGae Core, so it is GPL-3.0 (LICENSE here), unlike the
+# rest of this repository.
 manifest = 1
 
 id       = "kabosune.slopped-up-sloperina"
 name     = "Slopped Up Sloperina"
-version  = "0.2.1"
-authors  = ["KaboWabo/Kabosune"]
-license  = "MIT"
+version  = "0.3.0"
+authors  = ["KaboWabo/Kabosune", "PracticeROM and sloperinaGZ's contributors"]
+license  = "GPL-3.0-or-later"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
+ship     = ["LICENSE", "SOURCE.txt"]   # in the zip: GPL-3.0 and where the source is
 
 [game]
 title = "0400486024DEC000"
 
 [core]
 api     = "0.5"
-sources = ["sloperina.c"]
-events  = ["input", "draw", "player_move"]
+sources = ["src/*.c"]
+events  = ["frame", "input", "draw"]
+cflags  = ["-std=gnu11", "-Wno-unused-parameter"]
+# A research build, as sloperinaGZ itself: its game offsets are its own table (src/z64hd_builds.h)
+# for game versions 1.0.0 and 1.1.1, found from nnMain, not Core's symbol pack.
+
+[core.imports]                # system functions the mod imports itself, and which module exports them
+nnMain = "main"
+aligned_alloc = "main"
+free = "main"
+snprintf = "sdk"
+vsnprintf = "sdk"
+strlen = "sdk"
+sinf = "sdk"
+cosf = "sdk"
+tanf = "sdk"
+atan2f = "sdk"
+hypotf = "sdk"
+_ZN2nn2fs10CreateFileEPKcl = "sdk"
+_ZN2nn2fs10DeleteFileEPKc = "sdk"
+_ZN2nn2fs11GetFileSizeEPlNS0_10FileHandleE = "sdk"
+_ZN2nn2fs11MountSdCardEPKc = "sdk"
+_ZN2nn2fs15CreateDirectoryEPKc = "sdk"
+_ZN2nn2fs19MountSdCardForDebugEPKc = "sdk"
+_ZN2nn2fs8OpenFileEPNS0_10FileHandleEPKci = "sdk"
+_ZN2nn2fs8ReadFileEPmNS0_10FileHandleElPvm = "sdk"
+_ZN2nn2fs9CloseFileENS0_10FileHandleE = "sdk"
+_ZN2nn2fs9WriteFileENS0_10FileHandleElPKvmRKNS0_11WriteOptionE = "sdk"
+_ZN2nn3hid6detail13GetNpadStatesEPiPNS0_16NpadFullKeyStateEiRKj = "sdk"
+_ZN2nn3hid6detail13GetNpadStatesEPiPNS0_16NpadJoyDualStateEiRKj = "sdk"
+_ZN2nn3hid6detail13GetNpadStatesEPiPNS0_17NpadHandheldStateEiRKj = "sdk"
