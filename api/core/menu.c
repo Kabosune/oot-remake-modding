@@ -16,6 +16,12 @@
 
 #define MAX_PAGES KAE_MAX_PAGES
 
+// settings.c: the pages' values kept between runs.
+void kp_settings_load(KaePage **pages, int count);
+void kp_settings_save(KaePage **pages, int count);
+bool kp_settings_on(void);
+static int saved_line;   // the line of the About text that says whether settings are saved
+
 static KaeMenu menu;
 static KaePage pages[MAX_PAGES];
 static const KaeMod *owners[MAX_PAGES];
@@ -70,10 +76,11 @@ void kp_menu_start(void) {
         "github.com/Kabosune/oot-remake-modding",
         "",
         "Open and close this menu with Minus and Plus together.",
-        "Settings are not saved between runs yet.",
+        "Settings are not saved between runs.",
     };
     for (unsigned i = 0; i < sizeof about / sizeof *about; i++)
         menu.about[menu.nabout++] = about[i];
+    saved_line = menu.nabout - 1;
     on = kp_event_on[KP_EV_INPUT] && kp_event_on[KP_EV_FRAME] && kp_event_on[KP_EV_DRAW];
     if (!on)
         kp_log("Mods menu off: it needs the controller, the frame and drawing");
@@ -85,6 +92,13 @@ bool kp_menu_on(void) { return on; }
 void kp_menu_frame(void) {
     if (!on)
         return;
+    static bool loaded;
+    if (!loaded) {
+        loaded = true;
+        kp_settings_load(menu.pages, menu.npages);
+        if (kp_settings_on())
+            menu.about[saved_line] = "Settings are saved on the SD card: kaegae/settings.txt.";
+    }
     KaePad real = { seen_buttons, 0, 0, 0, 0 }, game;
     seen_buttons = 0;
     bool was_open = menu.open;
@@ -92,8 +106,11 @@ void kp_menu_frame(void) {
     hide_all = menu.open || was_open;      // the press that closes the menu isn't the game's either
     hide = real.buttons & ~game.buttons;
     press = game.buttons & ~real.buttons;
-    if (menu.open != was_open)
+    if (menu.open != was_open) {
         kp_log(menu.open ? "Mods menu opened" : "Mods menu closed");
+        if (!menu.open)
+            kp_settings_save(menu.pages, menu.npages);
+    }
 }
 
 // Every controller read, before the mods' input functions.

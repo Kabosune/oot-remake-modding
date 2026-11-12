@@ -180,7 +180,7 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.5 loaded (build 0.5.1, locks sleep), game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.5 loaded (build 0.5.2, settings saved), game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
@@ -263,6 +263,7 @@ def main():
         g.p.unresolved.clear()
         g.expect("input: 3 of 5 controller styles hooked, frames from GetNpadStates")
         check_full_run(g, style_set=0)
+        g.expect("settings off: the system's file functions weren't found")
         print("a system without three of the hoped-for functions: ok (those styles unhooked, frames from the states)")
 
         # a game whose heap won't give Core the larger drawing memory: Core takes the small amount.
@@ -314,6 +315,58 @@ def main():
         assert (10, 720 - 20 - 40, 30, 40, 0x112233) in closed               # the probe is still on
         assert frames(1, 2) & 1                                              # and the game has its buttons back
         print("the Mods menu: ok (opens on - and +, hides input from the game, switches a mod off)")
+
+        # settings kept between runs: the menu's close wrote the file on the (fake) SD card
+        def sd_file(g):
+            n = g.sdk_int("sdk_file_len")
+            return g.p.read(g.sdk.exports["sdk_file"], n).decode() if n >= 0 else None
+        saved = sd_file(g)
+        assert saved and "[kaegae.hello]\n(on) = 0\n" in saved and "Text size = 2\n" in saved, saved
+        assert "Flash the diamond = 0x10\n" in saved and "Write a line" not in saved, saved   # actions aren't saved
+        assert "[kaegae.test-probe]\n(on) = 1\n" in saved, saved
+        assert g.sdk_int("sdk_auto_abort") == 1, "Core left nn::fs auto-abort off"
+        g.expect("settings: no file yet", "settings: saved to kaegae/settings.txt")
+        writes = g.sdk_int("sdk_writes")
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        assert g.sdk_int("sdk_writes") == writes, "the file was written again with nothing changed"
+
+        # the next run: the file is read on the first frame, before anything is drawn
+        g = Game(fakes, separate)
+        text = ("# by hand\n[kaegae.hello]\r\n(on) = 0\nText size = 9\nText colour = 1\nFlash the diamond = 0x3\n"
+                "Show the square = nonsense\n\n[someone.else]\nx = 1\n")
+        g.p.write(g.sdk.exports["sdk_file"], text.encode())
+        g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+        g.game("game_boot")
+        frames(0, 3)
+        g.expect("settings: 4 loaded from kaegae/settings.txt")
+        assert not [r for r in g.rects() if r[4] == 0x101820], "Hello draws although the file switched it off"
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        frames(X_BUTTON, 1)   # switch Hello back on
+        frames(0, 2)
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        saved = sd_file(g)
+        assert "[kaegae.hello]\n(on) = 1\n" in saved, saved
+        assert "Text size = 4\n" in saved and "Text colour = 1\n" in saved and "Flash the diamond = 0x3\n" in saved, saved
+        assert "Show the square = 1\n" in saved, saved                       # a bad value leaves the default
+        assert "[someone.else]\nx = 1\n" in saved, saved                     # a mod that isn't installed keeps its lines
+        assert g.sdk_int("sdk_auto_abort") == 1
+        print("settings between runs: ok (written when the menu closes after a change, read on the first frame, "
+              "values clamped, other mods' lines kept)")
+
+        g = Game(fakes, separate)
+        g.p.write(g.sdk.exports["sdk_mount_result"], struct.pack("<i", 0x7D402))
+        g.game("game_boot")
+        frames(0, 2)
+        g.expect("settings off: the SD card couldn't be opened (result 0x7d402)")
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        assert sd_file(g) is None and g.sdk_int("sdk_auto_abort") == 1
+        print("settings with no SD card: ok (off, said once, the menu works)")
 
         g = Game(fakes, separate, patched=False)
         g.expect("hook points off: main isn't patched")

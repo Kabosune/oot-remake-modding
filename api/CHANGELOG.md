@@ -3,6 +3,24 @@
 Until API 1.0 anything here may still change, and Core only runs mods built against exactly its
 own API version.
 
+## Core 0.5.2 (11 November 2026; tested in the game the same day)
+
+Same API (0.5): mods need no rebuild.
+
+- **The Mods menu's settings are saved between runs**: each mod on or off, and every setting and
+  binding on its page, in `kaegae/settings.txt` on the SD card (in Fritchii:
+  `%APPDATA%\fritchii\sdmc\kaegae\settings.txt`). Plain text, one `[mod id]` section per mod and
+  one `Label = value` line per setting, so it can be edited by hand. Read on the game's first frame
+  (values are clamped to their range, bad lines skipped), written when the menu closes after a
+  change. Lines of mods that aren't installed are kept.
+- Core uses the system's own file functions (`nn::fs` in the sdk module, names checked against
+  the game's sdk). If any is missing or the SD card can't be opened, saving is off, the log says
+  why once, and the menu works as before. `nn::fs` would stop the game on some errors, so Core
+  turns its auto-abort off around its own calls (and back on after).
+- The start line says `Core 0.5 loaded (build 0.5.2, settings saved)`.
+- Tested in Fritchii v5.8.4: settings changed in the menu came back after closing and reopening
+  the emulator, and the file was written to `sdmc\kaegae\settings.txt`.
+
 ## Core 0.5.1 (11 November 2026)
 
 Same API (0.5), a fix in Core only: mods need no rebuild.

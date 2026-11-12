@@ -171,7 +171,10 @@ struct KaeItem {
 };
 
 /* Gives the calling mod its page: a display name and its settings. Only inside the mod's start;
-   `name` and `items` must stay valid. Settings are not saved between runs yet. */
+   `name` and `items` must stay valid. From Core 0.5.2 the values are saved between runs (a
+   file on the SD card) and read back on the game's first frame, matched by mod id and label:
+   after that, `value` / `binding` may differ from the defaults, and `changed` is called for each
+   that does. Rename a label and its saved value is left behind. */
 KAE_API int kae_settings(const char *name, KaeItem *items, int count);
 /* 1 while the Mods menu is open. A mod that reacts to buttons itself should hold still then. */
 KAE_API int kae_menu_open(void);
