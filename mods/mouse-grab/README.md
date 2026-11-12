@@ -36,7 +36,7 @@ mouse doesn't grab while the Mods menu is open.
 
 | Zip | What it is | For |
 |---|---|---|
-| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.3.0 on its own (its settings page is new; not tested in the game yet), built for KaeGae Core 0.5. 0.2.0 was tested in Fritchii on 11 November 2026 with Core 0.5.1 | Playing around with the mod |
+| [`mouse-grab.zip`](../../releases/mouse-grab.zip) | Mouse Grab 0.3.0 on its own, with its settings page, built for KaeGae Core 0.5 (runs on 0.5.x and 0.6). Tested in Fritchii on 11 November 2026 with Core 0.5.2 | Playing around with the mod |
 | [`kaegae-core.zip`](../../releases/kaegae-core.zip) | KaeGae Core 0.5.2, needed by the mod | Install once, with any KaeGae mods |
 
 Install both: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`,
