@@ -207,7 +207,8 @@ void grab_other(void *actor);
 void link_voice(void *actor, const char *command);
 
 void ragdoll_move(void *actor) {
-    actors_survey(actor);
+    if (kp_debug)
+        actors_survey(actor);
     if (actor != link) {
         if (!is_link(actor)) {
             grab_other(actor);
@@ -222,7 +223,7 @@ void ragdoll_move(void *actor) {
     m.buttons = 0;
     m.attributes = 0;
     int got = _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(&m, 1);
-    bool right = got > 0 && (m.attributes & 2) && (m.buttons & 2);
+    bool right = got > 0 && (m.attributes & 2) && (m.buttons & 2) && !kae_menu_open();
     if (right && !held) {
         void *ragdoll = ragdoll_of(actor);
         bool down = ragdoll && AT(ragdoll, RAGDOLL_STATE, int32_t) != 0;
@@ -239,7 +240,7 @@ void ragdoll_move(void *actor) {
     void *rd = ragdoll_of(actor);
     if (rd && AT(rd, RAGDOLL_STATE, int32_t) != 0) {
         ++down_frames;
-        if (down_frames == 40 || down_frames == 50)
+        if (kp_debug && (down_frames == 40 || down_frames == 50))
             survey2(actor, KP_FN(void *(*)(void *), F_HOLDER)(actor), down_frames == 50);
     } else {
         down_frames = 0;
