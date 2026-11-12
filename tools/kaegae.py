@@ -76,8 +76,7 @@ class Place:
     def folders(self):
         if not self.title_dir.is_dir():
             return []
-        return sorted((p for p in self.title_dir.iterdir() if p.is_dir() and not p.name.endswith(".kaegae-new")),
-                      key=lambda p: p.name)
+        return sorted((p for p in self.title_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
 
     def disabled(self):
         """Folder names switched off in the emulator's Add-Ons list, or None if that can't be read."""
@@ -290,6 +289,45 @@ def assign_slots(mod, taken):
     return moves
 
 
+def staging_dir(place):
+    """Where new and replaced folders wait: next to the game's folder, not in it, so the emulator
+    never loads a half-copied folder. On the same drive, so moving in and out is a rename."""
+    return place.title_dir.parent / ".kaegae-staging"
+
+
+def put_in_place(place, source, name):
+    """Copy `source` to the load folder as `name`. Nothing in the game's folder changes unless the
+    whole copy succeeded. Returns whether a folder was replaced."""
+    dest, work = place.title_dir / name, staging_dir(place)
+    work.mkdir(exist_ok=True)
+    fresh, old = work / f"{name}.new", work / f"{name}.old"
+    for leftover in (fresh, old):
+        if leftover.exists():
+            shutil.rmtree(leftover, ignore_errors=True)
+    if fresh.exists() or old.exists():
+        raise Stop(f"{work} holds a leftover from an earlier install that can't be removed: delete it by hand")
+    try:
+        shutil.copytree(source, fresh)
+        replaced = dest.exists()
+        if replaced:
+            dest.rename(old)                    # fails as a whole if the emulator holds a file in it
+        try:
+            fresh.rename(dest)
+        except OSError:
+            if replaced:
+                old.rename(dest)                # put the old one back
+            raise
+    except OSError as e:
+        shutil.rmtree(fresh, ignore_errors=True)
+        raise Stop(f"couldn't write {dest}: {e}\nThe emulator locks a mod's files while it runs: close it and "
+                   "try again. Nothing in the load folder was changed") from e
+    shutil.rmtree(old, ignore_errors=True)
+    if old.exists():
+        print(f"  (the replaced copy couldn't be deleted; it is in {old}, outside the game's folder: delete it by hand)")
+    shutil.rmtree(work, ignore_errors=True) if not any(work.iterdir()) else None
+    return replaced
+
+
 def cmd_install(args):
     place = find_place(args)
     registries = kc.load_registries(args.registry)
@@ -325,19 +363,7 @@ def cmd_install(args):
             return 0
         place.title_dir.mkdir(parents=True, exist_ok=True)
         for mod in new:
-            dest = place.title_dir / mod.name
-            staging = place.title_dir / f".{mod.name}.kaegae-new"
-            try:
-                if staging.exists():
-                    shutil.rmtree(staging)
-                shutil.copytree(mod.path, staging)
-                replaced = dest.exists()
-                if replaced:
-                    shutil.rmtree(dest)
-                staging.rename(dest)
-            except PermissionError as e:
-                shutil.rmtree(staging, ignore_errors=True)
-                raise Stop(f"couldn't write {dest}: {e}\nThe emulator locks a mod's files while it runs: close it and try again") from e
+            replaced = put_in_place(place, mod.path, mod.name)
             print(f"  {'replaced' if replaced else 'installed'} {mod.label}")
         print("Close and reopen the emulator before starting the game: it reads exefs files when the app starts.")
     return 0
@@ -373,13 +399,13 @@ def cmd_build(args):
         if args.dry_run:
             print("dry run: nothing was written")
             return 0
-        try:
+        if args.out:
             if dest.exists():
                 shutil.rmtree(dest)
-            dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(staging, dest)
-        except PermissionError as e:
-            raise Stop(f"couldn't write {dest}: {e}\nClose the emulator and try again") from e
+        else:
+            place.title_dir.mkdir(parents=True, exist_ok=True)
+            put_in_place(place, staging, kb.BUILT_NAME)
         print(f"wrote {dest}\nIt holds a changed copy of a game file: keep it on this machine.")
     return 1 if missing else 0
 

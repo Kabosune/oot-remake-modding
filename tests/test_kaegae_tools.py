@@ -265,6 +265,17 @@ def test_install(work):
     ok(code == 1 and "exefs-clash" in text, "and counted with --all")
     code, text = run("list", "--load-dir", load)
     ok("off Off Mod" in text and "on  One  [x.one 1.0.0]" in text, f"list shows on and off: {text}")
+    import os
+    locked = load / TITLE / "One" / "exefs"
+    os.chmod(locked, 0o500)                   # a folder whose files can't be removed, as when the emulator runs
+    try:
+        code, text = run("install", one, "--load-dir", load)
+    finally:
+        os.chmod(locked, 0o700)
+    if os.geteuid() != 0:                     # root ignores the permission, so the lock can't be shown
+        ok(code == 2 and "Nothing in the load folder was changed" in text, f"a locked folder stops the install: {text}")
+    ok(not any(p.name.startswith(".") for p in (load / TITLE).iterdir()), "no temporary folder is ever left in the game's folder")
+    ok((load / TITLE / "One" / "exefs" / "subsdk2").read_bytes() == b"One", "and the installed mod is untouched")
     code, text = run("remove", "Off Mod", "--load-dir", load)
     ok(code == 0 and not off.exists(), "remove deletes the folder")
     code, text = run("remove", "../src", "--load-dir", load)
