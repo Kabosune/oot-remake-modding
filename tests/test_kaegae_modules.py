@@ -638,6 +638,7 @@ def main():
         menu = [r for r in panels if r[0] == 1280 * 35 // 1000]
         assert menu and menu[0][3] > 100, panels                                     # the menu's panel, under the D-pad
         assert sdk_rect_total(g) > 200, sdk_rect_total(g)                            # ... with its text
+        assert [r for r in g.rects() if r[4] == 0xE0E0E0], "no button prompts (key caps) under the menu"
         assert slopped_frame(A)[0] == 0, "the game saw A while the menu was open"
         slopped_frame(R | RS_DOWN)                                                   # the same again closes it
         slopped_frame(0)

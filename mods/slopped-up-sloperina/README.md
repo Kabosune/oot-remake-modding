@@ -24,7 +24,8 @@ upgrades, story flags and dungeon items, cheats, Link's age, save / load positio
 the air walls and enemies' health shown in the world, the dive tests, translations of the menu.
 
 - **Open the menu:** R + right stick down (gz's R + C-down). Same again to close it; B goes back.
-- **Move:** D-pad up / down; change a value: D-pad left / right; **select: L**. On a keyboard (from
+- **Move:** D-pad up / down; change a value: D-pad left / right; **select: L**. The prompts under the
+  menu show select, return and close as they're bound now. On a keyboard (from
   0.4.0, in an emulator): the arrow keys, Enter to select, Backspace to go back.
 - **Rebind its shortcuts, or give them keyboard keys** (from 0.4.0): KaeGae Core's Mods menu (- and
   + together) → Slopped Up Sloperina. Twelve of them: open / close the menu, back, save / load

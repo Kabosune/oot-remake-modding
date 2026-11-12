@@ -47,6 +47,9 @@ Built for API 0.7, so it needs Core 0.7.
   setting moves the binding.
 - In its menu: arrow keys move, Enter chooses (L), Backspace goes back (B). Fixed keys, read only
   while its menu is open and Core's Keyboard switch is on.
+- Button prompts under its menu, as sloperinaGZ shows them in the game's style: "select L, return
+  R + d-pad left, close R + right stick down", from the bindings as they are set: buttons as key
+  caps, the d-pad and the sticks as small pictures.
 
 ## Core 0.6, API 0.6 (11 November 2026; tested in the game the same day)
 

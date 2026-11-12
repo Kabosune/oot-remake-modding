@@ -38,8 +38,10 @@ static const int panel_max_rows[GFX_PANELS] = { GFX_ROWS, 20, GFX_LOG_ROWS, 10 }
 /* sloperinaGZ's colours */
 static const uint32_t style_rgb[GFX_NSTYLES] = {
   [GFX_NORMAL] = 0xFFFFFF, [GFX_SELECTED] = 0x80FF80, [GFX_TITLE] = 0xA0C8FF, [GFX_DIM] = 0x909090,
-  [GFX_NOTICE] = 0xFFE060, [GFX_LOG] = 0xC0C0C0, [GFX_FAINT] = 0x505058,
+  [GFX_NOTICE] = 0xFFE060, [GFX_LOG] = 0xC0C0C0, [GFX_FAINT] = 0x505058, [GFX_BUTTON] = 0x181820,
 };
+#define CAP_RGB 0xE0E0E0     /* a button's key cap in the prompts */
+#define PAD_DIM_RGB 0x6A6A74 /* the d-pad's and the sticks' outlines in the prompts */
 #define BG_RGB 0x181820
 #define BAR_RGB 0x606070
 static const uint32_t airwall_rgb[AW_NCOLORS] = {
@@ -75,10 +77,48 @@ static void outline(int x, int y, int w, int h, int t, uint32_t rgb)
   kae_draw_rect(x + w - t, y, t, h, rgb);
 }
 
+/* The prompts' d-pad (two cells at x, y) with direction `dir` (0 up, 1 right, 2 down, 3 left) lit. */
+static void draw_dpad(int x, int y, int s, int dir, uint32_t lit)
+{
+  int u = 4 * s, cx = x + 2 * s + u, cy = y + s + u; /* the middle square's corner; arms of u x u */
+  static const int dx[4] = { 0, 1, 0, -1 }, dy[4] = { -1, 0, 1, 0 };
+  kae_draw_rect(cx, cy, u, u, PAD_DIM_RGB);
+  for (int d = 0; d < 4; d++)
+    kae_draw_rect(cx + dx[d] * u, cy + dy[d] * u, u, u, d == dir ? lit : PAD_DIM_RGB);
+}
+
+/* A stick (two cells at x, y), its ring and its dot pushed towards `dir`; L or R inside isn't drawn (too
+ * small), so the left stick's ring is square and the right one's has cut corners. */
+static void draw_stick(int x, int y, int s, int dir, bool right, uint32_t lit)
+{
+  int size = 12 * s, ox = x + 2 * s, oy = y + 2 * s, t = s;
+  if (right) { /* cut corners */
+    kae_draw_rect(ox + 2 * s, oy, size - 4 * s, t, PAD_DIM_RGB);
+    kae_draw_rect(ox + 2 * s, oy + size - t, size - 4 * s, t, PAD_DIM_RGB);
+    kae_draw_rect(ox, oy + 2 * s, t, size - 4 * s, PAD_DIM_RGB);
+    kae_draw_rect(ox + size - t, oy + 2 * s, t, size - 4 * s, PAD_DIM_RGB);
+  } else {
+    outline(ox, oy, size, size, t, PAD_DIM_RGB);
+  }
+  static const int dx[4] = { 0, 1, 0, -1 }, dy[4] = { -1, 0, 1, 0 };
+  int dot = 4 * s, mid = (size - dot) / 2, push = 3 * s;
+  kae_draw_rect(ox + mid + dx[dir] * push, oy + mid + dy[dir] * push, dot, dot, lit);
+}
+
 /* One of sloperinaGZ's icon characters in a cell at (x, y); returns the cells it takes (0: not an icon). */
 static int draw_icon(char c, int x, int y, int s, uint32_t rgb)
 {
   int cw = FONT_W * s, top = y + 3 * s, size = 10 * s;
+  unsigned char u = (unsigned char)c;
+  if (u >= (unsigned char)GFX_ICON_DPAD && u < (unsigned char)GFX_ICON_DPAD + 4) {
+    draw_dpad(x, y, s, u - (unsigned char)GFX_ICON_DPAD, 0xFFFFFF);
+    return 2;
+  }
+  if (u >= (unsigned char)GFX_ICON_LSTICK && u < (unsigned char)GFX_ICON_RSTICK + 4) {
+    bool right = u >= (unsigned char)GFX_ICON_RSTICK;
+    draw_stick(x, y, s, (u - (unsigned char)GFX_ICON_LSTICK) % 4, right, 0xFFFFFF);
+    return 2;
+  }
   switch (c) {
     case GFX_CHECK_OFF:
     case GFX_CHECK_ON: /* a box two cells wide, ticked green */
@@ -140,6 +180,21 @@ static void draw_row(const gfx_panel_t *panel, int row, int cols, int x, int y, 
       n = 0;                                                                                       \
     }                                                                                              \
   } while (0)
+  /* the prompts' key caps first: a light box behind each run of GFX_BUTTON cells, its corners cut */
+  for (int col = 0; col < cols;) {
+    if (!panel->ch[row][col] || panel->style[row][col] != GFX_BUTTON) {
+      col++;
+      continue;
+    }
+    int end = col;
+    while (end < cols && panel->ch[row][end] && panel->style[row][end] == GFX_BUTTON)
+      end++;
+    int bx = x + col * cw - 2 * s, bw = (end - col) * cw + 4 * s, by = y - s, bh = FONT_H * s + 2 * s;
+    uint32_t cap = alpha < 255 ? dim(CAP_RGB, alpha) : CAP_RGB;
+    kae_draw_rect(bx + s, by, bw - 2 * s, bh, cap);
+    kae_draw_rect(bx, by + s, bw, bh - 2 * s, cap);
+    col = end;
+  }
   for (int col = 0; col < cols;) {
     char c = panel->ch[row][col];
     int style = panel->style[row][col];
