@@ -25,7 +25,22 @@ bool kp_readable(uintptr_t address, size_t size);   // mapped and readable
 
 // ---- locks (two threads call into Core: the game's and its render thread) ----
 typedef volatile char kp_lock_t;
-static inline void kp_lock(kp_lock_t *l) { while (__atomic_test_and_set(l, __ATOMIC_ACQUIRE)) {} }
+// Spins a little, then sleeps between tries. Never only spin: the game runs threads of different
+// priorities on the same core, and a thread that spins forever never lets a lower-priority thread
+// that holds the lock run again (the game hangs, it doesn't crash).
+static inline void kp_sleep_ns(int64_t ns) {
+#if defined(__aarch64__)
+    register int64_t x0 __asm__("x0") = ns;
+    __asm__ volatile("svc #0xB" : "+r"(x0) : : "x1", "x2", "x3", "x4", "x5", "x6", "x7", "memory");
+#else
+    (void)ns;   // the PC unit tests: one thread, the lock is never contended
+#endif
+}
+static inline void kp_lock(kp_lock_t *l) {
+    for (int tries = 0; __atomic_test_and_set(l, __ATOMIC_ACQUIRE); tries++)
+        if (tries >= 64)
+            kp_sleep_ns(1000);
+}
 static inline void kp_unlock(kp_lock_t *l) { __atomic_clear(l, __ATOMIC_RELEASE); }
 
 // ---- the game: one entry per symbol pack (generated, see tools/kaegae_symbols.py) ----
