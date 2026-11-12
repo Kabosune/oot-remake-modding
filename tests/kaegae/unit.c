@@ -22,6 +22,7 @@ uintptr_t kp_main;
 const kp_build_t *kp_build;
 bool kp_motion_on;
 bool kp_player_on;
+bool kp_view_fov(void) { return false; }
 uint64_t kp_input_live(void) { return 0; }
 KaeMod *__kae_mods_start[1], *__kae_mods_end[1];
 

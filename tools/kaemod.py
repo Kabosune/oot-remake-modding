@@ -42,7 +42,8 @@ MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]   # subsdk9 is left to standalon
 
 CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "symbols.c", "log.c", "format.c",
                                    "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "menu.c", "input.c", "input_wrap.S", "motion.c",
-                                   "hooks.c", "player.c", "settings.c", "keyboard.c")]
+                                   "hooks.c", "player.c", "settings.c", "keyboard.c",
+                                   "view.c", "view_entry.S")]
 # What Core imports, and which of the game's modules exports it. The second group is imported
 # weakly: Core runs without them (the build can't check the system's exports, only the game can).
 CORE_IMPORTS = {
@@ -78,7 +79,8 @@ CFLAGS = ["--target=aarch64-none-elf", "-O2", "-fPIC", "-ffreestanding", "-fno-b
 HOOK_BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
 HOOK_SYMBOLS = REPO / "symbols" / "e0f3ccfa.ld"
 HOOK_REGIONS = [(0x3C46310, 0x3C46400, [".text.hook", ".text", ".data", ".bss"])]
-HOOK_SITES = [(0x82C415E4, 0xFC180FEA, "kp_hook_move")]   # str d10, [sp, #-0x80]!
+HOOK_SITES = [(0x82C415E4, 0xFC180FEA, "kp_hook_move"),   # str d10, [sp, #-0x80]!
+              (0x804E5068, 0xF9401268, "kp_hook_view")]   # ldr x8, [x19, #0x20] (0.8; First Person 1.x's site)
 
 
 def run(*cmd):

@@ -10,6 +10,7 @@ how the real rtld, emulator or console behave: that takes the in-game test in ap
 
 Needs clang, ld.lld, llvm-nm, llvm-objcopy, Python 3.11+ and Unicorn 2. No game files.
 """
+import math
 import struct
 import subprocess
 import sys
@@ -33,12 +34,14 @@ FAKE_FLAGS = ["--target=aarch64-none-elf", "-O1", "-fPIC", "-ffreestanding", "-f
               "-fno-stack-protector", "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wall", "-Wextra",
               "-Werror", "-std=c11"]
 MAIN_LD = """
-PHDRS {{ code PT_LOAD FLAGS(5); nnmain PT_LOAD FLAGS(5); move PT_LOAD FLAGS(5); ro PT_LOAD FLAGS(4);
+PHDRS {{ code PT_LOAD FLAGS(5); view PT_LOAD FLAGS(5); nnmain PT_LOAD FLAGS(5); move PT_LOAD FLAGS(5); ro PT_LOAD FLAGS(4);
         rw PT_LOAD FLAGS(6); dyn PT_DYNAMIC; }}
 SECTIONS {{
   . = 0;
   .text : {{ KEEP(*(.text.header)) *(.text .text.*) }} :code
   .plt  : {{ *(.plt .plt.*) }} :code
+  . = 0x4C4F00;
+  .text_view : {{ KEEP(*(.text_view)) }} :view
   . = {nnmain:#x};
   .text_nnmain : {{ KEEP(*(.text_nnmain)) }} :nnmain
   . = {move:#x};
@@ -70,7 +73,7 @@ def run(*cmd):
 def build_fakes(work, nnmain=None):
     """The fake main (with nnMain where the pack says, or elsewhere) and the two fake sdk modules."""
     objs = []
-    for src in (kaemod.CORE / "crt0.S", HERE / "fake_main.c", HERE / "fake_main_move.S"):
+    for src in (kaemod.CORE / "crt0.S", HERE / "fake_main.c", HERE / "fake_main_move.S", HERE / "fake_main_view.S"):
         obj = work / (src.name + ".o")
         run("clang", *FAKE_FLAGS, "-c", src, "-o", obj)
         objs.append(obj)
@@ -187,15 +190,15 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.7 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.8 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 7 game 1.1.1 build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 8 game 1.1.1 build {PACK['build']} base {base:#x}",
              f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaegae [kaegae.hello]: hello from its own start. Core API 0.7, game 1.1.1",
+             "kaegae [kaegae.hello]: hello from its own start. Core API 0.8, game 1.1.1",
              "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -217,9 +220,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("KaeGae Core 0.7: A is held", white, at its
+    # between them hello's text plate, its text ("KaeGae Core 0.8: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.7: A is held")
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.8: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -376,7 +379,7 @@ def main():
         print("settings with no SD card: ok (off, said once, the menu works)")
 
         g = Game(fakes, separate, patched=False)
-        g.expect("hook points off: main isn't patched")
+        g.expect("hook point Actor.MoveUpdate off: main isn't patched")
         g.game("game_boot")
         g.expect("event.actor_move: no", "start: has 1110110", "start: subscribed 0 0 -3 0",
                  "mod kaegae.hello 0.5.0 started", "mod kaegae.test-probe 1.2.3 started")
@@ -401,7 +404,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.7: unknown game build, doing nothing",
+        g.expect("Core 0.8: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -448,9 +451,9 @@ def main():
         g.game("game_boot")
         for _ in range(3):
             g.frame(actor=0x40000000)
-        g.expect("Core 0.7 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        g.expect("Core 0.8 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
         assert not g.logged(" is off"), g.logged(" is off")
-        print("mods built for API 0.5 on Core 0.7: ok (the released Slopped Up Sloperina and Mouse Grab start)")
+        print("mods built for API 0.5 on Core 0.8: ok (the released Slopped Up Sloperina and Mouse Grab start)")
 
         # keys (0.7): bindings get a keyboard key in the Mods menu, kept in the settings file. A 0.7 mod
         # reads them with kae_binding_held / kae_binding_pressed; for older mods (Hello, 0.5) Core adds
@@ -742,6 +745,120 @@ def main():
         assert any(r[4] != 0x101820 and r[4] != 0x2A3530 and r[3] == 16 for r in g.rects()), "no bar fill"
         assert not g.p.unresolved, g.p.unresolved
         print("Speedometer: ok (measures Link's speed, draws its display bottom right with a filled bar)")
+
+        # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
+        # update fills the registers, passes Core's hook point and stores them: they must come back.
+        cams = [kaemod.Mod(REPO / "mods" / "first-person" / "core"), kaemod.Mod(REPO / "mods" / "fpv-drone" / "core")]
+        cam_files = kaemod.build(cams, False, tmp / "cams")
+        VIEW, CAMERA, MGR, CAMERAS, CAM0, CELL, OUT = (0x41000000 + i * 0x1000 for i in range(7))
+        TAN25, ASPECT = 0.46630765815, 16 / 9
+        R3, L3, A_, L_, ZR_ = 1 << 5, 1 << 4, 1 << 0, 1 << 6, 1 << 9
+
+        def camera_game(text=None):
+            g = Game(fakes, cam_files)
+            if text:
+                g.p.write(g.sdk.exports["sdk_file"], text.encode())
+                g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+            g.p.uc.mem_map(0x40000000, 0x10000)
+            g.p.uc.mem_map(0x41000000, 0x10000)
+            for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                              (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                              (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                              (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                              (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                              (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"]),
+                              (COMPONENTS + 0x260, BODY + 0x400),                         # his model
+                              (VIEW, MAIN_BASE + PACK["vtable"]["View"]["offset"]), (CAMERA + 0x20, 1),
+                              (MAIN_BASE + PACK["global"]["CameraManagerSlot"]["offset"], CELL), (CELL, MGR),
+                              (MGR + 0x20, 1), (MGR + 0x28, CAMERAS), (CAMERAS, CAM0), (CAM0 + 0x78, VIEW)):
+                g.p.write(at, struct.pack("<Q", value))
+            g.p.write(RESOURCE + 0x58, b"Player\0")
+            g.p.write(BODY + 0x400 + 0xE5, b"\1")                                      # visible
+            g.p.write(MAIN_BASE + PACK["function"]["CctChangePosition"]["offset"], struct.pack("<3I", 0x3DC00020, 0x3D804000, 0xD65F03C0))
+            g.game("game_boot")
+            return g
+
+        def set_view(g, eye=(0.0, 1.0, 10.0), look=(0.0, 3.68, 5.0)):
+            # looking along -z: right (1, 0, 0), up (0, 1, 0), back (0, 0, 1); t = -(row . eye)
+            m = (1, 0, 0, -eye[0], 0, 1, 0, -eye[1], 0, 0, 1, -eye[2])
+            g.p.write(VIEW + 0x08, struct.pack("<12f", *m))
+            g.p.write(VIEW + 0x38, struct.pack("<6f", *eye, *look))
+            g.p.write(VIEW + 0x98, b"\0\0")
+            g.p.write(VIEW + 0x9C, struct.pack("<f", 1 / (TAN25 * ASPECT)))
+            g.p.write(VIEW + 0xB0, struct.pack("<f", 1 / TAN25))
+            g.p.write(VIEW + 0x130, struct.pack("<5f", 0.87266463, 0.42261826, 0.90630779, TAN25, ASPECT))
+
+        def cam_frame(g, buttons=0, at=(1.0, 2.0, 3.0), lx=0, ly=0, rx=0, ry=0):
+            g.p.write(LINK + PACK["field"]["Actor.position"]["offset"], struct.pack("<3f", *at))
+            g.set_controller(buttons, lx, ly, rx, ry)
+            g.frame(actor=LINK)
+            set_view(g)
+            g.p.write(OUT, bytes(0xb0))
+            g.game("game_view", CAMERA, VIEW, OUT)
+            regs = struct.unpack("<16Q4d2Q", g.p.read(OUT, 0xb0))
+            want = (0x1000, 0x1001, 0x1003, 0x1004, 0x1005, 0x1006, 0x1007, 0x1009, 0x100a, 0x100b, 0x100c, 0x100d,
+                    0x100e, 0x100f, 0x1010, 0x1011, 1.0, 7.0, 16.0, 31.0, 1, 1)
+            assert regs == want, f"the view hook point changed registers: {regs}"
+            return struct.unpack("<12f", g.p.read(VIEW + 0x08, 48)), struct.unpack("<f", g.p.read(VIEW + 0x130, 4))[0]
+
+        g = camera_game()
+        g.expect("hook point in place: Camera.View", "mod kabosune.first-person 2.0.0 started",
+                 "mod kabosune.fpv-drone 2.0.0 started", "first person 2.0.0 on Core: field of view can change")
+        game_view = (1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1, -10)
+        for _ in range(3):
+            matrix, fovy = cam_frame(g)
+            assert matrix == game_view and abs(fovy - 0.87266463) < 1e-6, (matrix, fovy)   # both mods off: untouched
+        g.p.write(OUT, bytes(0xb0))
+        g.game("game_view", CAMERA, VIEW + 0x800, OUT)                                   # another view: left alone
+        matrix, fovy = cam_frame(g, R3)                                                  # R3: first person on
+        close = lambda a, b: all(abs(x - y) < 1e-4 for x, y in zip(a, b))     # noqa: E731
+        # eye = Link (1, 2, 3) + measured 1.68 up, 0.15 forward (along -back = -z)
+        assert close(matrix, (1, 0, 0, -1, 0, 1, 0, -3.68, 0, 0, 1, -2.85)), matrix
+        assert abs(fovy - 0.87266463) < 1e-6, fovy                                      # FOV "the game's"
+        g.expect("first person on", "first person: eye height 1.68 m")
+        assert g.p.read(BODY + 0x400 + 0xE5, 1) == b"\0", "Link wasn't hidden"
+        cam_frame(g, rx=10000)
+        assert g.states(0)[-1][3] == 10000                                               # look speed 100 %
+        cam_frame(g, R3)                                                                 # off again
+        assert cam_frame(g)[0] == game_view
+        assert g.p.read(BODY + 0x400 + 0xE5, 1) == b"\1", "Link wasn't shown again"
+        print("view event: ok (only the gameplay view, every register kept); First Person 2: ok (Link's eyes, hides him, R3 on / off)")
+
+        # settings from the file: FOV 90 (index 3), eye 10 cm higher, look speed 200 %; and the drone
+        g = camera_game("[kabosune.first-person]\nField of view = 3\nEye height (cm) = 10\nLook speed (%) = 200\n"
+                        "[kabosune.fpv-drone]\nField of view = 5\nFree fly speed (m/s) = 20\n")
+        cam_frame(g)
+        matrix, fovy = cam_frame(g, R3)
+        want_fovy = 2 * math.atan(math.tan(math.radians(45)) / ASPECT)
+        assert close(matrix, (1, 0, 0, -1, 0, 1, 0, -3.78, 0, 0, 1, -2.85)), matrix
+        assert abs(fovy - want_fovy) < 1e-4, (fovy, want_fovy)
+        tan = struct.unpack("<f", g.p.read(VIEW + 0x13C, 4))[0]
+        assert abs(tan - math.tan(want_fovy / 2)) < 1e-4 and g.p.read(VIEW + 0x98, 2) == b"\1\1", tan
+        assert abs(struct.unpack("<f", g.p.read(VIEW + 0xB0, 4))[0] - 1 / tan) < 1e-3       # the matrix's y scale
+        cam_frame(g, rx=10000)
+        assert g.states(0)[-1][3] == 20000                                               # look speed 200 %
+        cam_frame(g, R3)
+        # FPV Drone: L3 takes off from the view as it is, in Free fly; the game sees nothing
+        cam_frame(g)
+        matrix, fovy = cam_frame(g, L3)
+        g.expect("fpv drone on")
+        assert g.states(0)[-1][0] == 0, "the game saw L3 while the drone flies"
+        assert close(matrix, game_view), matrix                                           # starts at the game camera
+        assert abs(fovy - 2 * math.atan(math.tan(math.radians(55)) / ASPECT)) < 1e-4, fovy   # FOV 110
+        for _ in range(5):
+            matrix, _ = cam_frame(g, ZR_, ly=32767)                                       # forward and up
+        seen = g.states(0)[-1]
+        assert seen[0] == 0 and seen[1:] == (0, 0, 0, 0), seen
+        eye = [-(matrix[i] * matrix[3] + matrix[4 + i] * matrix[7] + matrix[8 + i] * matrix[11]) for i in range(3)]
+        assert eye[2] < 10 - 0.5 and eye[1] > 1.2 and abs(eye[0]) < 1e-3, eye            # moved along -z and up
+        cam_frame(g, 1 << 7)                                                              # R: carry Link
+        cam_frame(g)
+        carried = struct.unpack("<3f", g.p.read(CCT + 0x100, 12))
+        assert abs(carried[2] - (eye[2] + 1.0)) < 0.6 and abs(carried[1] - eye[1]) < 0.6, (carried, eye)
+        cam_frame(g, L3)
+        assert cam_frame(g, A_)[0] == game_view and g.states(0)[-1][0] & A_            # off: the game has it all back
+        assert not g.p.unresolved, g.p.unresolved
+        print("FPV Drone 2: ok (takes off from the view, free fly with its settings, FOV, carries Link, hides the controller)")
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")

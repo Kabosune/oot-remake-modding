@@ -4,6 +4,23 @@ Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/relea
 
 Press **R3** (click the right stick) to switch to Link's eyes. Press it again to switch back.
 
+> **First Person 2.0 runs on KaeGae Core 0.8** ([`core/`](core/first_person.c), on the `kaegae-0.8`
+> branch, not tested in the game yet). Same view, plus a page in the Mods menu (- and +):
+>
+> | Setting | Default | |
+> |---|---|---|
+> | First person on / off | R3 | a binding: any buttons, or a keyboard key |
+> | Field of view | the game's | horizontal: the game's (about 80°), 70° to 120° |
+> | Eye height (cm) | 0 | added to the height measured when you switch on |
+> | Eye forward (cm) | 15 | in front of Link's face |
+> | Look speed (%) | 100 | the right stick, while first person is on |
+> | Show Link | off | |
+>
+> Settings are saved between runs. It no longer reads the keyboard itself (the `,` `.` `/` `;`
+> keys are now settings), and it no longer writes into the bytes Fritchii's water ripples fix uses.
+> Core 0.8 hooks the same instruction as First Person 1.x, so install one or the other: with Core,
+> 2.0; on a real Switch 2 (no Core there yet), 1.x below.
+
 - Right stick looks around, left stick walks in the direction you look. The game's own camera
   rotation is kept, so its controls, Z-targeting and aim all still drive the view.
 - Eye height is measured when you switch on (the game camera's look-at height above Link). It

@@ -42,7 +42,10 @@ to `subsdk8` to mods; sloperinaGZ uses `subsdk9`. A mod folder's `exefs/` can ho
   calls a function pointer the module writes into `KP_HOOK_SLOTS` (`0x84ebfb00`). Slot 0 is the
   movement update, `f_82c415e0`'s second instruction (its first is FPV Drone's); it runs on the
   game's thread for every physics actor every frame with `x0` = actor. Mods get it as the
-  `actor_move` event. Core checks the stub's tag before writing the slot.
+  `actor_move` event. Slot 1 (Core 0.8) is `Camera.View`, `f_804e48c0` right after it writes a
+  view's matrix (`0x804e5068`, First Person 1.x's old site): mid-function, so the stub keeps x16,
+  x17, x29, x30 and Core's `view_entry.S` the rest. Mods get it as the `view` event. Core checks
+  each stub's tag before writing its slot.
   `tests/test_kaegae_hooks.py` runs the stub on a real main.
 
 ## Drawing (tested)

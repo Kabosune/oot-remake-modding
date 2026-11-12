@@ -79,6 +79,8 @@ int kae_on_player_move(KaePlayerFn fn, void *user, int priority) {
     return subscribe(KP_EV_PLAYER_MOVE, (void *)fn, user, priority);
 }
 
+int kae_on_view(KaeViewFn fn, void *user, int priority) { return subscribe(KP_EV_VIEW, (void *)fn, user, priority); }
+
 void kp_fire_frame(void) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_FRAME, s);
@@ -124,4 +126,12 @@ void kp_fire_player_move(const KaePlayer *link) {
     for (int i = 0; i < n; i++)
         if (!kp_mod_off(s[i].owner))
             ((KaePlayerFn)s[i].fn)(link, s[i].user);
+}
+
+void kp_fire_view(KaeView *view) {
+    sub_t s[MAX_SUBSCRIBERS];
+    int n = snapshot(KP_EV_VIEW, s);
+    for (int i = 0; i < n; i++)
+        if (!kp_mod_off(s[i].owner))
+            ((KaeViewFn)s[i].fn)(view, s[i].user);
 }

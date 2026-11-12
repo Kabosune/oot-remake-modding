@@ -4,7 +4,7 @@ A proposed shared standard for Ocarina of Time remake mods: one package format, 
 who patches what, and a small core module that mods call instead of patching the game themselves.
 
 - [DESIGN.md](DESIGN.md): the design, its reasons, the roadmap and the open questions.
-- [include/kaegae.h](include/kaegae.h): the Core API (0.7). A mod includes only this.
+- [include/kaegae.h](include/kaegae.h): the Core API (0.8). A mod includes only this.
 - [core/](core/): KaeGae Core, the module that goes in `exefs/subsdk1`.
 - [sdk/](sdk/): what the build adds to a mod (its module start, four C library functions).
 - [examples/hello/](examples/hello/): the smallest core mod, also Core's in-game test.
@@ -30,7 +30,8 @@ who patches what, and a small core module that mods call instead of patching the
 | `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
 | A core mod in its own folder, apart from Core's (`kaemod.py --no-core`) | Tested in the game (11 November, Fritchii v5.8.3): Core, Hello and Slopped Up Sloperina from three folders load, link and start |
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
-| Generic hook points (`kae_hook`), config, the camera view event | Design only |
+| Core 0.8: the camera view event (`kae_on_view`, matrix and field of view), the `Camera.View` hook point | Passes its tests on a PC; not tested in the game yet |
+| Generic hook points (`kae_hook`), config | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
 
 ## Writing a mod

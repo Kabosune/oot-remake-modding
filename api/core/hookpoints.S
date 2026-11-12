@@ -8,11 +8,17 @@
 //                              whose stub comes back here). Runs for every physics actor every
 //                              frame, on the game's thread; x0 = the actor. Only the arguments
 //                              (x0-x8, q0-q7) and the signed return address in x30 are live.
+//   slot 1  camera view       (0.8) f_804e48c0, right after it has written a view's matrix: the
+//                              instruction First Person 1.x hooked. x19 = camera, x20 = view. Mid-
+//                              function, so every register is live: the stub keeps x16, x17, x29
+//                              and x30 and the module's entry (core/view_entry.S) keeps the rest.
+//
+// Each stub has the tag just before it, so the module can tell its own stub from someone else's.
 
     .section .text.hook, "ax"
     .p2align 2
 
-    .ascii  "KPHOOK01"               // the module checks this tag before it writes the slots
+    .ascii  "KPHOOK01"               // the module checks this tag before it writes the slot
 
     .global kp_hook_move
 kp_hook_move:
@@ -43,3 +49,17 @@ kp_hook_move:
     ldp     x29, x30, [sp], #0xe0
 9:  str     d10, [sp, #-0x80]!       // the replaced instruction
     b       MOVE_SECOND_RET
+
+    .ascii  "KPHOOK01"
+    .global kp_hook_view
+kp_hook_view:
+    stp     x16, x17, [sp, #-0x20]!
+    stp     x29, x30, [sp, #0x10]
+    adrp    x16, KP_HOOK_SLOTS
+    ldr     x16, [x16, :lo12:KP_HOOK_SLOTS + 8]
+    cbz     x16, 9f
+    blr     x16                      // (x19 = camera, x20 = view)
+9:  ldp     x29, x30, [sp, #0x10]
+    ldp     x16, x17, [sp], #0x20
+    ldr     x8, [x19, #0x20]         // the replaced instruction
+    b       HOOK_VIEW_RET

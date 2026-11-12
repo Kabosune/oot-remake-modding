@@ -1,4 +1,4 @@
-/* KaeGae Core API 0.7. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.8. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
@@ -28,11 +28,11 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 7
+#define KAE_API_MINOR 8
 
 /* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
-   Core keeps running older mods, back to the oldest minor version it still supports (Core 0.7:
-   mods built for 0.5, 0.6 and 0.7). Before 0.6 the minor versions had to match exactly. */
+   Core keeps running older mods, back to the oldest minor version it still supports (Core 0.8:
+   mods built for 0.5 to 0.8). Before 0.6 the minor versions had to match exactly. */
 
 /* In a mod every Core function is a weak import: if Core isn't installed the mod's module still
    loads, finds kae_register missing and does nothing. */
@@ -85,7 +85,9 @@ KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in thi
                                                       "draw.rect" "draw.text" "draw.image" "motion" "symbols"
                                                       "alloc" "menu" "player" "event.player_move"
                                                       "keyboard" (0.7: the system has one and the
-                                                      Mods menu's Keyboard switch is on) */
+                                                      Mods menu's Keyboard switch is on)
+                                                      "event.view" (0.8) "view.fovy" (0.8: the view's
+                                                      field of view can be read and changed) */
 KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -214,6 +216,25 @@ KAE_API int kae_binding_pressed(const KaeItem *item);
 typedef void (*KaeActorFn)(void *actor, void *user);
 KAE_API int kae_on_actor_move(KaeActorFn fn, void *user, int priority);
 
+/* view (0.8): the gameplay camera, each frame, right after the game has worked out where it looks
+   and before anything is drawn with it. Change `matrix` to move or turn what the player sees, and
+   `fovy` to zoom; Core puts both back into the game after the last subscriber. Other views (menus,
+   previews) don't come here. Needs Core's patch to main (kae_has("event.view")). The thread is the
+   game's camera update: don't assume it is the one the input and frame events run on. */
+typedef struct {
+    uint32_t size;
+    float    matrix[12];      /* the view matrix, 3 rows of 4, world to camera. Rows: right, up, back
+                                 (the camera looks along -back); the 4th of each row is -(row . eye) */
+    float    eye[3];          /* where the game put the camera (the matrix before anyone changed it) */
+    float    target[3];       /* the point it looks at */
+    float    fovy;            /* vertical field of view, radians; 0 if Core can't read it here
+                                 (kae_has("view.fovy")), and then changing it does nothing */
+    float    aspect;          /* width / height of the picture */
+    void    *camera;          /* the game's own view object, for research builds */
+} KaeView;
+typedef void (*KaeViewFn)(KaeView *view, void *user);
+KAE_API int kae_on_view(KaeViewFn fn, void *user, int priority);
+
 /* ---- Link ---------------------------------------------------------------------------------- */
 
 /* Link as the game has him right now. The pointers are the game's own objects: use them inside
@@ -261,9 +282,8 @@ KAE_API void kae_logf(const KaeMod *mod, const char *format, ...) __attribute__(
 KAE_API void *kae_alloc(size_t size);
 KAE_API void  kae_free(void *p);
 
-/* Planned (see DESIGN.md): kae_hook (any hook point by name, with the registers), config, the view
-   event. A mod can't use them by accident: its build refuses any kae_ function
-   Core doesn't export. */
+/* Planned (see DESIGN.md): kae_hook (any hook point by name, with the registers), config. A mod
+   can't use them by accident: its build refuses any kae_ function Core doesn't export. */
 
 #ifdef __cplusplus
 }

@@ -47,7 +47,7 @@ int kae_has(const char *feature) {
     static const struct { const char *name; int event; } events[] = {
         { "event.frame", KP_EV_FRAME }, { "event.input", KP_EV_INPUT }, { "event.draw", KP_EV_DRAW },
         { "event.actor_move", KP_EV_ACTOR_MOVE }, { "draw.rect", KP_EV_DRAW },
-        { "draw.text", KP_EV_DRAW }, { "draw.image", KP_EV_DRAW },
+        { "draw.text", KP_EV_DRAW }, { "draw.image", KP_EV_DRAW }, { "event.view", KP_EV_VIEW },
     };
     if (!feature)
         return 0;
@@ -56,6 +56,8 @@ int kae_has(const char *feature) {
             return kp_event_on[events[i].event];
     if (compare(feature, "player") == 0 || compare(feature, "event.player_move") == 0)
         return kp_player_on;
+    if (compare(feature, "view.fovy") == 0)
+        return kp_view_fov();
     if (compare(feature, "menu") == 0)
         return kp_menu_on();
     if (compare(feature, "motion") == 0)
