@@ -3,7 +3,7 @@ manifest = 1
 
 id       = "kabosune.mouse-grab"
 name     = "Mouse Grab"
-version  = "0.2.0"
+version  = "0.3.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"

@@ -78,7 +78,9 @@ changes. Changing a string, adding a key or growing a file isn't supported.
 What was checked on build 1.1.1 (11 November 2026), from a dump of the game: 262 packs (all 12 packs outside
 `Pack/Actor` plus 250 actor packs) unpack, repack and recompress to the same data; in 8,880 BYML files, the first 25 fields of each
 (89,130 numeric ones in all) read back as `zstool.py` reads them, and setting a field to the value it has leaves the file
-unchanged. **Not checked: the game loading an edited pack** (see [tuning.md](tuning.md) for the first test).
+unchanged. **Tried in game (Fritchii, 11 November 2026):** edited Player packs, a loose spawn file and edited Mals text packs
+all load, from a romfs mod folder, with no change to the resource size table. Results in [tuning.md](tuning.md),
+[enemy-spawning.md](enemy-spawning.md) and the Text section below.
 
 Facts it relies on:
 
@@ -105,7 +107,10 @@ TXT2 sections. Control codes are `0x0E group(u16) type(u16) paramsize(u16) param
 slightly larger or smaller than the original, but the resource size table entries for the Mals packs have headroom
 (USen unpacked 2,373,416 -> 2,373,432 against an entry of 2,373,752), so no table change was needed for small edits.
 
-Not tried in game: line breaks, text box sizes and fonts for edited text. See `tests/test_msbtmod.py` for the
+Tried in game (11 November 2026): changed menu texts show (Game Over button "Try Again, Hero", title entry
+"New Adventure"). Text boxes don't grow: the Game Over title is sized for one line, and a two-line title
+(`Oh no!\nGame Over`) cut off its first line; as one line (`Oh no! Game Over`) it works. Keep layout titles to
+their original number of lines. See `tests/test_msbtmod.py` for the
 hand-built tests.
 
 ## Replacing files

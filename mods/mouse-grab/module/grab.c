@@ -3,7 +3,7 @@
 //
 // - The cursor becomes a ray through the gameplay camera: camera = [[CAMERA_SLOT]+0x68], position
 //   +0x38, look-at +0x44, tan(half vertical FOV) +0x13c, aspect +0x140 (sloperina's notes).
-// - Grabbing works when the ray passes within GRAB_RADIUS of Link's middle. He is held at the same
+// - Grabbing works when the ray passes within the grab radius (a setting) of Link's middle. He is held at the same
 //   distance along the ray, so the mouse moves him across the screen.
 // - Moving: he's a ragdoll while held. Every frame the ragdoll's bodies get a velocity that takes
 //   him to the held point (Link's actor position follows the ragdoll). Middle click switches
@@ -19,21 +19,18 @@
 #define F_SET_VELOCITY 0x12DBE0    // f_8014dbe0(body, float vel[3])
 #define BODY_VT        0x4C34658
 #define F_HOLDER       0x837620
-#define GRAB_RADIUS    1.2f
 #define MIDDLE         0.8f        // Link's middle above his feet (m)
-#define PULL           8.0f        // 1/s: how fast he catches up with the held point
-#define MAX_SPEED      25.0f       // m/s
 #define MAX_BODIES     32
 #define F_CHANGE_POS   0x6B2530    // f_806d2530(controller, float pos[4])
 #define VT_CCT         0x4C34F10   // CharacterProperty, the character controller
 #define BODY_VT        0x4C34658   // the controller's body
 #define MAX_CANDIDATES 96
 // Depth works like a mouse: turning the controller moves him, holding it still keeps him where
-// he is, and slow turns below GYRO_DEAD don't count, so you can turn back slowly and flick again.
-#define DEPTH_PER_RAD  1.5f        // metres of depth per radian of pitch, at slow speed
+// he is, and slow turns below the gyro deadzone (a setting) don't count, so you can turn back slowly and flick again.
+#define DEPTH_PER_RAD  1.5f        // metres of depth per radian of pitch, at slow speed, at 100 %
+// The grab radius, pull, top speed, throw, and the gyro's speed, deadzone and smoothing are
+// settings (settings.h).
 #define GYRO_ACCEL     0.25f       // faster turns go further: gain * (1 + GYRO_ACCEL * rad/s)
-#define GYRO_DEAD      0.5f        // rad/s
-#define GYRO_SMOOTH    0.35f       // how much of a frame's turn counts at once (the rest follows)
 #define MIN_DEPTH      0.8f
 #define MAX_DEPTH      40.0f
 #define TICK_HZ        19200000.0f
@@ -138,9 +135,9 @@ void grab_move(void *actor) {
     m.buttons = 0;
     m.attributes = 0;
     int got = _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(&m, 1);
-    bool left = got > 0 && (m.attributes & 2) && (m.buttons & 1);
+    bool left = got > 0 && (m.attributes & 2) && (m.buttons & 1) && (g.grabbing || !kae_menu_open());
     bool pressed = left && !g.held_button, released = !left && g.held_button;
-    bool middle_button = got > 0 && (m.attributes & 2) && (m.buttons & 4);
+    bool middle_button = got > 0 && (m.attributes & 2) && (m.buttons & 4) && !kae_menu_open();
     if (middle_button && !g.held_middle) {
         g.one_body = !g.one_body;
         kp_log_2("grab: pull only the first body:", g.one_body, 0);
@@ -162,12 +159,12 @@ void grab_move(void *actor) {
     if (pressed && ray) {
         // the closest character to the ray, Link included
         void *best = 0;
-        float best_miss = GRAB_RADIUS, best_along = 0;
+        float best_miss = (float)MG(MG_GRAB_RADIUS) / 100.0f, best_along = 0;
         v3 best_middle = middle;
         for (int i = -1; i < MAX_CANDIDATES; i++) {
             void *who = i < 0 ? actor : candidates[i].actor;
             v3 mid = i < 0 ? middle : candidates[i].middle;
-            if (!who || (i >= 0 && g.frame - candidates[i].frame > 2))
+            if (!who || (i >= 0 && (!MG(MG_GRAB_OTHERS) || g.frame - candidates[i].frame > 2)))
                 continue;
             float along = dot(sub(mid, from), dir);
             v3 off = sub(mid, add(from, mul(dir, along)));
@@ -208,10 +205,11 @@ void grab_move(void *actor) {
             if (g.have_pitch) {
                 turned = pitch - g.last_pitch;
                 float rate = (turned < 0 ? -turned : turned) / dt;
-                float step = rate > GYRO_DEAD ? turned * DEPTH_PER_RAD * (1 + GYRO_ACCEL * rate) : 0;
+                float gain = DEPTH_PER_RAD * (float)MG(MG_GYRO_SPEED) / 100.0f * (MG(MG_GYRO_INVERT) ? -1.0f : 1.0f);
+                float step = rate > (float)MG(MG_GYRO_DEADZONE) / 10.0f ? turned * gain * (1 + GYRO_ACCEL * rate) : 0;
                 // tilting the controller's face towards you brings him closer (KaboWabo, build f;
                 // the direction matrix's sign is the other way round from what the name says)
-                g.depth_velocity += (step - g.depth_velocity) * GYRO_SMOOTH;
+                g.depth_velocity += (step - g.depth_velocity) * (float)MG(MG_GYRO_SMOOTHING) / 100.0f;
                 g.depth += g.depth_velocity;
             }
             g.last_pitch = pitch;
@@ -230,10 +228,10 @@ void grab_move(void *actor) {
             goto logged;   // another actor: moved in its own update (grab_other)
         // velocity that closes the gap to the held point, on top of the point's own motion
         v3 gap = sub(g.point, middle);
-        v3 pull = add(mul(gap, PULL), g.velocity);
-        float speed = root(dot(pull, pull));
-        if (speed > MAX_SPEED)
-            pull = mul(pull, MAX_SPEED / speed);
+        v3 pull = add(mul(gap, (float)MG(MG_PULL)), g.velocity);
+        float speed = root(dot(pull, pull)), top = (float)MG(MG_MAX_SPEED);
+        if (speed > top)
+            pull = mul(pull, top / speed);
         void *bodies[MAX_BODIES];
         int n = ragdoll_bodies(actor, bodies, MAX_BODIES);
         float vel[3] = { pull.x, pull.y, pull.z };
@@ -250,6 +248,7 @@ void grab_move(void *actor) {
     }
     if (g.grabbing && released) {
         g.grabbing = false;
+        g.velocity = mul(g.velocity, (float)MG(MG_THROW) / 100.0f);
         if (g.target == actor) {
             void *bodies[MAX_BODIES];
             int n = ragdoll_bodies(actor, bodies, MAX_BODIES);
