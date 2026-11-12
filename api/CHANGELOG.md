@@ -26,6 +26,25 @@ The version rule, so new Cores stop breaking older mods. Mods built for 0.5 run 
   mods built for 0.5 (Mouse Grab 0.3.0, Slopped Up Sloperina 0.3.0, drunk mode, speedometer, moon
   jump) all start on Core 0.6 and work.
 
+## Slopped Up Sloperina 0.3.0: sloperinaGZ on Core (11 November 2026; tested in the game the same day)
+
+Same API (0.5) and Core (0.5.2); runs on Core 0.6 too. Works in the game (Fritchii v5.8.4, game
+1.1.1, on Core 0.6).
+
+- **Slopped Up Sloperina is now PracticeROM's sloperinaGZ 0.0.4.2, ported**: its menus, warps,
+  inventory, flags, cheats, watches, levitate, frame advance and memory viewer, started and driven by
+  Core (frame, input and draw events) instead of its own patch and GOT hooks, and drawn by Core in
+  gz's style. GPL-3.0, its own `LICENSE`; the rest of the repository stays MIT. What changed from
+  their code: `mods/slopped-up-sloperina/README.md`.
+- The 0.2 mod (input display, position, levitate) lives on as `tests/kaegae/player-test`
+  (`kaegae.player-test`), the module test of `player_move` and `kae_player_*`.
+- `tools/kaemod.py`: a core mod's `[core]` may give `cflags` for its own sources, and a mod's
+  manifest `ship = [...]` files to put in the released folder (Slopped Up Sloperina's LICENSE).
+  `libc.c` is compiled with Core's flags, not the mod's.
+- Tests: the fake system module has a small C library (`tests/kaegae/fake_libc.c`: printf, maths,
+  nn::hid::detail, the SD card calls sloperinaGZ makes), the emulator answers SleepThread and
+  GetInfo, and `sdk_rects` keeps 16384 rectangles.
+
 ## Slopped Up Sloperina 0.2.1 (11 November 2026)
 
 Sloped Up Sloperina is now **Slopped Up Sloperina**. No change in behaviour; Core unchanged.

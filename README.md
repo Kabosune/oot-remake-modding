@@ -31,7 +31,7 @@ use First Person and FPV Drone on their own and leave Core out for now.
 | [First Person](mods/first-person/README.md) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Keyboard: `,` `.` eye height, `;` show / hide Link. | Not yet (moving onto it) | Works in Lichii / Fritchii |
 | [FPV Drone](mods/fpv-drone/README.md) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | Not yet (moving onto it) | Works in Fritchii: drone modes, Free fly and carrying Link |
 | [Mouse Grab](mods/mouse-grab/README.md) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes | 0.3.0 works in Fritchii (KaeGae Core 0.5.2, 11 Nov) |
-| [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | Practice tools on KaeGae Core: input display, position watch, save / load position, levitate. | Yes | First slice. 0.2.0 works in Fritchii on KaeGae Core 0.5.1 (11 Nov), levitate included |
+| [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.3.0, the full port, works in Fritchii (KaeGae Core 0.6, 11 Nov) |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
@@ -116,7 +116,11 @@ themselves to it.
 - [craftycorvid/oot-mod](https://github.com/craftycorvid/oot-mod): the IPS32 conventions for this
   build and the first use of the `.text` padding as a cave.
 - [PracticeROM/sloperina](https://github.com/PracticeROM/sloperina): its findings document, summarised in
-  [docs/sloperina-findings.md](docs/sloperina-findings.md).
+  [docs/sloperina-findings.md](docs/sloperina-findings.md), and sloperinaGZ itself, which
+  [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) is a port of.
+
+Licences: MIT ([LICENSE](LICENSE)), except `mods/slopped-up-sloperina/`, which is sloperinaGZ's code
+and stays GPL-3.0 ([its LICENSE](mods/slopped-up-sloperina/LICENSE)).
 
 An unofficial fan project, not affiliated with or endorsed by Nintendo. The Legend of Zelda and
 Ocarina of Time are trademarks of Nintendo.

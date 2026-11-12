@@ -170,5 +170,9 @@ class Process:
                 info = struct.pack("<QQIIIIII", address & ~(PAGE - 1), PAGE, 0, 0, 0, 0, 0, 0)
             self.write(out, info)
             uc.reg_write(UC_ARM64_REG_X0, 0)
+        elif svc == 0xB:     # SleepThread(ns): time doesn't pass here
+            uc.reg_write(UC_ARM64_REG_X0, 0)
+        elif svc == 0x29:    # GetInfo: nothing to tell
+            uc.reg_write(UC_ARM64_REG_X0, 0xE401)
         else:
             raise AssertionError(f"svc {svc:#x} isn't handled")

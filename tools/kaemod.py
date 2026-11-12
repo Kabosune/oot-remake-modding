@@ -127,6 +127,7 @@ class Mod:
             self.sources += found
         self.imports = dict(core.get("imports", {}))     # system functions the mod imports itself
         self.symbols = list(core.get("symbols", []))     # "function:Name", "field:Name" it asks Core for
+        self.cflags = list(core.get("cflags", []))       # extra compiler flags for its sources (after Core's own)
         text = "".join(s.read_text() for s in self.sources)
         assert f'"{self.id}"' in text, f"{self.id}: no KAE_MOD with this id in its sources"
 
@@ -140,7 +141,8 @@ class Mod:
                 assert ok, f"{self.id} needs {entry}, which game version {pack['version']}'s symbol pack doesn't have"
 
     def objects(self, work):
-        return compile_sources(self.sources + [SDK / "libc.c"], work / self.id, [f"-I{self.folder}"])
+        objs = compile_sources(self.sources, work / self.id, [f"-I{self.folder}", *self.cflags])
+        return objs + compile_sources([SDK / "libc.c"], work / (self.id + "-libc"))
 
     def as_module(self, work, core_exports):
         """The mod as its own module (ELF)."""
@@ -219,6 +221,10 @@ def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
             files[f"exefs/{slot}"] = mknso.pack(mod.as_module(work, exports).read_bytes())
     if with_core:
         files[f"exefs/{HOOK_BUILD_ID}.ips"] = hook_patch(verify_main)[0]
+    for mod in mods:     # files a mod's manifest asks to ship next to it (its licence, say)
+        for rel in mod.manifest.get("ship", []):
+            name = rel if len(mods) == 1 else f"{mod.id}/{rel}"
+            files[name] = (mod.folder / rel).read_bytes()
     return files
 
 

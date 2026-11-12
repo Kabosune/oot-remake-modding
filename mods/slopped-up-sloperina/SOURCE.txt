@@ -1,0 +1,8 @@
+Slopped Up Sloperina is free software under the GNU General Public License, version 3 or later
+(LICENSE, next to this file). It is sloperinaGZ by PracticeROM and its contributors
+(https://github.com/PracticeROM/sloperina, release 0.0.4.2), ported to run on KaeGae Core.
+
+The source of this build, with the list of what was changed from sloperinaGZ:
+  https://github.com/Kabosune/oot-remake-modding/tree/main/mods/slopped-up-sloperina
+
+Build it with: python3 tools/kaemod.py mods/slopped-up-sloperina --no-core

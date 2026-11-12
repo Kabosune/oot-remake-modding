@@ -1,0 +1,18 @@
+# A mod that exists only for tests/test_kaegae_modules.py (player_move and kae_player_*): the old
+# Slopped Up Sloperina 0.2.
+manifest = 1
+
+id       = "kaegae.player-test"
+name     = "Player Test"
+version  = "1.0.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.5"
+sources = ["player_test.c"]
+events  = ["input", "draw", "player_move"]

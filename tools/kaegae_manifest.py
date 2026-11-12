@@ -43,7 +43,7 @@ PATCH_KINDS = {
     "script": ("run", "reads", "writes"),
 }
 TOP_KEYS = {"manifest", "id", "name", "version", "authors", "license", "homepage", "description",
-            "game", "build", "modules", "romfs", "romfs-patch", "input", "relations", "core"}
+            "game", "build", "modules", "romfs", "romfs-patch", "input", "relations", "core", "ship"}
 
 
 class ManifestError(Exception):

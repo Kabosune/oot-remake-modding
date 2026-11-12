@@ -1,62 +1,91 @@
 # Slopped Up Sloperina
 
-Practice tools for the Ocarina of Time remake, running on [KaeGae Core](../../api/README.md).
-The idea and the name come from [sloperinaGZ](https://github.com/PracticeROM/sloperina) by
-PracticeROM, a gz-style practice menu for this game. This is a new mod written from scratch for
-KaeGae, not a copy of their code (theirs is GPL-3.0, this repository is MIT); what was learned
-from their write-ups is in [docs/sloperina-findings.md](../../docs/sloperina-findings.md).
+[sloperinaGZ](https://github.com/PracticeROM/sloperina), PracticeROM's gz-style practice menu for the
+Ocarina of Time remake, running as a mod on [KaeGae Core](../../api/README.md). It's their code
+(release 0.0.4.2), ported: KaeGae Core starts it, runs it every frame, hands it the controller and
+draws for it, so it sits next to other KaeGae mods instead of taking the game's hooks for itself.
 
-**Status, 11 November 2026: version 0.2.1 (0.2.0 renamed; no other change). 0.1.0 ran in the real game (Fritchii v5.8.3): everything
-worked except that levitate struggled against gravity. 0.2.0 has the fix for that and needs KaeGae
-Core 0.5.1 (0.5 itself could hang the game); it works in the real game too (11 November, Fritchii
-v5.8.4): Link rises steadily while levitating.** Game version 1.1.1 only.
+**Licence: GPL-3.0-or-later** ([LICENSE](LICENSE)), because sloperinaGZ is. This folder is the only
+part of the repository under the GPL; KaeGae Core and the other mods stay MIT.
+
+**Status, 11 November 2026: version 0.3.0, the first port. Works in the real game** (Fritchii
+v5.8.4, game 1.1.1, on KaeGae Core 0.6: KaboWabo, 20:46 PT), and its PC emulator test passes (it
+starts on game 1.1.1, opens and draws its menu, hides the controller from the game while the menu is
+open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
+offsets for 1.0.0 too, but KaeGae Core doesn't start mods on a game version it has no symbol pack for,
+and it has none for 1.0.0 yet.
 
 ## What it does
 
-| Tool | How |
-|---|---|
-| Input display | The buttons the controller reports, lit while held, and both sticks' values. Bottom left. |
-| Position watch | Link's position and speed, under the input display. |
-| Save position | L + D-pad Left. |
-| Load position | L + D-pad Right: puts Link back where he was saved. |
-| Levitate | Hold L + D-pad Up: lifts Link, 10 cm a frame, and takes away his falling speed while held (new in 0.2.0: in 0.1.0 gravity kept building up against the lift). He can still take fall damage when let go high up |
+What sloperinaGZ does; its [manual](https://github.com/PracticeROM/sloperina/blob/master/docs/MANUAL.md)
+describes every menu. In short: warps to any map and entrance, inventory, equipment, quest items and
+upgrades, story flags and dungeon items, cheats, Link's age, save / load position, levitate, watches
+(position, speed, timers, any memory address), the input display, frame advance, a memory viewer,
+the air walls and enemies' health shown in the world, the dive tests, translations of the menu.
 
-Every tool and button combination is on the mod's page in the Mods menu (- and + together):
-the displays can be switched off, the text made larger or smaller, the combinations changed, and
-the lift speed set. A combination that the mod acts on isn't passed on to the game. From KaeGae
-Core 0.5.2 the settings are saved between runs (Core keeps them on the SD card).
+- **Open the menu:** R + right stick down (gz's R + C-down). Same again to close it; B goes back.
+- **Move:** D-pad up / down; change a value: D-pad left / right; **select: L**.
+- KaeGae Core's own Mods menu (- and + together) lists it and can switch it off; while that menu is
+  open this one holds still.
+
+## What's different from sloperinaGZ
+
+- **Drawn by KaeGae Core in gz's style**, with Core's 8 x 16 font: the menu, watches, log and input
+  display as panels of text, the air walls and enemy health bars as rectangles. sloperinaGZ's own
+  look (the game's font, buttons, pictures and see-through backdrop, drawn with the game's UI shader)
+  isn't there, so the settings menu has no "style" option. A background opacity of 0% means none;
+  anything else is drawn solid, since Core can't blend yet.
+- **No X / Y / Z locks.** They need sloperinaGZ's patch to main (stubs for the game's stores of Link's
+  position), which this mod doesn't have.
+- **Runs at a different moment of the frame:** Core's frame event (when the game reads the
+  controllers), not sloperinaGZ's hook on the game's GameData unlock. Everything that changes the game
+  goes through the same functions as in sloperinaGZ; whether all of them are as happy to be called
+  from here is the main thing the first test in the game has to show.
+- **Its own folder on the SD card:** `SloppedUpSloperina/` (settings, log, translations). If it has no
+  settings yet it reads sloperinaGZ's `sloperinaGZ/settings.ini`, so yours carry over.
+- The input display shows the sticks as two boxes instead of a drawing of the controller; items have
+  no pictures.
 
 ## Install
 
-Slopped Up Sloperina needs KaeGae Core, installed once from its own download. Install both:
+Needs KaeGae Core 0.5.2 or later, installed once from its own download. Install both:
 
 ```
 python3 tools/kaegae.py install releases/kaegae-core.zip releases/slopped-up-sloperina.zip
 ```
 
-or copy both zips' folders into the emulator's mod folder for the game by hand. If another mod
-already uses `subsdk2`, the tool moves this one to a free slot; by hand, rename
-`exefs/subsdk2` to a free `subsdk3` ... `subsdk8`. Turn off sloperinaGZ itself while using it:
-both hook the game's drawing. (`python3 tools/kaemod.py mods/slopped-up-sloperina` still builds the
-older one-folder zip with Core inside.)
+or copy both zips' folders into the emulator's mod folder for the game by hand (in Fritchii,
+`%APPDATA%\fritchii\load\0400486024DEC000\`). **Turn sloperinaGZ itself off** while this one is on:
+they're the same menu on the same buttons. It needs no `.ips` of its own.
 
-## How it works
+## Changes to sloperinaGZ's sources
 
-One C file, [sloperina.c](sloperina.c), written against the public API ([kaegae.h](../../api/include/kaegae.h)):
-`kae_on_input` for the controller, `kae_on_player_move` for Link's movement update, `kae_player_move`
-to put him somewhere (the game's own ChangePosition, the function FPV Drone and Mouse Grab use),
-`kae_player_velocity` / `kae_player_set_velocity` to stop his fall, `kae_draw_text` for the display,
-and `kae_settings` for its page. There is no game address or offset in the mod: finding Link is
-Core's job since API 0.5.
+The GPL asks that changes are marked. `src/` is sloperinaGZ's `src/ootgz/` at release 0.0.4.2
+(commit `0cc9c8f`), with:
 
-## What sloperinaGZ has that this doesn't yet
+- **Left out:** `nvn.c`, `gpuui.c`, `nativeui.c`, `overlayui.c`, `uishader.c`, `scenedepth.c`,
+  `gamefont.c`, `gameimage.c`, `gamefile.c`, `astc.c`, `zstd.c`, `font.c`, `got.c`, `crt0.S` and
+  `third_party/` (their drawing, their GOT hooks and module start).
+- **New:** `kaedraw.c` / `kaedraw.h` (drawing the published panels and rectangles with Core),
+  `platform_extra.c` (`sqrtf`, and `gameimage_lost` for the left-out pictures), `build_info.h`
+  (versions, made by their Makefile there).
+- **Changed:** `ootgz.c` (start and frame from Core's events; no patch checks), `input.c` / `input.h`
+  (the game's copy of the controller edited in Core's input event instead of through main's GOT),
+  `lock.c` (locks off), `gfx.c` / `settings.c` / `menus.c` (gz's style only; the text size choices),
+  `sdfs.h` (the SD card folder), `menus.c` / `settings.c` / `sys.c` / `memview.c` (the mod's name in
+  titles and the log).
 
-Its menu drawn with the game's own font and pictures, warps, inventory and flag editors, a
-collision viewer, health bars, frame advance, savestates of more than position, timers and
-trainers. Each needs game functions that are not in Core's symbol pack yet or not tested by us.
+## How it's built
+
+`python3 tools/kaemod.py mods/slopped-up-sloperina --no-core` (clang, as every KaeGae mod). sloperinaGZ's
+game offsets for both versions stay its own table (`src/z64hd_builds.h`), found from `nnMain` as it
+always did, rather than Core's symbol pack. The module test in `tests/test_kaegae_modules.py` runs
+it against the fake game.
 
 ## Credits
 
-- KaboWabo/Kabosune (me :3): idea, direction, in-game testing
-- AI assistance (Claude Fable 5.2)
-- PracticeROM's sloperinaGZ: the model for what a practice mod for this game should do
+- **sloperinaGZ** by PracticeROM: Kieran Monaghan, with Yves, FantaTanked, Ec1ipse, Tom Lube,
+  waze3174, Meta // Cam, simonMettler2000, Volvagia ([their contributors](CONTRIBUTORS-sloperinaGZ.md)
+  and [thanks](THANKS-sloperinaGZ.md)). All of the practice menu is their work.
+- KaboWabo/Kabosune (me :3): the port's idea, direction, in-game testing
+- AI assistance (Claude Opus 5.5): the port to KaeGae Core

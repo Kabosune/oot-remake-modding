@@ -101,6 +101,10 @@ only, which is how two copies of KaeGae Core are caught.
 |---|---|
 | `api` | The Core API version the mod is built for, `"0.3"`. Before 1.0 it must equal Core's |
 | `sources`, `imports`, `symbols`, `events` | Read by the build (`tools/kaemod.py`): source files, system functions the mod imports itself, the symbols and events it uses |
+| `cflags` | Extra compiler flags for the mod's own sources, after Core's (e.g. `["-std=gnu11"]`) |
+
+A source folder's top level may also have `ship = ["LICENSE", ...]`: files of the mod's folder that the
+build puts in the released folder next to `mod.toml` (a licence, a note on where the source is).
 
 A core mod has no `code` or `hooks` of its own. The only folder that has both `[core]` and claims
 on main is one that also holds KaeGae Core.

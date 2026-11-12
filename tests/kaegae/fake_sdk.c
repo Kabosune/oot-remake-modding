@@ -77,7 +77,7 @@ EXPORT int _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi(mouse_state_t *out, in
 
 // ---- NVN: just enough to see what Core draws ----
 typedef struct { int x, y, w, h; uint32_t rgb; } rect_t;
-EXPORT rect_t sdk_rects[1024];          // the clears of the newest frame, with their scissor
+EXPORT rect_t sdk_rects[16384];         // the clears of the newest frame, with their scissor
 EXPORT int sdk_rect_count, sdk_submits, sdk_presents, sdk_other_hook_calls;
 static int scissor[4];
 
@@ -100,7 +100,7 @@ static void clear(void *cmd, int index, const float *rgba, int mask) {
         sdk_overruns++;
     else
         command_left -= RECT_COST;
-    if (sdk_rect_count < 1024)
+    if (sdk_rect_count < 16384)
         sdk_rects[sdk_rect_count++] = (rect_t){ scissor[0], scissor[1], scissor[2], scissor[3],
             ((uint32_t)(rgba[0] * 255.0f + 0.5f) << 16) | ((uint32_t)(rgba[1] * 255.0f + 0.5f) << 8) | (uint32_t)(rgba[2] * 255.0f + 0.5f) };
 }
