@@ -4,7 +4,8 @@
 this game. Its [`docs/FINDINGS.md`](https://github.com/PracticeROM/sloperina/blob/master/docs/FINDINGS.md)
 is a long, careful record of how the game's data works, on the same build as this repo (E0F3CCFA).
 This page is our summary of the parts that matter for mods here, read from their repository at
-commit `cad5995` (9 November 2026, release 0.0.3).
+commit `cad5995` (9 November 2026, release 0.0.3), with later sections for 0.0.4, 0.0.4.1 and
+0.0.4.2.
 
 - **Everything below is their finding, not ours**, unless the "Checked here" column says otherwise.
   Go to their document for the detail, the method and what they tried that didn't work.
@@ -176,6 +177,103 @@ can follow the same route, a font read from the game's own files and blended qua
 present time, written from scratch. Whether to use the game's UI shader or a small shader of our
 own is still to decide.
 
+## New in 0.0.4.2 (read 11 November 2026)
+
+Release [v0.0.4.2](https://github.com/PracticeROM/sloperina/releases/tag/v0.0.4.2), commit `0cc9c8f`,
+compared against 0.0.4.1. Their IPS patches didn't change, so **no new game addresses**: the new
+facts come from the game's files and GameData. Retold from their `docs/FINDINGS.md`,
+`docs/NATIVE_UI.md`, `docs/BUILDING.md` and commit messages; none checked here.
+
+**Hooks that share main's import slots with other add-ons (their PR #18, then a fix).** This is the
+one that matters most for KaeGae: sloperinaGZ and KaeGae Core both swap main's GOT slots for
+`nvnBootstrapLoader` and the five `nn::hid::GetNpadStates` overloads.
+
+- Before 0.0.4.2 sloperinaGZ wrote its wrapper over the slot and called the sdk's function itself,
+  so if its module initialised after Core, **Core's wrappers were cut out** (no drawing, no input
+  from Core). Now each wrapper calls what the slot held before when that's code in another module.
+  So Core and sloperinaGZ 0.0.4.2 can run together whichever starts first. Not tried in a game here yet.
+- Their write-up of the trap, which Core's `kp_wrap_import` (`api/core/imports.c`) already avoids
+  the same way: main has no `BIND_NOW`. Until the game's first call to an import, its slot points at
+  main's PLT0 (`main+0x3c41c50`, which is `0x83c61c50` here), and PLT0 only works when entered from
+  that import's own stub (x16 = the slot). A wrapper that calls it gets rtld's "Unresolved symbol" and a
+  jump to 0. Or, if x16 still happens to hold the slot, rtld binds it and writes the sdk function over the wrapper.
+  So a slot pointing into main is never chained to: call your own import of the function instead.
+- The difference between the two: they decide "another module" with `svcQueryMemory` (executable
+  memory in a region that doesn't hold main); Core checks the address against main's range. Same answer
+  for real modules.
+- Not covered by their change: FPV Drone's patches on the `br x17` of each `GetNpadStates` stub
+  ([memory map](memory-map.md)) run after the stub has loaded the slot, so it would call whatever
+  wrapper sits in the slot. Whether FPV Drone and sloperinaGZ get along is untested.
+
+**What an air wall does to Link: the collision filter.** The rigid body's `EnableLayerHitMask`
+alone (what 0.0.4.1 used) gets it wrong. The filter is `Phive/Config/PhiveConfig.byml`, in
+`Pack/Bootup.Nin_Ounce_NVN2.pack.zs`:
+
+- A shape's layer mask = `EnableLayerHitMask` (none = `HitAll`) AND each of its `MaterialPresets`'
+  `LayerHitMaskEntity`. The sub-layer mask is built the same way from `EnableSubLayerHitMask` and
+  `SubLayerHitMaskEntity`. Masks are named in `LayerHitMaskEntityCollection` /
+  `SubLayerHitMaskEntityCollection`, bit n = entry n of `LayerEntityCollection` / `SubLayerEntityCollection`.
+- Link on foot is layer `Player`, sub-layer `Unspecified` (Player_Base
+  `CharacterMatterRigidBodyParam/Player`). Climbing, he is `ClimbingPlayer`.
+- A wall stops him when both masks have his bits: 1067 of the 3504 walls. 246 of those carry the
+  `Unridable` shape tag and **push him off** (he can't stand on them): `FldObj_AirWall_Player_Unridable`,
+  the moving `PushAirWall_Box`, e.g. the ledge in front of the Forest Temple as a child. The other 821 are
+  **plain invisible walls** (`FldObj_AirWall_Player`, `_Cylinder`, `_GenerateNavMesh`, `Common_Cube`,
+  `HitBomb_Cube`, `ExcludeNpc*` and more), e.g. round the rocks in the Lost Woods.
+- They don't touch him on foot: `HitOnlyCharacter` walls (enemies, NPCs, doors' `PushAirWall_DoorFront`),
+  camera walls (`Material_AirWall_ForCamera`), and walls whose rigid body or presets leave out
+  `Unspecified` (animal, cucco, horse, rolling rock, hookshot, bomb, hiding-hole walls).
+  `FldObj_AirWall_ClimbPlayer` stops him only while he climbs.
+- Their `tools/airwalls.py` writes this out as each wall's `"link"`: `push`, `block` or none
+  (`data/airwalls.json`). Data from the game's files, fine to regenerate ourselves.
+
+**GameData.**
+
+- The game's menus (Plus, Minus) start fading in with `Sequence_IsPreGamePause` (`0xBF5BF25F`, bool) /
+  `Sequence_PreGamePauseRequestCount` (`0xEF935C2D`, int), about 60 ms before `Sequence_IsPause`
+  (`0x604AEBE1`) / `Sequence_GamePauseRequestCount` (`0x64A61098`). Waiting for `IsPause` left their HUD
+  over the menu for a few frames. Read-only use (the counts belong to the sequence graphs, see above).
+- Amiibo masks: `Armor_Child_Mask_Amiibo0` (Fairy-Kid Mask) and `Armor_Child_Mask_Amiibo1` (Princess
+  Mask). Their own equipment slot (`Pa_HeadEquip_03`, `SpecialDeal: amiibo`), never on an item button.
+  Given like the other masks: `PouchData.<name>.StockNum` and `IsGet.<name>`.
+- The Great Fairy of Power's spin attack upgrade gives no item. The only trace in the save is
+  `HavePlayedEvent.Dm_FairyFountain_Power` (`0x8FA2608E`). Not yet confirmed in game by them.
+
+**The game's heap, again.** More numbers on how little there is to spare:
+
+- Decoding `Common.bntx` takes an 8 MiB zstd window + 1 MiB to slide it + 0.6 MiB for the decoder. A
+  tester's decode failed part way on the decoder's own 17 KB and 41 KB blocks while the game was
+  loading. Their fix: all of the decoder's small allocations come from one arena taken at the start.
+- Gz-style CPU panels need 12 MB at 3x (23 MB with the see-through background), so they're now taken
+  one block per panel and only while used.
+- Out-of-memory work is retried 10, 30, 60, 120 s later, then every 5 minutes (8 tries at most).
+- Pictures made once are cached on the SD card (`sloperinaGZ/cache/pictures-<version>.bin` 4.8 MB,
+  `icons-<version>.bin` 1.2 MB), checked by a header and a checksum. SD reads and writes go through a
+  64 KiB buffer of the module's own, because the file system locks the memory a call uses.
+
+**Smaller things.**
+
+- `svcQueryMemory` per checked read was a hot spot. Keeping 4 recent regions (cleared each frame)
+  turned 2000 alternating reads into 2 queries.
+- GPU text in one quad a character: an RG8 atlas (luminance, coverage) with the shadow baked into the
+  glyph. Their command memory holds about 4000 quads a frame, so 2000 are kept back for the menu. (Their
+  numbers, untested in game by them.)
+- A frame whose drawing slot the GPU hadn't finished within a second turned their drawing off for good.
+  It now waits 0.1 s, skips that frame's overlay, and gives up only after 5 s of busy slots.
+- Searching the whole heap for Link's equipment component is slow enough to feel. After a miss they
+  wait 300 frames before searching again.
+- The installer knows the new data folders: `%APPDATA%\lichii` (Lichii build 150+), `%APPDATA%\fritchii`
+  (Fritchii v5.8+), `%APPDATA%\eden` for older Lichii / Fritchii and Eden.
+
+What this means here:
+
+- KaeGae Core needs no change for sloperinaGZ 0.0.4.2. Worth a test in Fritchii with both installed
+  (Core in `subsdk1`, sloperinaGZ in `subsdk9`): Core's menu and input should still work, and so should theirs.
+- If Core (or a mod) hides its overlays while the game's menus are open, go by the pre-pause flags
+  rather than `IsPause`, or they'll sit over the menu for a few frames.
+- Core takes its memory from the same small heap. Keep its blocks small and taken at start, and say in
+  the log when one is refused.
+
 ## Working with Lichii
 
 - Lichii's GDB stub (Emulation > Configure > Debug, port 6543) gives read and write watchpoints.
@@ -197,4 +295,6 @@ None of these are built or tested.
 | FPV Drone, First Person | A live FOV setting without a romfs mod | camera `+0x130` and the values derived from it |
 | First Person | Child / adult eye height from the game's own state | our `f_804d6db0`; their `LINK_SIZE` by age is from the map name |
 | any | A simpler way to read Link's position and velocity | `NaviMgr` copy |
+| Sloped Up Sloperina | An air wall view that tells pushing walls from blocking ones, from our own export of `PhiveConfig.byml` and the maps' walls | 0.0.4.2's collision filter rule |
+| Sloped Up Sloperina | Amiibo masks and the spin attack upgrade in an inventory page | GameData names above |
 | any bigger mod | A `subsdk9` module instead of code caves: real C, no size limit, one small hook in main | their `docs/BUILDING.md` |
