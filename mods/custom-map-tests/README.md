@@ -198,6 +198,14 @@ in the game, with the chest's own heap and no change to `RSDB/ActorInfo`.
 |---|---|---|
 | B24. Closed chest, Minecraft cut | **Don't open the chest.** The Minecraft map's 48 x 48 block cut (1,425 boxes) on the closed chest's body, as B23. Its spawn column's top is level with the chest's base, 24 m in front of it; the map spans about 1 to 49 m in front of the chest (nothing rises above the floor within 3 m). Shape entry 421,392 | Whether 1,425 boxes load and are solid (invisible hills and block walls in the room), and the load time |
 
+Result of B24: the scene loads, but **the chest isn't there at all** (nothing to see, nothing solid). Nothing in the
+log. Guess: the built shape is made in the chest's own heap (`InstanceHeapSize` 195,616), which held 400 boxes (B23)
+but not 1,425, so the game drops the chest.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B25. Minecraft cut, bigger heap | B24 (same pack) plus the chest's `InstanceHeapSize` raised by 2 MiB | Chest back and the map solid: the heap was it (then find how much a box needs). Still no chest: something else (the size of the shape file, 421 KB) |
+
 ## Building
 
 ```

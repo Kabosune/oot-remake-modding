@@ -847,8 +847,26 @@ def test_b24(game, out, glb):
     return len(boxes)
 
 
+def test_b25(game, out, glb):
+    """B24 with the chest's InstanceHeapSize raised by 2 MiB. In B24 (1,425 boxes) the chest didn't appear at all;
+    B23 (400 boxes) fit the game's 195,616. The built shape is probably made in that heap."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    boxes, size = minecraft_cut(glb, 24, (0.0, 0.0, -24.0))
+    pack, entries = tbox_own_map_shape(game, boxes, presets=["Material_Wood_Thick"],
+                                       source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    files = {DEKU_S: (st, 3), TBOX_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": 195616 + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              [f"Test B25: DON'T open the chest. As B24 (the Minecraft cut, {len(boxes)} boxes, on the closed chest's body,",
+               "about 1 to 49 m in front of the chest), plus the chest's InstanceHeapSize raised from 195,616 by 2 MiB."],
+              extra={TBOX_PACK: 512 * 1024}, entries=entries)
+
+
 def main_1b(game, out, glb=None):
     if glb:
+        test_b25(game, out / "KaeGae Map Test B25 - Minecraft cut, bigger heap", glb)
         test_b24(game, out / "KaeGae Map Test B24 - closed chest, Minecraft cut", glb)
     test_b23(game, out / "KaeGae Map Test B23 - closed chest, 400-box staircase")
     test_b22(game, out / "KaeGae Map Test B22 - closed chest, far bridge")
