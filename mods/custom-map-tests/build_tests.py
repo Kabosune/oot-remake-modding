@@ -433,7 +433,34 @@ def test_b5(game, out):
     write_mod(out, files, game, notes)
 
 
+def tbox_bigger_base(game, half=(2.0, 0.25, 2.0)):
+    """Obj_TBox_A_02's pack with the one Box of its main body's shape made bigger (no boxes added: adding them made
+    the game crash while building the shape, test B5)."""
+    sarc = zstool.Sarc(game.raw(TBOX_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    name = "Phive/ShapeParam/Obj_TBox_A_02__Body_0.phive__ShapeParam.bgyml"
+    shape = byml.loads(files[name])
+    b = shape["Box"][0]
+    b["HalfExtents"] = f3(*half)
+    b["OffsetTranslation"] = f3(0, half[1], 0)
+    ac = shape["AutoCalc"]
+    ac["Min"] = f3(min(ac["Min"]["X"], -half[0]), ac["Min"]["Y"], min(ac["Min"]["Z"], -half[2]))
+    ac["Max"] = f3(max(ac["Max"]["X"], half[0]), max(ac["Max"]["Y"], 2 * half[1]), max(ac["Max"]["Z"], half[2]))
+    files[name] = byml.dumps(shape)
+    return zsmod.sarc_pack(files, like=game.raw(TBOX_PACK))
+
+
+def test_b6(game, out):
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    files = {DEKU_S: (st, 3), TBOX_PACK: (tbox_bigger_base(game), 4)}
+    write_mod(out, files, game, ["Test B6: a compass chest 3 m from the entrance; the base box of every Obj_TBox_A_02 chest's",
+                                 "collision made 4 x 0.5 x 4 m (was about 1.3 x 0.06 x 1 m). Nothing added."])
+
+
 def main_1b(game, out):
+    test_b6(game, out / "KaeGae Map Test B6 - bigger chest base")
     test_b5(game, out / "KaeGae Map Test B5 - boxes on a chest")
     test_b4(game, out / "KaeGae Map Test B4 - kinematic body, chest check")
     test_b3(game, out / "KaeGae Map Test B3 - anchor setting, air-wall post")

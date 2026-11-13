@@ -56,6 +56,12 @@ no collision. B5: two boxes added to the chest's own collision shape (`Obj_TBox_
 slab on one side and a 1 x 2.5 x 1 m pillar on the other. If those are solid, box shapes work on an actor type that
 builds its collision at load time, and custom maps go on such an actor.
 
+Result of B5: **no scene loaded** (main menu fine). Fritchii's log: a crash on a game thread while building the chest's
+shape (`hapePara…` text in a register, writes of the shape's numbers through a null pointer at `0x40`…, then a jump
+to 0). So **adding** boxes to a shape that gets built at load time crashes; the space for the shape's parts looks
+fixed. (B–B4 never crashed because the tree root's shape is never built.) B6: no boxes added, the chest's one base box
+made 4 x 0.5 x 4 m.
+
 ## Building
 
 ```
