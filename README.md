@@ -55,7 +55,7 @@ switched off): `python3 tools/kaegae.py install releases/kaegae-core.zip release
 ## A shared modding standard (draft)
 
 [KaeGae](api/README.md) is a proposal for how mods for this game can be packaged, checked for
-conflicts and, later, built on one shared core module so they survive game updates and work
+conflicts and, later, built on one shared core module so they survive game updates (if those ever evenget dumped lol) and work
 together. The core runs in the game and the conflict checker works on today's mods
 (`python3 tools/kaegae.py check`); it is still a draft: read [api/DESIGN.md](api/DESIGN.md) and
 say what's wrong with it.
