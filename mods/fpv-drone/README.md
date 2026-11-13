@@ -9,6 +9,23 @@ Link stands still while you fly. Press L3 again to go back to the normal game.
 The first time you press L3 after starting the game you're in **Free fly**, a noclip camera.
 After that it keeps whichever mode you last picked, until the game restarts.
 
+> **FPV Drone 2.0 runs on KaeGae Core 0.8** ([`core/`](core/fpv_drone.c), on the `kaegae-0.8`
+> branch, not tested in the game yet). It flies the same; what used to be build options is now a
+> page in the Mods menu (- and +), saved between runs:
+>
+> - every button below is a binding (any buttons, or a keyboard key): on / off, back to the game
+>   camera, the four modes, carry, Free fly up / down
+> - **Field of view** (horizontal, while flying): the game's (about 80°), 70° to 140°
+> - Free fly speed (8 m/s) and look speed (120°/s)
+> - camera tilt for Angle / Simple (20°) and Acro (30°), Acro rate (670°/s), yaw rate (300°/s),
+>   max tilt (50°)
+> - thrust (350 % of gravity), top speed (29 m/s, sets the drag), Simple climb speed (4 m/s),
+>   throttle centre (hover / half thrust), stick dead zone (6 %)
+> - where a carried Link goes: behind (100 cm) and below (0 cm) the camera
+>
+> It takes off from the view you see, so with First Person 2 on, from Link's eyes. FPV Drone 1.x
+> (below) still works next to Core, but don't install both.
+
 ## Controls
 
 In the drone modes (Angle, Acro, Simple) the sticks are Mode 2, like most FPV radios:

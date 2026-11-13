@@ -91,3 +91,7 @@ __attribute__((visibility("hidden"))) void record_move(void *actor) {
     game_moves++;
 }
 EXPORT void game_move(void *actor) { move_update(actor); }
+
+// ---- the view update (fake_main_view.S) ----
+void view_update(void *camera, void *view, uint64_t *out);
+EXPORT void game_view(void *camera, void *view, uint64_t *out) { view_update(camera, view, out); }

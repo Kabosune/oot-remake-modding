@@ -35,7 +35,9 @@ owner  = "kaegae.core"
 name   = "KaeGae Core"
 code   = ["0x3C46310..0x3C46400"]          # hook point stubs
 memory = ["0x4E9FB00..0x4E9FC00"]          # one function pointer per hook point
-hooks  = ["0x2C215E4"]                     # hook point Actor.MoveUpdate
+hooks  = ["0x2C215E4",                     # hook point Actor.MoveUpdate
+          "0x4C5068"]                      # hook point Camera.View (0.8)
+shared = ["kabosune.first-person"]         # Camera.View is First Person 1.x's view hook: from Core 0.8, First Person 2 runs on Core instead
 
 [[claim]]
 owner  = "kabosune.first-person"
