@@ -158,6 +158,14 @@ causes possible (heap, the shared sensor shape). So the new-file setup itself ma
 |---|---|---|
 | B19. B11 boxes, own shape file | B11's slab and pillar, put the B13–B17 way (new shape file for the open body only, rewritten ControllerSetParam, new size table entry) | Prompt: the setup is fine and the count matters (then halve: ~120, ~60). No prompt: the new-file setup breaks the chest |
 
+Result of B19: **works**: Open prompt, and the slab (right of the entrance, climbable) and pillar are solid. So the
+new-file setup is fine. Left: the number of parts, or the size of the shape (the staircases reached 20+ m and ran
+into the floor and walls; B11's boxes stay within 4.5 m).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B20. Slab as 240 tiles | B11's slab cut into 240 tiles (15 x 16), no pillar: 245 parts like B17, in B11's footprint. Set up as B19 | Prompt: the count is fine, and the size / reach (or running into the level) broke the staircases. No prompt: the count (then halve) |
+
 ## Building
 
 ```

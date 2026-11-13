@@ -739,7 +739,29 @@ def test_b19(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def tiled_slab(nx=15, nz=16, lo=(1.5, 0.0, -1.5), hi=(4.5, 0.5, 1.5)):
+    """B11's 3 x 3 x 0.5 m slab cut into nx x nz tiles (same footprint, same top)."""
+    dx, dz = (hi[0] - lo[0]) / nx, (hi[2] - lo[2]) / nz
+    return [((lo[0] + i * dx, lo[1], lo[2] + j * dz), (lo[0] + (i + 1) * dx, hi[1], lo[2] + (j + 1) * dz))
+            for i in range(nx) for j in range(nz)]
+
+
+def test_b20(game, out):
+    """B17's part count (245) in B11's footprint: B11's slab cut into 240 tiles, no pillar. B17's staircase (245 parts,
+    up to 24 m out, into the wall) lost the Open prompt; B19 (B11's two boxes, same setup) kept it. Tells count apart
+    from size / overlapping the level."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, tiled_slab(), presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B20: B11's 3 x 3 x 0.5 m slab beside the chest, cut into 240 tiles (15 x 16), no pillar: 245 parts,",
+               "as many as B17, in B11's footprint. Set up as B19 (own shape file). Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b20(game, out / "KaeGae Map Test B20 - slab as 240 tiles")
     test_b19(game, out / "KaeGae Map Test B19 - B11 boxes, own shape file")
     side_stair_test(game, out / "KaeGae Map Test B18 - 260 boxes beside the chest", 13, "B18")
     side_stair_test(game, out / "KaeGae Map Test B17 - 240 boxes beside the chest", 12, "B17")
