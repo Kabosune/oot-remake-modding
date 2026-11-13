@@ -66,6 +66,7 @@ say what's wrong with it.
 - [The engine](docs/engine.md): what the Tears of the Kingdom engine (ModuleSystem) means for modding this game.
 - [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
 - [Scenes, scene changes and spawn points](docs/warps.md): how doors / exits name their destination, and all 465 spawn points with coordinates.
+- [Custom maps](docs/custom-maps.md): every file a scene is made of (Inside the Deku Tree as the example), format versions, and the ways in.
 - [Field enemy spawning](docs/enemy-spawning.md): Stalchildren, Leevers and Guay come from ten loose data files (counts, intervals, strong versions).
 - [Event flows](docs/event-flow.md): the 914 cutscene and dialogue scripts (BFEVFL), what actions and flag checks they use, and a table of all 2,423 story flags.
 - [Tuning data](docs/tuning.md): Link's movement, damage, healing, Epona, songs and the scene / item tables as data files; the script node catalogue; leftover debug modes; how enum hashes work.
