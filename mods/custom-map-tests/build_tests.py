@@ -14,6 +14,7 @@
     Pack/Actor/Obj_TBox_A_01.pack.zs (B30 on)
     Pack/Actor/Obj_Flag_A_01.pack.zs (B35 on)
     RSDB/GameActorInfo.Product.111.rstbl.byml.zs (B36 on)
+    Pack/Actor/Land_SacredForest_Prop_A_06.pack.zs (B39 on; not changed, only checked)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -1312,8 +1313,54 @@ def test_b38(game, out, glb):
     return len(chunks), n
 
 
+# ---------------------------------------------------------------- B39 on: seeing the map with the game's own models
+
+CUBE = "Land_SacredForest_Prop_A_06"   # a 1 x 1 x 1 m stone block (model bounds 0 to 1 m up, centred in x / z), a
+                                       # plain Land piece: newly placed it shows its model and adds no collision
+
+
+def cube_actor(lo, hi, at):
+    """A CUBE placed (Dynamic file, as the game's Land pieces) and scaled to cover the box lo..hi (metres from `at`)."""
+    size = np.subtract(hi, lo)
+    pos = (at[0] + (lo[0] + hi[0]) / 2, at[1] + lo[1], at[2] + (lo[2] + hi[2]) / 2)
+    return placed(CUBE, pos, scale=[float(v) for v in size], extra={"Bakeable": True, "Rotate": [0.0, 0.0, 0.0]})
+
+
+def test_b39(game, out, glb):
+    """B37 (the Minecraft cut's collision on two flags) plus a stone block (CUBE) per collision box that reaches above
+    the floor, scaled to the box, so the map's shape can be seen; and one unscaled block 2 m left of the flags as a
+    control. Textures are the block's own, stretched. Only the visible blocks change from B37."""
+    rng.seed("B37")                                          # B37's placement hashes for the flags
+    names = ["KaeGae_MapHost_00", "KaeGae_MapHost_01"]
+    st, dy = game.byml(DEKU_S), game.byml(DEKU_D)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(placed(names[0], (sx, sy, sz - 3)))
+    st["Actors"].append(placed(names[1], (sx + A01_AT, sy, sz - 3)))
+    left, right, size = minecraft_halves(glb, 24, (0.0, 0.0, -24.0), 24)
+    files, entries, extra = {}, {}, {}
+    for name, boxes in ((names[0], right), (names[1], shift(left, -A01_AT))):
+        pack, e = flag_copy(game, name, boxes)
+        files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
+        entries.update(e)
+        extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
+    files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
+    rng.seed("B39")
+    shown = [b for b in left + right if b[1][1] > 0.01]       # boxes whose top is above the floor
+    at = (sx, sy, sz - 3)                                     # the boxes are in metres from the chest spot
+    dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
+    dy["Actors"].append(cube_actor((-2.5, 0.0, -0.5), (-1.5, 1.0, 0.5), at))    # the control block
+    files.update({DEKU_S: (st, 3), DEKU_D: (dy, 3)})
+    write_mod(out, files, game,
+              [f"Test B39: B37 (the Minecraft cut's collision on two flags) plus {len(shown)} stone blocks ({CUBE}, 1 m, scaled to",
+               f"each collision box whose top is above the floor) so the map's shape shows, and one unscaled 1 m block 2 m left",
+               "of the flags as a control. The blocks are in the Dynamic placement file, like the game's own Land pieces."],
+              extra=extra, entries=entries)
+    return len(shown)
+
+
 def main_1b(game, out, glb=None):
     if glb:
+        test_b39(game, out / "KaeGae Map Test B39 - Minecraft cut you can see", glb)
         test_b38(game, out / "KaeGae Map Test B38 - whole Minecraft map on 14 flags", glb)
         test_b37(game, out / "KaeGae Map Test B37 - Minecraft cut on two flags", glb)
     test_b36(game, out / "KaeGae Map Test B36 - flag copy under a new name")

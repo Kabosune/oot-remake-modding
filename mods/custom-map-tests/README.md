@@ -332,7 +332,15 @@ host to the middle of its part if far parts go missing.
 Result of B38: **works**: the whole map is solid, performance fine (load time and frame rate). **A whole custom map's
 collision works today with romfs files only**: flag hosts under new names (`flag_copy()`, `host_rows()`), the map split
 into parts of at most ~950 boxes (`map_chunks()`), each part's shape with its own size table entry (`shape_entry()`).
-B39 (hosts moved into their parts) isn't needed for now.
+B39 (hosts moved into their parts) isn't needed for now (the number went to the next test).
+
+A quick look at the map before real models (own `.bfres` / `.bntx`, a big job): the game's own 1 m stone block
+`Land_SacredForest_Prop_A_06` (a plain Land piece; model bounds 0 to 1 m up, centred) placed once per collision box and
+scaled to it. The game's own Deku Tree placement has 68 actors with uneven scales, so that's supported.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B39. Minecraft cut you can see | B37 plus 217 stone blocks, one per collision box whose top is above the floor, scaled to it (Dynamic placement file, `Bakeable`, as the game's Land pieces), and one unscaled 1 m block 2 m left of the flags as a control | Blocks show where the collision is: the map's shape can be seen with stretched stone textures. Only the control shows: scaled placements don't render. Nothing shows: a newly placed Land piece of a type the scene doesn't use doesn't render |
 
 ## Building
 
