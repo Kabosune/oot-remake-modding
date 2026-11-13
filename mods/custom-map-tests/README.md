@@ -316,6 +316,19 @@ as it needs, with no chests.
 |---|---|---|
 | B37. Minecraft cut on two flags | B32 with the two chests replaced by B36-style flags: the right half (729 boxes) on `KaeGae_MapHost_00` where the big chest stood, the left half (699) on `KaeGae_MapHost_01` 2 m to its right; both heaps + 2 MiB | The whole cut solid with no chests: the setup for whole maps (the full map would be about 10 such hosts) |
 
+Result of B37: **works**: both flags there, the whole cut solid, seam fine, load time as B32. **The setup for whole
+maps: flag hosts under new names, each shape under ~1,000 boxes.**
+
+The whole map, split by halving regions along x / z until each part greedies to at most 950 boxes (`map_chunks()`):
+14 parts, 444 to 920 boxes, 9,397 in all (9,375 in one piece). It reaches about 85 m left and right, 87 m ahead and
+40 m back. The flag's `ActorInfo` row has `CalcRadius` 100 (`LoadRadius` 200), so hosts more than ~100 m from Link
+may not be kept: B38 keeps every host at the entrance (only the map's size and host count change), B39 would move each
+host to the middle of its part if far parts go missing.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B38. Whole Minecraft map on 14 flags | B37's setup and alignment, with the whole map: 14 hosts `KaeGae_MapHost_00`..`13`, all in a row at the entrance 1 m apart (centred where the chest stood), heaps + 2 MiB each (28 MiB in all) | 14 flags there and the map solid: whole maps work. Missing flags: too many hosts or too much heap. Ground missing only far out (~100 m): the hosts' radius (then B39) |
+
 ## Building
 
 ```

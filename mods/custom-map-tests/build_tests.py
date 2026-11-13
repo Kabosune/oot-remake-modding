@@ -1260,8 +1260,61 @@ def test_b37(game, out, glb):
     return len(left), len(right)
 
 
+def map_chunks(solid, limit=950):
+    """Split a block grid along x / z (the longer side, in halves) until each part greedies to <= limit boxes:
+    [(x0, x1, z0, z1, boxes in grid cells)]. The whole Minecraft map: 14 parts, 9,397 boxes (9,375 in one piece)."""
+    def split(x0, x1, z0, z1):
+        s = np.zeros_like(solid)
+        s[x0:x1, :, z0:z1] = solid[x0:x1, :, z0:z1]
+        boxes = greedy(s)
+        if len(boxes) <= limit:
+            return [(x0, x1, z0, z1, boxes)]
+        if x1 - x0 >= z1 - z0:
+            m = (x0 + x1) // 2
+            return split(x0, m, z0, z1) + split(m, x1, z0, z1)
+        m = (z0 + z1) // 2
+        return split(x0, x1, z0, m) + split(x0, x1, m, z1)
+    return split(0, solid.shape[0], 0, solid.shape[2])
+
+
+def test_b38(game, out, glb):
+    """The whole Minecraft map on flag hosts: B37's setup and alignment (the spawn column's top level with the floor,
+    24 m in front of where the chest stood), but the whole map (171 x 70 x 127 blocks) split into 14 parts of up to
+    920 boxes, one per host KaeGae_MapHost_00..13, all in a row at the entrance 1 m apart (centred where the chest
+    stood), heaps + 2 MiB each. Only the map's size and the number of hosts change from B37."""
+    rng.seed("B38")
+    solid, _ = fill_and_merge(voxels(glb, 70.0))
+    cx, cz, top = spawn_column(solid)
+    off = np.subtract((0.0, 0.0, -24.0), (cx + 0.5, top, cz + 0.5))      # grid -> metres from the chest spot
+    chunks = map_chunks(solid)
+    names = [f"KaeGae_MapHost_{i:02d}" for i in range(len(chunks))]
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    files, entries, extra = {DEKU_S: (st, 3)}, {}, {}
+    for i, (name, ch) in enumerate(zip(names, chunks)):
+        dx = i - (len(chunks) - 1) / 2
+        st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
+        boxes = [(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in ch[4]]
+        pack, e = flag_copy(game, name, shift(boxes, -dx))
+        files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
+        entries.update(e)
+        extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
+    files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
+    n = sum(len(c[4]) for c in chunks)
+    write_mod(out, files, game,
+              [f"Test B38: the whole Minecraft map ({solid.shape[0]} x {solid.shape[1]} x {solid.shape[2]} blocks, {n} boxes) on {len(chunks)} flag hosts",
+               f"(KaeGae_MapHost_00..{len(chunks) - 1:02d}, B36 / B37's flag copy, heap + 2 MiB each), {min(len(c[4]) for c in chunks)} to "
+               f"{max(len(c[4]) for c in chunks)} boxes each, all standing in a row at the entrance 1 m apart. Same alignment as B37: the",
+               "spawn column's top level with the floor, 24 m in front of where the chest stood; the map reaches about 85 m left",
+               "and right, 87 m ahead and 40 m back, 27 m up and 43 m down, through the Deku Tree's walls.",
+               "Parts (grid x0-x1, z0-z1: boxes): " + ", ".join(f"{c[0]}-{c[1]},{c[2]}-{c[3]}: {len(c[4])}" for c in chunks)],
+              extra=extra, entries=entries)
+    return len(chunks), n
+
+
 def main_1b(game, out, glb=None):
     if glb:
+        test_b38(game, out / "KaeGae Map Test B38 - whole Minecraft map on 14 flags", glb)
         test_b37(game, out / "KaeGae Map Test B37 - Minecraft cut on two flags", glb)
     test_b36(game, out / "KaeGae Map Test B36 - flag copy under a new name")
     test_b35(game, out / "KaeGae Map Test B35 - flag host, far bridge")
