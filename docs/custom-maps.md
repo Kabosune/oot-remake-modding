@@ -59,7 +59,8 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 
 - A newly placed **static** actor (no `MotionType`: tree root, air-wall cube) gets **no collision**, with or without
   `Bakeable`, with `PreActorSetting` `Anchor`, or with a Kinematic body on that actor type. Static collision most likely
-  comes only from the scene's pre-built `StaticCompoundBody`.
+  comes only from the scene's pre-built `StaticCompoundBody`. Re-checked with an unmissable 4 x 4 m air-wall platform
+  marked by a chest (test B10): no collision.
 - A newly placed chest (an actor that builds its bodies at load time) works normally.
 - `MotionType` values are murmur3 hashes: `Static` 3498399415, `Dynamic` 3672686866, `Kinematic` 4269567940.
 - In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;

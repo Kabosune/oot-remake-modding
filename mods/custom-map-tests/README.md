@@ -90,6 +90,10 @@ needs 1,425 boxes (48 x 48 cut) or 9,375 (whole).
 B10 re-checks the air-wall result (B2's cube may have been out of bounds, B3's 1 m post was easy to miss): a new
 air-wall cube as a 4 x 4 x 0.6 m platform where B9's slab worked, with a chest floating on top marking it.
 
+Result of B10: **no collision.** The marker chest ended up tipped over by the wall, and the floor there is normal.
+Confirmed: a newly placed static actor gets no collision. (The spot beside the entrance is close to walls on both
+sides: put later test pieces straight ahead, further into the room.)
+
 ## Building
 
 ```
