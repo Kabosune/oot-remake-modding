@@ -35,6 +35,12 @@ change per test:
 | C. Deku Tree emptied | Only the spawn points left, nothing added | Whether an emptied scene loads |
 | D. Deku Tree emptied, terrain kept | Spawn points and the 5 terrain chunks | Whether the loader needs the terrain chunks |
 
+Result of B (12 Nov): **loads fine** (so `byml.py`'s rewritten placement and the raised size table entries work), the
+tree-root model shows in front of the entrance, but **no collision**. The scene has pre-built static collision,
+`Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs` (2.6 MB); an actor placed
+with `Bakeable` is probably expected to be in it and gets no collision of its own. B2: the same actor without
+`Bakeable`, plus an air-wall cube (3 x 1 x 3 m) beside it.
+
 ## Building
 
 ```

@@ -17,6 +17,7 @@ Inside the Deku Tree, by romfs folder:
 | Terrain chunks | actors `InsideTheDekuTree_01` ... `_05` (`Pack/Actor/`, parent `TerrainSceneManual`) | each carries a `.tscb`, collision as a `TeraMesh` (`Work/Phive/Shape/TeraMesh/InsideTheDekuTree_01/X0_Z0.tmb`, 125 x 125 m) |
 | Terrain data | `TerrainArc/InsideTheDekuTree_01` ... `_05`, `_B01` (741 files) | mostly baked AO / GI per mesh (`.extm`, with `child`, `reverse`, `dream` variants); `_B01` has `.hght` / `.mate` height and material maps |
 | Geometry pieces | `Pack/Actor/Land_*.pack.zs` + `Model/<Project>.<Name>.bfres.zs` + `Tex/*.bntx.zs` | e.g. `Land_Deku_TreeRoot_B_01`: `ModelInfo` (`ModelProjectName` `Land_Deku_Room_A`, `FmdbName`), `PhysicsRef` → `ControllerSetParam` (parent `Ptm_DgnObjStatic_01`) → `ShapeParam` → `PhshMesh` |
+| Pre-built static collision | `Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs` (2.6 MB; 1,772 `.bphsc` in the game) | the scene's static pieces baked into one compound, as in TotK. A placement with `Bakeable` and no entry in it got no collision (test B, 12 Nov) |
 | Collision | `Phive/Shape/Dcc/<Name>__Physical.Nin_Ounce_NVN2.bphsh.zs` (also `__Airwall`, `__StairSlope`, `__StairStep`) | Havok tagfile with an `hknpMeshShape` |
 | Navmesh | `Phive/NavMesh/InsideTheDekuTree.Nin_Ounce_NVN2.bphnm.zs` | for enemies / NPCs |
 | Lighting | `Bake/Light/InsideTheDekuTree.bklight.zs`, `Bake/Probe/Scene/InsideTheDekuTree/*.bkprb.zs` | baked light and probes |

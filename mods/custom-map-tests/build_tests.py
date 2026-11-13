@@ -334,7 +334,22 @@ def test_c(game, out, keep_terrain):
     write_mod(out, files, game, [f"Test {'D' if keep_terrain else 'C'}: Inside the Deku Tree emptied to {what}; nothing added."])
 
 
+def test_b2(game, out):
+    """Like B, but the box actor is placed without Bakeable (so it isn't expected in the scene's pre-built static
+    collision), plus an air-wall cube (an actor that always builds its own collision) 4 m to its left."""
+    dy = game.byml(DEKU_D)
+    sx, sy, sz = SPAWN
+    B = [((-1.5, 0.0, -1.5), (1.5, 1.0, 1.5))]                           # a 3 x 3 x 1 m block on the floor
+    dy["Actors"].append(placed(HOST, (sx, sy, sz - 4)))                   # no Bakeable
+    dy["Actors"].append(placed("FldObj_AirWall_Common_Cube", (sx - 4, sy, sz - 4), scale=(3, 1, 3)))
+    files = {DEKU_D: (dy, 3), HOST_PACK: (host_pack(game, B), 4)}
+    notes = ["Test B2: Inside the Deku Tree as normal. 4 m in front of the entrance: the tree-root actor (no Bakeable) with",
+             "a 3 x 3 x 1 m box as collision. 4 m to its left: an air-wall cube scaled to 3 x 1 x 3 m."]
+    write_mod(out, files, game, notes)
+
+
 def main_1b(game, out):
+    test_b2(game, out / "KaeGae Map Test B2 - box without bake, air wall")
     test1(game, out / "KaeGae Map Test A - Deku door to Dodongo")
     test_b(game, out / "KaeGae Map Test B - Deku Tree plus one box")
     test_c(game, out / "KaeGae Map Test C - Deku Tree emptied", False)
