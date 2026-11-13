@@ -4,7 +4,7 @@ manifest = 1
 
 id       = "kabosune.first-person"
 name     = "First Person"
-version  = "2.0.0"
+version  = "2.0.1"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"

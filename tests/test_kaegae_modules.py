@@ -190,7 +190,7 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.8 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.8.1 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
@@ -404,7 +404,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.8: unknown game build, doing nothing",
+        g.expect("Core 0.8.1: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -451,7 +451,7 @@ def main():
         g.game("game_boot")
         for _ in range(3):
             g.frame(actor=0x40000000)
-        g.expect("Core 0.8 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        g.expect("Core 0.8.1 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
         assert not g.logged(" is off"), g.logged(" is off")
         print("mods built for API 0.5 on Core 0.8: ok (the released Slopped Up Sloperina and Mouse Grab start)")
 
@@ -787,6 +787,7 @@ def main():
             g.p.write(VIEW + 0x9C, struct.pack("<f", 1 / (TAN25 * ASPECT)))
             g.p.write(VIEW + 0xB0, struct.pack("<f", 1 / TAN25))
             g.p.write(VIEW + 0x130, struct.pack("<5f", 0.87266463, 0.42261826, 0.90630779, TAN25, ASPECT))
+            g.p.write(CAMERA + 0x13C, struct.pack("<2f", 0.87266463, ASPECT))   # the camera's own: the game copies it later
 
         def cam_frame(g, buttons=0, at=(1.0, 2.0, 3.0), lx=0, ly=0, rx=0, ry=0):
             g.p.write(LINK + PACK["field"]["Actor.position"]["offset"], struct.pack("<3f", *at))
@@ -799,11 +800,11 @@ def main():
             want = (0x1000, 0x1001, 0x1003, 0x1004, 0x1005, 0x1006, 0x1007, 0x1009, 0x100a, 0x100b, 0x100c, 0x100d,
                     0x100e, 0x100f, 0x1010, 0x1011, 1.0, 7.0, 16.0, 31.0, 1, 1)
             assert regs == want, f"the view hook point changed registers: {regs}"
-            return struct.unpack("<12f", g.p.read(VIEW + 0x08, 48)), struct.unpack("<f", g.p.read(VIEW + 0x130, 4))[0]
+            return struct.unpack("<12f", g.p.read(VIEW + 0x08, 48)), struct.unpack("<f", g.p.read(CAMERA + 0x13C, 4))[0]
 
         g = camera_game()
-        g.expect("hook point in place: Camera.View", "mod kabosune.first-person 2.0.0 started",
-                 "mod kabosune.fpv-drone 2.0.0 started", "first person 2.0.0 on Core: field of view can change")
+        g.expect("hook point in place: Camera.View", "mod kabosune.first-person 2.0.1 started",
+                 "mod kabosune.fpv-drone 2.0.0 started", "first person 2.0.1 on Core: field of view can change")
         game_view = (1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1, -10)
         for _ in range(3):
             matrix, fovy = cam_frame(g)
@@ -825,18 +826,16 @@ def main():
         print("view event: ok (only the gameplay view, every register kept); First Person 2: ok (Link's eyes, hides him, R3 on / off)")
 
         # settings from the file: FOV 90 (index 3), eye 10 cm higher, look speed 200 %; and the drone
-        g = camera_game("[kabosune.first-person]\nField of view = 3\nEye height (cm) = 10\nLook speed (%) = 200\n"
+        g = camera_game("[kabosune.first-person]\nField of view = 3\nEye height (cm) = 10\nLook speed (%) = 50\n"
                         "[kabosune.fpv-drone]\nField of view = 5\nFree fly speed (m/s) = 20\n")
         cam_frame(g)
         matrix, fovy = cam_frame(g, R3)
         want_fovy = 2 * math.atan(math.tan(math.radians(45)) / ASPECT)
         assert close(matrix, (1, 0, 0, -1, 0, 1, 0, -3.78, 0, 0, 1, -2.85)), matrix
         assert abs(fovy - want_fovy) < 1e-4, (fovy, want_fovy)
-        tan = struct.unpack("<f", g.p.read(VIEW + 0x13C, 4))[0]
-        assert abs(tan - math.tan(want_fovy / 2)) < 1e-4 and g.p.read(VIEW + 0x98, 2) == b"\1\1", tan
-        assert abs(struct.unpack("<f", g.p.read(VIEW + 0xB0, 4))[0] - 1 / tan) < 1e-3       # the matrix's y scale
+        assert abs(struct.unpack("<f", g.p.read(VIEW + 0x130, 4))[0] - 0.87266463) < 1e-6     # the projection is the game's to fill
         cam_frame(g, rx=10000)
-        assert g.states(0)[-1][3] == 20000                                               # look speed 200 %
+        assert g.states(0)[-1][3] == 5000                                                # look speed 50 %
         cam_frame(g, R3)
         # FPV Drone: L3 takes off from the view as it is, in Free fly; the game sees nothing
         cam_frame(g)

@@ -168,6 +168,13 @@ class Mod:
         return obj
 
 
+def core_version():
+    """Core's own version: the API's two numbers and Core's patch number (KAE_CORE_PATCH)."""
+    text = (INCLUDE / "kaegae.h").read_text()
+    patch = int(re.search(r"#define KAE_CORE_PATCH\s+(\d+)", text).group(1))
+    return "%d.%d.%d" % (api_version() + (patch,))
+
+
 def api_version():
     text = (INCLUDE / "kaegae.h").read_text()
     return tuple(int(re.search(rf"#define KAE_API_{k}\s+(\d+)", text).group(1)) for k in ("MAJOR", "MINOR"))
@@ -235,12 +242,13 @@ def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
 
 def package_manifest(mods, bundle, name, with_core=True, package_id=None):
     """The mod.toml of a built folder: what each module is, and Core's claims on main if Core is in it."""
-    core = "%s@%d.%d" % (("kaegae.core",) + api_version())
+    core = "%s@%d.%d" % (("kaegae.core",) + api_version())      # what mods require: the API
+    core_module = "kaegae.core@" + core_version()                  # what this Core is
     q = lambda text: '"' + str(text).replace("\\", "\\\\").replace('"', '\\"') + '"'      # noqa: E731
     if len(mods) == 1:
         ident, version = mods[0].id, mods[0].manifest["version"]
     elif not mods:
-        ident, version = core.split("@")
+        ident, version = "kaegae.core", core_version()
     else:
         ident, version = "pack." + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-"), "1.0.0"
     authors = sorted({a for m in mods for a in m.manifest.get("authors", [])} | ({"KaboWabo/Kabosune"} if with_core else set()))
@@ -251,9 +259,9 @@ def package_manifest(mods, bundle, name, with_core=True, package_id=None):
              "", "[game]", f"title = {q(TITLE_ID)}", "", "[modules]"]
     entries = [f"{m.id}@{m.manifest['version']}" for m in mods]
     if bundle:
-        lines.append(f"{CORE_SLOT} = [{', '.join(q(e) for e in [core] + entries)}]      # linked into one module")
+        lines.append(f"{CORE_SLOT} = [{', '.join(q(e) for e in [core_module] + entries)}]      # linked into one module")
     else:
-        lines += [f"{CORE_SLOT} = {q(core)}"] * with_core + [f"{slot} = {q(e)}" for slot, e in zip(MOD_SLOTS, entries)]
+        lines += [f"{CORE_SLOT} = {q(core_module)}"] * with_core + [f"{slot} = {q(e)}" for slot, e in zip(MOD_SLOTS, entries)]
     if mods:
         lines += ["", "[core]", 'api = "%d.%d"      # the Core API the mods are built for' % api_version()]
     if with_core:
@@ -284,7 +292,7 @@ def readme(mods, bundle, files, with_core=True):
                  f"A KaeGae mod without KaeGae Core in the folder: it needs Core {major}.{minor} installed as well.",
                  "Without Core it loads and does nothing.", "", "Files:"]
         return "\n".join(lines + [f"  {rel}  ({len(blob)} bytes)" for rel, blob in sorted(files.items())]) + "\n"
-    lines = [f"KaeGae Core {major}.{minor} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
+    lines = [f"KaeGae Core {core_version()} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
     if mods:
         lines.append("With: " + ", ".join(f"{m.name} {m.manifest['version']}" for m in mods)
                      + (" (linked into Core's module)" if bundle else " (each its own module)"))

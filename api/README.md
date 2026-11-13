@@ -30,7 +30,7 @@ who patches what, and a small core module that mods call instead of patching the
 | `kaegae check / install / list / init`, the manifest, the registry for 1.1.1 (levels 1 and 2) | Written, pass their tests on a PC, and `check` was run on a real Fritchii mod folder (11 November). Needs no game. [MANIFEST.md](MANIFEST.md) |
 | A core mod in its own folder, apart from Core's (`kaemod.py --no-core`) | Tested in the game (11 November, Fritchii v5.8.3): Core, Hello and Slopped Up Sloperina from three folders load, link and start |
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
-| Core 0.8: the camera view event (`kae_on_view`, matrix and field of view), the `Camera.View` hook point | Works in the game (12 November, Fritchii): hook points in place, First Person 2.0 and FPV Drone 2.0 run on it. The FOV setting is still to check |
+| Core 0.8: the camera view event (`kae_on_view`, matrix and field of view), the `Camera.View` hook point | Works in the game (12 November, Fritchii): hook points in place, First Person 2.0 and FPV Drone 2.0 run on it. The FOV did nothing in 0.8.0; 0.8.1 changes the camera's own FOV instead (not tested in the game yet) |
 | Generic hook points (`kae_hook`), config | Design only |
 | Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
 

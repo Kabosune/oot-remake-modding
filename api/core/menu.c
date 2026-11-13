@@ -44,7 +44,7 @@ static KaeItem core_items[] = {
     { KAE_TOGGLE, "Keyboard", "Mods' keys (the Keyboard column). Off: Core never reads the keyboard.",
       1, 1, 0, 0, 0, 0, 0, 0, keyboard_changed, 0 },
 };
-static KaePage core_page = { "kaegae.core", "KaeGae Core", KP_STR(KAE_API_MAJOR) "." KP_STR(KAE_API_MINOR), 0, 1,
+static KaePage core_page = { "kaegae.core", "KaeGae Core", KP_STR(KAE_API_MAJOR) "." KP_STR(KAE_API_MINOR) "." KP_STR(KAE_CORE_PATCH), 0, 1,
                              core_items, sizeof core_items / sizeof *core_items, 0 };
 
 // The settings file's pages: the mods' and Core's own.

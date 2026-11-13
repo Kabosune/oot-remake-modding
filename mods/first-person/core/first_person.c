@@ -25,8 +25,8 @@ static KaeItem settings[] = {
                       0, 0, -80, 80, 2, 0, 0, 0, 0, 0 },
     [EYE_FORWARD] = { KAE_NUMBER, "Eye forward (cm)", "How far in front of Link's face the eye sits, so his head stays behind it.",
                       15, 15, 0, 60, 1, 0, 0, 0, 0, 0 },
-    [LOOK_SPEED]  = { KAE_NUMBER, "Look speed (%)", "The right stick while first person is on. 100 = the game's own.",
-                      100, 100, 25, 300, 25, 0, 0, 0, 0, 0 },
+    [LOOK_SPEED]  = { KAE_NUMBER, "Look speed (%)", "The right stick while first person is on: slower than the game's (100).",
+                      100, 100, 25, 100, 5, 0, 0, 0, 0, 0 },
     [SHOW_LINK]   = { KAE_TOGGLE, "Show Link", "Off: Link is hidden while first person is on (his sword and shield may still show).",
                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
@@ -154,8 +154,8 @@ static int start(void) {
         kae_on_input(input, 0, 0) != KAE_OK)
         return 2;
     kae_settings("First Person", settings, COUNT);
-    KAE_LOG("first person 2.0.0 on Core: %s", kae_has("view.fovy") ? "field of view can change" : "field of view is the game's");
+    KAE_LOG("first person 2.0.1 on Core: %s", kae_has("view.fovy") ? "field of view can change" : "field of view is the game's");
     return 0;
 }
 
-KAE_MOD("kabosune.first-person", "2.0.0", start, 0);
+KAE_MOD("kabosune.first-person", "2.0.1", start, 0);

@@ -24,12 +24,12 @@ void kp_module_init(void) {
     for (KaeMod **m = __kae_mods_start; m < __kae_mods_end; m++)
         kae_register(*m);
     if (!kp_main) {
-        kp_logf("Core %d.%d: unknown game build, doing nothing. nnMain at %p", KAE_API_MAJOR, KAE_API_MINOR,
+        kp_logf("Core %d.%d.%d: unknown game build, doing nothing. nnMain at %p", KAE_API_MAJOR, KAE_API_MINOR, KAE_CORE_PATCH,
                 (void *)nnmain);
         kp_mods_ready();   // nothing will run: say so for each mod, now and as they register
         return;
     }
-    kp_logf("Core %d.%d loaded, game %s, main at %p", KAE_API_MAJOR, KAE_API_MINOR, kp_build->version,
+    kp_logf("Core %d.%d.%d loaded, game %s, main at %p", KAE_API_MAJOR, KAE_API_MINOR, KAE_CORE_PATCH, kp_build->version,
             (void *)kp_main);
     if (!kp_draw_start())
         kp_log("drawing off: main's nvnBootstrapLoader import wasn't found");

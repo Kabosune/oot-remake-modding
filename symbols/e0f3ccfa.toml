@@ -419,13 +419,24 @@ note   = "the target, float copy"
 [field."View.projection"]
 offset = 0x90
 type   = "embedded"
-note   = "sead PerspectiveProjection: dirty flags +8 / +9, matrix +0xC, device matrix +0x4C"
-source = "sloperina (near, far, fovy and aspect read by them on 1.0.0 and 1.1.1); the flags and matrices from sead's layout, not checked"
+note   = "sead PerspectiveProjection: dirty flag +8, near +0x98, far +0x9C, angle +0xA0, its half's sin / cos / tan +0xA4..+0xAC, aspect +0xB0, offset +0xB4. Filled from the camera (Camera.fovy) each frame: change that one, not this"
+source = "sloperina; disassembly (f_804e48c0, 0x804e52d4)"
+
+[field."Camera.fovy"]
+offset = 0x13C
+type   = "f32"
+note   = "the gameplay camera's vertical field of view, radians: copied into the view's projection after the Camera.View hook point (0x804e52f8)"
+source = "disassembly (f_804e48c0)"
+
+[field."Camera.aspect"]
+offset = 0x140
+type   = "f32"
+source = "disassembly (f_804e48c0)"
 
 [field."View.fovy"]
 offset = 0x130
 type   = "f32"
-note   = "vertical field of view in radians, then sin, cos and tan of half of it"
+note   = "vertical field of view in radians, then sin, cos and tan of half of it. Read only: the game rewrites it from Camera.fovy each frame"
 source = "sloperina"
 
 [field."View.aspect"]

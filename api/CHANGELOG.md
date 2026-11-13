@@ -11,6 +11,22 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.8.1: the field of view works (12 November 2026; not tested in the game yet)
+
+Core only, nothing new for mods (API still 0.8).
+
+- **`KaeView.fovy` now changes the picture.** 0.8.0 wrote the view's projection (its angle at the
+  view's +0x130, sead's sine / cosine / tangent and dirty flags); the game overwrote it a few
+  instructions after the hook point, so the FOV settings did nothing (KaboWabo, 12 Nov). Read in
+  1.1.1's main (`f_804e48c0`, `0x804e52d4..0x804e5348`): the game fills the projection each frame
+  from **its camera's own values** (camera +0x134 near, +0x138 far, +0x13C fovy, +0x140 aspect,
+  +0x144 offset), with sin / cos / tan and the dirty flag. Core now reads and writes the camera's
+  fovy (`Camera.fovy`, `Camera.aspect` in the symbol pack) and the game does the rest.
+- Core has a third version number of its own (`KAE_CORE_PATCH`), shown in the log, the About tab
+  and its manifest. Mods still only check the first two.
+- First Person 2.0.1: Look speed goes from 25 to 100 % (above 100 did nothing at full stick: the
+  game's top turning speed doesn't change by scaling the stick).
+
 ## Core 0.8, API 0.8: the camera view event (11 November 2026; loads in the game, 12 November)
 
 Only additions: mods built for 0.5 to 0.7 run unchanged. In Fritchii on 12 Nov both hook points
@@ -29,7 +45,7 @@ are in place and First Person 2.0 and FPV Drone 2.0 work; whether the FOV settin
   1.x hooks the next instruction and still works next to Core. The stub in main keeps x16, x17,
   x29, x30; Core's entry (`core/view_entry.S`) keeps every other register, the flags, FPCR / FPSR.
   Each stub now has the `KPHOOK01` tag in front of it.
-- **The field of view** is the view's sead `PerspectiveProjection` (found by sloperinaGZ): Core
+- **The field of view** (didn't work, fixed in 0.8.1) is the view's sead `PerspectiveProjection` (found by sloperinaGZ): Core
   writes the angle and its half's sine, cosine and tangent, sets the two "dirty" flags so the game
   works the matrices out again, and scales their x / y scales in case they are read first. The
   flags and the matrices are from sead's layout, **not checked against main**. If the game sets
