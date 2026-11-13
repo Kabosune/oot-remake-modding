@@ -5,18 +5,18 @@
 // gameplay one is picked out the way First Person and FPV Drone did: the view object's vtable, and
 // camera 0 of the camera manager pointing at it.
 //
-// The field of view: the view holds a sead PerspectiveProjection (docs/sloperina-findings.md):
-// the vertical angle and its half's sine, cosine and tangent, the aspect, its two "dirty" flags
-// and the matrices worked out from them. Changing it is setFovy done by hand: the four numbers,
-// the two flags (so the game works the matrices out again), and the x / y scales of both matrices
-// scaled by the change, in case they are read before that. Not checked against main yet.
+// The field of view (0.8.1): the camera's own (camera +0x13C, aspect +0x140). Later in the same
+// function (0x804e52d4..0x804e5348) the game copies the camera's near, far, fovy, aspect and offset
+// into the sead PerspectiveProjection, with the sine, cosine and tangent and its dirty flag. So
+// Core changes the camera's value and the game does the rest. (0.8.0 wrote the projection, at the
+// view's +0x130: the game overwrote it a few instructions later, so the setting did nothing.)
 #include "core.h"
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
 
 static struct {
     void *vt_view, **manager_slot;
-    int64_t matrix, eye, target, projection, fovy, aspect;
+    int64_t matrix, eye, target, fovy, aspect;
     bool fov;
 } k;
 
@@ -28,10 +28,9 @@ bool kp_view_start(void) {
     k.target = kae_field("View.look_at");
     if (!k.vt_view || !k.manager_slot || k.matrix < 0 || k.eye < 0 || k.target < 0)
         return false;
-    k.projection = kae_field("View.projection");
-    k.fovy = kae_field("View.fovy");
-    k.aspect = kae_field("View.aspect");
-    k.fov = k.projection >= 0 && k.fovy >= 0 && k.aspect >= 0;
+    k.fovy = kae_field("Camera.fovy");
+    k.aspect = kae_field("Camera.aspect");
+    k.fov = k.fovy >= 0 && k.aspect >= 0;
     return true;
 }
 
@@ -52,46 +51,14 @@ static bool gameplay(void *view) {
     return AT(cameras[0], 0x78, void *) == view;
 }
 
-// sin and cos of x in [0, pi/2] (half a field of view), to 1e-7: enough for a camera.
-static void half_sincos(float x, float *s, float *c) {
-    float x2 = x * x;
-    *s = x * (1 - x2 / 6 * (1 - x2 / 20 * (1 - x2 / 42 * (1 - x2 / 72 * (1 - x2 / 110)))));
-    *c = 1 - x2 / 2 * (1 - x2 / 12 * (1 - x2 / 30 * (1 - x2 / 56 * (1 - x2 / 90 * (1 - x2 / 132)))));
-}
-
-static bool fov_readable(void *view) {
-    if (!k.fov || !kp_readable((uintptr_t)view + k.projection, (size_t)(k.aspect - k.projection) + 4))
+static bool fov_readable(void *camera) {
+    if (!k.fov || !camera || !kp_readable((uintptr_t)camera + k.fovy, 4) || !kp_readable((uintptr_t)camera + k.aspect, 4))
         return false;
-    float fovy = AT(view, k.fovy, float), aspect = AT(view, k.aspect, float);
+    float fovy = AT(camera, k.fovy, float), aspect = AT(camera, k.aspect, float);
     return fovy > 0.1f && fovy < 3.0f && aspect > 0.5f && aspect < 4.0f;
 }
 
-static void set_fovy(void *view, float fovy) {
-    if (fovy < 0.05f)
-        fovy = 0.05f;
-    if (fovy > 3.0f)
-        fovy = 3.0f;
-    char *p = (char *)view + k.projection;
-    float s, c;
-    half_sincos(fovy / 2, &s, &c);
-    float old_tan = AT(view, k.fovy + 12, float), tan = s / c;
-    AT(view, k.fovy, float) = fovy;
-    AT(view, k.fovy + 4, float) = s;
-    AT(view, k.fovy + 8, float) = c;
-    AT(view, k.fovy + 12, float) = tan;
-    p[8] = 1;   // the matrix and the device matrix are out of date
-    p[9] = 1;
-    // sead::Projection: matrix (4x4) at +0xC, device matrix at +0x4C. Their [0][0] and [1][1].
-    if (old_tan > 1e-4f && old_tan < 100.0f) {
-        float scale = old_tan / tan;
-        static const int cells[4] = { 0xC, 0xC + 0x14, 0x4C, 0x4C + 0x14 };
-        for (int i = 0; i < 4; i++)
-            AT(p, cells[i], float) *= scale;
-    }
-}
-
 void kp_view(void *view, void *camera) {
-    (void)camera;
     kp_mods_ready();
     if (!kp_event_on[KP_EV_VIEW] || !gameplay(view) ||
         !kp_readable((uintptr_t)view + k.matrix, 12 * 4) || !kp_readable((uintptr_t)view + k.eye, 12) ||
@@ -105,10 +72,10 @@ void kp_view(void *view, void *camera) {
         v.eye[i] = AT(view, k.eye + 4 * i, float);
         v.target[i] = AT(view, k.target + 4 * i, float);
     }
-    bool fov = fov_readable(view);
+    bool fov = fov_readable(camera);
     if (fov) {
-        v.fovy = AT(view, k.fovy, float);
-        v.aspect = AT(view, k.aspect, float);
+        v.fovy = AT(camera, k.fovy, float);
+        v.aspect = AT(camera, k.aspect, float);
     }
     float fovy = v.fovy;
     kp_fire_view(&v);
@@ -116,5 +83,5 @@ void kp_view(void *view, void *camera) {
         if (v.matrix[i] == v.matrix[i])   // not NaN
             matrix[i] = v.matrix[i];
     if (fov && v.fovy != fovy && v.fovy == v.fovy)
-        set_fovy(view, v.fovy);
+        AT(camera, k.fovy, float) = v.fovy < 0.05f ? 0.05f : v.fovy > 3.0f ? 3.0f : v.fovy;
 }

@@ -13,7 +13,7 @@ Press **R3** (click the right stick) to switch to Link's eyes. Press it again to
 > | Field of view | the game's | horizontal: the game's (about 80°), 70° to 120° |
 > | Eye height (cm) | 0 | added to the height measured when you switch on |
 > | Eye forward (cm) | 15 | in front of Link's face |
-> | Look speed (%) | 100 | the right stick, while first person is on |
+> | Look speed (%) | 100 | the right stick, while first person is on: 25 to 100 (slower only) |
 > | Show Link | off | |
 >
 > Settings are saved between runs. It no longer reads the keyboard itself (the `,` `.` `/` `;`
