@@ -173,6 +173,16 @@ didn't break B12–B17. Their staircases reached 20+ m from the chest and ran in
 |---|---|---|
 | B21. B11 boxes plus a far box | B19 plus one 2 x 0.5 x 2 m box floating 12 m into the room, 8 m up, touching nothing | Prompt: reach is fine, overlapping the level broke the staircases. No prompt: a shape can't reach that far from its actor |
 
+Result of B21: **no Open prompt**, with the far box touching nothing. So it's not overlapping the level: a shape that
+reaches far from the chest (6+ m) makes the chest refuse to open. Guess: the prompt is aimed at the centre of the open
+body's real bounds (not `AutoCalc`), which the far boxes pull away. It only matters for the chest: the closed chest's
+body (`CloseBody`, shape `Body_Close` = `Obj_TBox_A_02__Tgt`) is a **Static** body the chest builds at load, and it's
+solid without opening.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B22. Closed chest, far bridge | **Don't open the chest.** `Body_Close` gets its own shape: its two polytopes, B11's slab, and a 1 m wide bridge (top 0.3 m) from 2 m in front of the chest 15 m into the room, ending in a 3 x 3 m landing | Whether a shape's far parts are solid (walk the bridge), and whether a static body works as the map's host |
+
 ## Building
 
 ```

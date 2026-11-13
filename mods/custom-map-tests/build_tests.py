@@ -615,14 +615,15 @@ MAP_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__KaeGaeMap.phive__ShapeParam.bgyml"
 TBOX_CSP = "Phive/ControllerSetParam/Obj_TBox_A_02.phive__ControllerSetParam.bgyml"
 
 
-def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True):
+def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True, source=None, body="Body_Body"):
     """Obj_TBox_A_02's pack where only the open chest's body (Body_Body) gets a shape of its own: the chest's shape
     plus `extra` boxes, in a new file. Body_0 stays as it is for the other user of it, the Tgt sensor (TgtBody):
     B12 put the boxes in Body_0 and the chest lost its Open prompt."""
     sarc = zstool.Sarc(game.raw(TBOX_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
-    shape = byml.loads(files[TBOX_SHAPE])
-    proto, ac = shape["Box"][0], shape["AutoCalc"]
+    shape = byml.loads(files[source or TBOX_SHAPE])
+    proto, ac = byml.loads(files[TBOX_SHAPE])["Box"][0], shape["AutoCalc"]
+    shape.setdefault("Box", [])
     for lo, hi in extra:
         b = copy.deepcopy(proto)
         b["Center"] = f3(0, 0, 0)
@@ -637,7 +638,7 @@ def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True):
                 ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
     files[MAP_SHAPE] = byml.dumps(shape)
     csp = byml.loads(files[TBOX_CSP])
-    row = next(r for r in csp["ShapeNamePathAry"] if r["Name"] == "Body_Body")
+    row = next(r for r in csp["ShapeNamePathAry"] if r["Name"] == body)
     row["FilePath"] = "Work/" + MAP_SHAPE[:-len(".bgyml")] + ".gyml"
     files[TBOX_CSP] = byml.dumps(csp)
     pack = zsmod.sarc_pack(files, like=game.raw(TBOX_PACK))
@@ -776,7 +777,31 @@ def test_b21(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+TBOX_CLOSE_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__Tgt.phive__ShapeParam.bgyml"   # the closed chest's Body_Close
+
+
+def test_b22(game, out):
+    """The boxes on the closed chest's body (CloseBody, a Static body, shape Body_Close), which is solid without
+    opening the chest. B12-B17 and B21 (a shape reaching 6+ m from the chest) lost the Open prompt, so whether far
+    boxes are solid couldn't be checked. Here: the closed chest's own two polytopes, B11's slab beside it as a check,
+    and a 1 m wide bridge from 2 m in front of the chest 15 m into the room, ending in a 3 x 3 m landing."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),            # B11's slab (right of the entrance)
+             ((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),         # a 1 m wide bridge, top 0.3 m, into the room
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]        # a 3 x 3 m landing at its end
+    pack, entries = tbox_own_map_shape(game, extra, presets=["Material_Wood_Thick"],
+                                       source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B22: DON'T open the chest. The closed chest's body (Static, shape Body_Close) gets a shape of its own:",
+               "its two polytopes, B11's slab beside it, and a 1 m wide invisible bridge (top 0.3 m) from 2 m in front",
+               "of the chest 15 m into the room, ending in a 3 x 3 m landing. Open chest unchanged."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b22(game, out / "KaeGae Map Test B22 - closed chest, far bridge")
     test_b21(game, out / "KaeGae Map Test B21 - B11 boxes plus a far box")
     test_b20(game, out / "KaeGae Map Test B20 - slab as 240 tiles")
     test_b19(game, out / "KaeGae Map Test B19 - B11 boxes, own shape file")
