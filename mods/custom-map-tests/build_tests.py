@@ -760,7 +760,24 @@ def test_b20(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def test_b21(game, out):
+    """B19 (B11's slab and pillar, own shape file) plus one 2 x 0.5 x 2 m box floating 12 m into the room (-z) and
+    8 m up, touching nothing. B20 (245 parts in B11's footprint) kept the Open prompt, so the count isn't what broke
+    B12-B17; their staircases reached 20+ m and ran into the floor and walls. This tells reach apart from overlap."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5)),
+             ((-1.0, 8.0, -13.0), (1.0, 8.5, -11.0))]
+    pack, entries = tbox_own_map_shape(game, extra, presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B21: as B19 (B11's slab and pillar in the open chest's own shape file), plus one 2 x 0.5 x 2 m box",
+               "floating 12 m into the room and 8 m up, touching nothing. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b21(game, out / "KaeGae Map Test B21 - B11 boxes plus a far box")
     test_b20(game, out / "KaeGae Map Test B20 - slab as 240 tiles")
     test_b19(game, out / "KaeGae Map Test B19 - B11 boxes, own shape file")
     side_stair_test(game, out / "KaeGae Map Test B18 - 260 boxes beside the chest", 13, "B18")

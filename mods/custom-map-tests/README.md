@@ -166,6 +166,13 @@ into the floor and walls; B11's boxes stay within 4.5 m).
 |---|---|---|
 | B20. Slab as 240 tiles | B11's slab cut into 240 tiles (15 x 16), no pillar: 245 parts like B17, in B11's footprint. Set up as B19 | Prompt: the count is fine, and the size / reach (or running into the level) broke the staircases. No prompt: the count (then halve) |
 
+Result of B20: **works**: Open prompt, and the tiled slab is solid. So **245 parts are fine**; the number of parts
+didn't break B12–B17. Their staircases reached 20+ m from the chest and ran into the floor and walls.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B21. B11 boxes plus a far box | B19 plus one 2 x 0.5 x 2 m box floating 12 m into the room, 8 m up, touching nothing | Prompt: reach is fine, overlapping the level broke the staircases. No prompt: a shape can't reach that far from its actor |
+
 ## Building
 
 ```
