@@ -285,6 +285,19 @@ B33's body had none. (The chest's AI also asks for `CloseBody` by name, to add a
 |---|---|---|
 | B34. Second body in the controller | B33 plus a unit for `KaeGaeMap0` in the chest's controller, a copy of `CloseBody`'s (only that file differs from B33) | Bridge solid: a body needs a controller unit, and then one host can carry several shapes. Still nothing: the chest's code adds only the bodies it knows by name |
 
+Result of B34: chest there, **still no slab and no bridge**. So the chest adds only the bodies its own code knows by name
+(its AI asks for `CloseBody` by name). Its other two bodies don't help: `AirWall` only hits small objects
+(`HitOnlySmallObject`) and, like `Cover`, follows the lid's bone. **One chest, one map shape.**
+
+So, a host without chest behaviour. The game has `_NoBake` versions only of chests. A scan of all shapes for actors
+with one Kinematic body found `Obj_Flag_A_01`: a plain `GameActor` (`ActorLogicSimpleActor`, no AI, PreActorSetting
+`ActorOnly` rather than the baked pieces' `ConstPassive`), one Kinematic body `Physical` that its controller adds to the
+world, one shape (its 4.6 m pole, one polytope), `InstanceHeapSize` 26,912.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B35. Flag host, far bridge | No chest. One `Obj_Flag_A_01` 3 m in front of the entrance (where the chests stood), its shape = its pole plus B22's slab, bridge and landing (changed in place, entry raised); flag heap + 2 MiB | Flag there and the bridge solid: a plain actor hosts map collision (then: the Minecraft halves on two flags, which would share one pack, so on two copies under new names or one shape per flag type). No flag: a new actor type in this scene doesn't load as placed. Flag but no bridge: its body isn't solid to Link |
+
 ## Building
 
 ```

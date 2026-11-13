@@ -12,6 +12,7 @@
     Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs
     Pack/Actor/Obj_TBox_A_02.pack.zs
     Pack/Actor/Obj_TBox_A_01.pack.zs (B30 on)
+    Pack/Actor/Obj_Flag_A_01.pack.zs (B35 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -1091,7 +1092,59 @@ def test_b34(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+# ---------------------------------------------------------------- B35 on: a host with no behaviour of its own
+
+FLAG = "Obj_Flag_A_01"                      # a plain GameActor (ActorLogicSimpleActor, no AI, PreActorSetting
+FLAG_PACK = f"Pack/Actor/{FLAG}.pack.zs"    # ActorOnly): one Kinematic body "Physical", added to the world by its
+FLAG_SHAPE = f"Phive/ShapeParam/{FLAG}__Physical.phive__ShapeParam.bgyml"   # controller; a 4.6 m flag pole
+FLAG_HEAP = 26912                           # its InstanceHeapSize in 1.1.1
+
+
+def flag_with_boxes(game, extra, presets=("Material_Wood_Thick",)):
+    """Obj_Flag_A_01's pack with `extra` boxes (actor-local metres) added to its one shape (its pole polytope stays).
+    The shape file is used by this actor only, so it's changed in place; returns (pack, {shape: entry})."""
+    sarc = zstool.Sarc(game.raw(FLAG_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    shape = byml.loads(files[FLAG_SHAPE])
+    proto, ac = byml.loads(zstool.Sarc(game.raw(TBOX_PACK)).read(TBOX_SHAPE))["Box"][0], shape["AutoCalc"]
+    shape.setdefault("Box", [])
+    for lo, hi in extra:
+        b = copy.deepcopy(proto)
+        b["Center"] = f3(0, 0, 0)
+        b["HalfExtents"] = f3(*(np.subtract(hi, lo) / 2))
+        b["OffsetTranslation"] = f3(*(np.add(lo, hi) / 2))
+        b["MaterialPresets"] = list(presets)
+        shape["Box"].append(b)
+        for i, k in enumerate("XYZ"):
+            ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
+            ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
+    files[FLAG_SHAPE] = byml.dumps(shape)
+    return zsmod.sarc_pack(files, like=game.raw(FLAG_PACK)), {FLAG_SHAPE: shape_entry(files[FLAG_SHAPE]) + 4096}
+
+
+def test_b35(game, out):
+    """Control for a host with no behaviour: one Obj_Flag_A_01 3 m in front of the entrance (where the chests stood),
+    its shape = its pole plus B22's slab, bridge and landing; flag heap + 2 MiB as B30. No chest."""
+    rng.seed("B35")
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(placed(FLAG, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),            # B22's boxes, exactly
+             ((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]
+    pack, entries = flag_with_boxes(game, extra)
+    files = {DEKU_S: (st, 3), FLAG_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {FLAG: FLAG_HEAP + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              ["Test B35: a host with no behaviour of its own. One flag (Obj_Flag_A_01, a plain actor with one Kinematic body)",
+               "3 m in front of the entrance, where the chests stood; no chest. Its shape: its pole plus B22's slab (to its",
+               "right), the 1 m wide invisible bridge from 2 m in front of it 15 m into the room, and the 3 x 3 m landing.",
+               "Flag InstanceHeapSize + 2 MiB."],
+              extra={FLAG_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out, glb=None):
+    test_b35(game, out / "KaeGae Map Test B35 - flag host, far bridge")
     test_b34(game, out / "KaeGae Map Test B34 - second body in the controller")
     test_b33(game, out / "KaeGae Map Test B33 - second body, far bridge")
     if glb:
