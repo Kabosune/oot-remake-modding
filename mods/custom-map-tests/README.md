@@ -329,6 +329,11 @@ host to the middle of its part if far parts go missing.
 |---|---|---|
 | B38. Whole Minecraft map on 14 flags | B37's setup and alignment, with the whole map: 14 hosts `KaeGae_MapHost_00`..`13`, all in a row at the entrance 1 m apart (centred where the chest stood), heaps + 2 MiB each (28 MiB in all) | 14 flags there and the map solid: whole maps work. Missing flags: too many hosts or too much heap. Ground missing only far out (~100 m): the hosts' radius (then B39) |
 
+Result of B38: **works**: the whole map is solid, performance fine (load time and frame rate). **A whole custom map's
+collision works today with romfs files only**: flag hosts under new names (`flag_copy()`, `host_rows()`), the map split
+into parts of at most ~950 boxes (`map_chunks()`), each part's shape with its own size table entry (`shape_entry()`).
+B39 (hosts moved into their parts) isn't needed for now.
+
 ## Building
 
 ```

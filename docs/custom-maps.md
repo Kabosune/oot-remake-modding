@@ -73,6 +73,14 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
   on the closed body of `Obj_TBox_A_02`, the other on `Obj_TBox_A_01`'s (a second chest type, since chests of one type
   share a pack): both solid, normal load time. Each half alone also works (B31), so the cut's reach (48 x 48 m, 6 m up
   to 43 m down) was never the problem.
+- **One chest, one map shape (B33, B34):** a new fifth body on the chest isn't added to the world, not even with a unit
+  in the chest's controller: the chest adds only the bodies its code knows by name.
+- **A host with no behaviour (B35–B38, 12 Nov): `Obj_Flag_A_01`**, a plain `GameActor` (`ActorLogicSimpleActor`, no AI,
+  PreActorSetting `ActorOnly`) with one Kinematic body its controller adds to the world. It carries map boxes 15+ m away
+  (B35); copies under **new actor names** work (B36: own pack, ActorParam, PhysicsParam, ControllerSetParam and shape,
+  new rows in RSDB `ActorInfo` and `GameActorInfo`, which are sorted by `__RowId`, new size table entries). **The whole
+  Minecraft map (9,397 boxes) on 14 such hosts works, performance fine (B38).** The flag's `CalcRadius` is 100 m; in B38
+  all hosts stood at the entrance, with the map reaching ~120 m away.
 - **The closed chest's body works as a host (B22, 12 Nov):** `CloseBody` is a **Static** body the chest builds at
   load (shape `Body_Close` = `Obj_TBox_A_02__Tgt`). Given its own shape file (B19's setup: a new ShapeParam, the
   ControllerSetParam pointing at it, a new size table entry), boxes 15 m from the chest are solid. The open chest's
