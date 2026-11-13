@@ -55,12 +55,12 @@ class Rstb:
         _, n_hashed, _ = struct.unpack_from("<III", self.t, 10)
         self.at = {struct.unpack_from("<I", self.t, 22 + 8 * i)[0]: 22 + 8 * i + 4 for i in range(n_hashed)}
 
-    def need(self, romfs_path, size):
-        """Make sure the entry for romfs_path (with or without .zs) is at least size + 512."""
+    def need(self, romfs_path, size, extra=512):
+        """Make sure the entry for romfs_path (with or without .zs) is at least size + extra."""
         p = romfs_path[:-3] if romfs_path.endswith(".zs") else romfs_path
         at = self.at[zlib.crc32(p.encode())]
         old = struct.unpack_from("<I", self.t, at)[0]
-        new = max(old, (size + 512 + 7) & ~7)
+        new = max(old, (size + extra + 7) & ~7)
         struct.pack_into("<I", self.t, at, new)
         return old, new
 
@@ -82,12 +82,13 @@ class Game:
         return zsmod.unzs((self.r / rel).read_bytes(), self.dicts)[0]
 
 
-def write_mod(out, files, game, notes):
-    """files: {romfs path: (object or bytes, dict id)} -> out/romfs/..., with a fitted size table."""
+def write_mod(out, files, game, notes, extra=None):
+    """files: {romfs path: (object or bytes, dict id)} -> out/romfs/..., with a fitted size table.
+    extra: {romfs path: bytes of room on top of the file's size} (default 512)."""
     rstb = Rstb(game.r / RSTB)
     for rel, (obj, did) in files.items():
         raw = obj if isinstance(obj, bytes) else byml.dumps(obj)
-        old, new = rstb.need(rel, len(raw))
+        old, new = rstb.need(rel, len(raw), (extra or {}).get(rel, 512))
         notes.append(f"{rel}: {len(raw)} bytes, size table {old} -> {new}")
         dst = out / "romfs" / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -398,7 +399,7 @@ def test_b4(game, out):
     write_mod(out, files, game, notes)
 
 
-def tbox_with_boxes(game, extra):
+def tbox_with_boxes(game, extra, presets=None):
     """Obj_TBox_A_02's pack with extra boxes [(min, max), chest-local metres] added to its main body's shape."""
     sarc = zstool.Sarc(game.raw(TBOX_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
@@ -411,6 +412,8 @@ def tbox_with_boxes(game, extra):
         b["Center"] = f3(0, 0, 0)
         b["HalfExtents"] = f3(*(np.subtract(hi, lo) / 2))
         b["OffsetTranslation"] = f3(*(np.add(lo, hi) / 2))
+        if presets is not None:
+            b["MaterialPresets"] = list(presets)
         shape["Box"].append(b)
         for i, k in enumerate("XYZ"):
             ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
@@ -459,7 +462,23 @@ def test_b6(game, out):
                                  "collision made 4 x 0.5 x 4 m (was about 1.3 x 0.06 x 1 m). Nothing added."])
 
 
+def test_b7(game, out):
+    """B5 again (two boxes added to the chest's shape), with far more room in the size table entry for the chest's
+    pack (the entry is the memory for loading and unpacking it; B5's +512 bytes likely ran out), and material presets
+    that allow ledge grabs."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]
+    files = {DEKU_S: (st, 3), TBOX_PACK: (tbox_with_boxes(game, extra, presets=["Material_Wood_Thick"]), 4)}
+    write_mod(out, files, game, ["Test B7: as B5 (3 x 3 x 0.5 m slab on one side, 1 x 2.5 x 1 m pillar on the other, added to the",
+                                 "chest's shape), with the chest pack's size table entry raised by 256 KiB instead of 512 bytes;",
+                                 "the added boxes have only Material_Wood_Thick (no Wall_NoClamber). Open the chest first."],
+              extra={TBOX_PACK: 256 * 1024})
+
+
 def main_1b(game, out):
+    test_b7(game, out / "KaeGae Map Test B7 - boxes on a chest, more room")
     test_b6(game, out / "KaeGae Map Test B6 - bigger chest base")
     test_b5(game, out / "KaeGae Map Test B5 - boxes on a chest")
     test_b4(game, out / "KaeGae Map Test B4 - kinematic body, chest check")

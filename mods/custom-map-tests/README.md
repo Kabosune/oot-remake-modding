@@ -62,6 +62,12 @@ to 0). So **adding** boxes to a shape that gets built at load time crashes; the 
 fixed. (B–B4 never crashed because the tree root's shape is never built.) B6: no boxes added, the chest's one base box
 made 4 x 0.5 x 4 m.
 
+Result of B6: **loads, and the bigger box works**, but only once the chest is open (a closed chest uses its `CloseBody`;
+the base box is in the open chest's `Body`). Link can stand on it, not grab its edge (`Wall_NoClamber` in its
+`MaterialPresets`). So box shapes can be edited. Likely cause of B5's crash: the size table entry is the memory for
+loading **and unpacking** the pack, and +512 bytes left no room for the unpacked extra boxes. B7: B5's two added
+boxes again, with the pack's entry raised by 256 KiB, presets `Material_Wood_Thick` only.
+
 ## Building
 
 ```
