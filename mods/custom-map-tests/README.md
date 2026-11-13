@@ -260,6 +260,10 @@ its own: 699 + 729 boxes (1,428, three more than in one piece). Three tests, one
 Result of B30: **works**: the small chest is there and the bridge is solid out to the landing. So `Obj_TBox_A_01`'s
 closed body hosts collision like A_02's (with its heap + 2 MiB), and B32 can use it.
 
+Result of B31: **works**: the chest is there and the right half of the cut is solid. So the map's own shapes and
+reach (24 x 48 m, 6 m up to 43 m down) are fine on a closed chest's body under the part cap; B24 / B25 failed only
+by the count.
+
 ## Building
 
 ```
