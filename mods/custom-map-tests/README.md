@@ -22,6 +22,19 @@ How it works: a collision shape (`Phive/ShapeParam/*.bgyml`) can be a list of pl
 `HalfExtents` and `OffsetTranslation`) instead of a Havok mesh. Block maps fit that well: the map's visible block
 faces are turned into blocks, closed-off insides filled, and the blocks merged into as few boxes as possible.
 
+## Round 1 result and round 1b
+
+Round 1 (12 Nov): with all four turned on at once, going into the Deku Tree hung on the loading screen (the game
+kept drawing frames). Mixed files, so not conclusive. Round 1b (`--round 1b`, the default) splits it into one
+change per test:
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| A. Deku door to Dodongo | Same as test 1 | Whether a door can point at another scene |
+| B. Deku Tree plus one box | The real Deku Tree, rewritten by `byml.py`, plus one invisible 3 x 3 m box (top 1 m up) 4 m in front of the entrance | Whether rewritten placement files load, and whether box collision works |
+| C. Deku Tree emptied | Only the spawn points left, nothing added | Whether an emptied scene loads |
+| D. Deku Tree emptied, terrain kept | Spawn points and the 5 terrain chunks | Whether the loader needs the terrain chunks |
+
 ## Building
 
 ```

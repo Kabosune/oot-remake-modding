@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the custom-map test mods (round 1). See README.md next to this file and docs/custom-maps.md.
 
-    python3 mods/custom-map-tests/build_tests.py --romfs <folder with the game files below> --glb <map.glb> --out <dir>
+    python3 mods/custom-map-tests/build_tests.py --romfs <folder with the game files below> --glb <map.glb> --out <dir> [--round 1|1b]
 
 --romfs needs, from your own dump (same paths as in the romfs):
     Pack/ZsDic.pack.zs
@@ -309,13 +309,50 @@ def minecraft(game, out, glb, radius, label):
     return len(boxes)
 
 
+# ---------------------------------------------------------------- round 1b: one change per test
+
+def test_b(game, out):
+    """The real Deku Tree, untouched, plus one invisible box platform in front of the entrance."""
+    dy = game.byml(DEKU_D)
+    sx, sy, sz = SPAWN
+    B = [((-1.5, 0.5, -1.5), (1.5, 1.0, 1.5))]                           # 3 x 3 m, top 1 m above the floor
+    dy["Actors"].append(placed(HOST, (sx, sy, sz - 4), extra={"Bakeable": True}))
+    files = {DEKU_D: (dy, 3), HOST_PACK: (host_pack(game, B), 4)}
+    notes = ["Test B: Inside the Deku Tree as normal, plus one invisible 3 x 3 m box, top 1 m up, 4 m in front of the",
+             f"entrance (the collision of {HOST}; its 7 other copies in the dungeon get the same small box)."]
+    write_mod(out, files, game, notes)
+
+
+def test_c(game, out, keep_terrain):
+    """Inside the Deku Tree emptied to its spawn points (C), or to spawn points + the 5 terrain chunks (D)."""
+    st, dy = emptied_deku(game)
+    if keep_terrain:
+        orig = game.byml(DEKU_S)
+        st["Actors"] += [a for a in orig["Actors"] if a["Gyaml"].startswith("InsideTheDekuTree_0")]
+    files = {DEKU_S: (st, 3), DEKU_D: (dy, 3)}
+    what = "spawn points and the 5 terrain chunks" if keep_terrain else "only its spawn points"
+    write_mod(out, files, game, [f"Test {'D' if keep_terrain else 'C'}: Inside the Deku Tree emptied to {what}; nothing added."])
+
+
+def main_1b(game, out):
+    test1(game, out / "KaeGae Map Test A - Deku door to Dodongo")
+    test_b(game, out / "KaeGae Map Test B - Deku Tree plus one box")
+    test_c(game, out / "KaeGae Map Test C - Deku Tree emptied", False)
+    test_c(game, out / "KaeGae Map Test D - Deku Tree emptied, terrain kept", True)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--romfs", required=True)
     ap.add_argument("--glb", required=True)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--round", default="1b", choices=["1", "1b"])
     a = ap.parse_args()
     game, out = Game(a.romfs), Path(a.out)
+    if a.round == "1b":
+        main_1b(game, out)
+        print("built round 1b")
+        return
     test1(game, out / "KaeGae Map Test 1 - Deku door to Dodongo")
     test2(game, out / "KaeGae Map Test 2 - Box room")
     n3 = minecraft(game, out / "KaeGae Map Test 3 - Minecraft small", a.glb, 24, "Test 3")
