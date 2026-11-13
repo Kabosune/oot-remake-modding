@@ -206,6 +206,14 @@ but not 1,425, so the game drops the chest.
 |---|---|---|
 | B25. Minecraft cut, bigger heap | B24 (same pack) plus the chest's `InstanceHeapSize` raised by 2 MiB | Chest back and the map solid: the heap was it (then find how much a box needs). Still no chest: something else (the size of the shape file, 421 KB) |
 
+Result of B25: **still no chest.** So not the heap (or 2 MiB isn't enough). B23 (worked) and B24 / B25 differ in the
+number of boxes (400 vs 1,425, with a shape file 3.5 times bigger) and in reach: the cut spans 48 x 48 m, from 6 m up
+to 43 m down (it includes the map's underground); B23 about 22 x 20 x 5 m.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B26. Slab as 1,425 tiles | B11's 3 x 3 m slab cut into 1,425 tiles (57 x 25) on the closed chest's body, heap + 2 MiB as B25 | Chest there: the count is fine and the cut's reach / depth was it (then trim the map's underground, or split it over several hosts). No chest: the count or the file size (then halve, ~800) |
+
 ## Building
 
 ```
