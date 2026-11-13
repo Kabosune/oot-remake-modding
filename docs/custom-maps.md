@@ -39,12 +39,16 @@ The most used geometry pieces in the Dynamic file: `Land_Deku_CaveProp_B_09` (16
 
 1. **Send a door somewhere else.** Change `NextBancParamName*` / `NextStartPosName` on the
    `FieldAndDungeonEntranceEventRequestActor` in `KokiriForest_Child_Static`, or hook the scene change in Core.
-   Needs a BYML writer that can change strings (`zsmod.py` can't).
+   [`tools/byml.py`](../tools/byml.py) rewrites whole BYML files (strings, added or removed actors), keeping each
+   value's type; it reads and rewrites every placement file tried with the same values.
 2. **Your own layout from the game's pieces.** Rewrite a scene's placement: remove, move and add `Land_*` actors.
    No new formats.
-3. **Collision without Havok, for blocky maps.** A voxel map can be turned into a few hundred boxes and placed as
-   scaled box actors (`FldObj_AirWall_Common_Cube` takes `Scale`). Untested: whether Link can stand on air walls, or
-   which box actor is solid ground.
+3. **Collision without Havok.** A `Phive/ShapeParam/*.bgyml` can describe its shape as primitives instead of a Havok
+   mesh: `Box` (`HalfExtents`, `OffsetTranslation`, `Center`, `MaterialPresets`) and `Polytope` (convex shapes) were
+   seen (`FldObj_AirWall_Common_Cube`, `Obj_TBox_A_02`). So a block map's collision can be a list of boxes in one
+   actor's ShapeParam, with no `.bphsh` at all. Round-1 tests: [mods/custom-map-tests](../mods/custom-map-tests/README.md)
+   put 10, 1,425 and 9,375 boxes into `Land_Deku_TreeRoot_B_01` (layer `GroundHighRes` from its parent
+   `Ptm_DgnObjStatic_01` in `Pack/ResidentCommon.pack.zs`, material preset `Material_Wood`). Untested in game yet.
 4. **Your own model.** A new `Land_*`-style actor: pack + `.bfres` + `.bntx` + `.bphsh`. Needs writers for the
    three formats above; the plan would be to start from an existing piece as a template.
 
@@ -57,3 +61,13 @@ author in anything published). 339,960 triangles, 661,505 vertices, 75 meshes, 7
 see-through), two 1024 x 1024 texture atlases. One block is 1/70 of a unit, so the world is about 171 x 70 x 127
 blocks; scaled x70 (1 block = 1 m) it is about the size of Inside the Deku Tree. Child Link's camera height is 1.17 m
 ([camera.md](camera.md)).
+
+## Placement and size table notes
+
+- An actor in a `.bcett` has `Gyaml` (actor name), `Hash` (u64, also `Phive.Placement.ID`), `SRTHash` (u32),
+  `Translate`, optional `Rotate` (radians), `Scale`, `Dynamic`, `Links`, `Bakeable`, `Presence`, `Name`.
+  The Static file also has `AiGroups`, `FarDeleteGroups`, `SimultaneousGroups`, `PlgGdTable` and
+  `PhiveHeader.PlacementGroups`, which point at actor hashes: the round-1 tests empty them along with the actors.
+- Size table entries for these files are the unpacked size plus about 300 bytes (`InsideTheDekuTree_Static`
+  109,808 → 110,088; `Land_Deku_TreeRoot_B_01.pack` 2,432 → 2,744). `byml.py`'s output is 1–2 % larger than
+  Nintendo's for the same data, so a rewritten file needs its entry raised.
