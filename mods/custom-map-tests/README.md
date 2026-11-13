@@ -257,6 +257,9 @@ its own: 699 + 729 boxes (1,428, three more than in one piece). Three tests, one
 | B31. Minecraft half on one chest | B25 with only the right half of the cut (729 boxes, 731 parts, entry 223,784): grid x 24-47, from the big chest's line 24 m to the right, 1 to 49 m in front, 6 m up to 43 m down | Chest there and that half solid: the map's shapes and reach are fine under the cap |
 | B32. Minecraft cut on two chests | B31 plus the left half (699 boxes, 700 parts, entry 212,696) on the small chest's closed body (B30's setup), both heaps + 2 MiB | Both chests there and the whole cut solid: a map can be spread over several hosts |
 
+Result of B30: **works**: the small chest is there and the bridge is solid out to the landing. So `Obj_TBox_A_01`'s
+closed body hosts collision like A_02's (with its heap + 2 MiB), and B32 can use it.
+
 ## Building
 
 ```
