@@ -117,6 +117,14 @@ only grew it by about 2 m.
 |---|---|---|
 | B13. 400 boxes, own shape file | B12's staircase in a **new** shape file, `Obj_TBox_A_02__KaeGaeMap`, used only by the open chest's body (`Body_Body`); `Body_0` and the sensor unchanged. The new file gets a new size table entry (inserted in hash order) | Open prompt back (then the sensor was the cause), and whether 400 boxes work. Also that a new file in a pack plus a new size table entry works |
 
+Result of B13: **still no Open prompt**, so the shared sensor shape wasn't (the only) cause. The other thing B12 / B13
+change that B11 didn't: the chest's `InstanceHeapSize` (+2 MiB, in a byml.py-rewritten `RSDB/ActorInfo`). B14 drops
+that file.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B14. 400 boxes, game's heap | B13 without the `RSDB/ActorInfo` file (same pack as B13) | Prompt back: the heap raise or the rewritten ActorInfo broke the chest. A crash: the built shape needs a bigger heap (then try a smaller raise). Still no prompt: it's the boxes themselves (where they are, or how many) |
+
 ## Building
 
 ```

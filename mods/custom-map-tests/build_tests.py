@@ -660,7 +660,21 @@ def test_b13(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def test_b14(game, out):
+    """B13 without the RSDB ActorInfo change (no bigger chest heap). B12 and B13 lost the chest's Open prompt; B11,
+    which worked, didn't ship ActorInfo. If this crashes instead, the built shape needs the heap."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, stair_boxes(), presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B14: as B13 (the 400-box staircase in the open chest's own new shape file), but without the",
+               "RSDB ActorInfo file: the chest's InstanceHeapSize stays at the game's 195,616. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b14(game, out / "KaeGae Map Test B14 - 400 boxes, game's heap")
     test_b13(game, out / "KaeGae Map Test B13 - 400 boxes, own shape file")
     test_b12(game, out / "KaeGae Map Test B12 - 400 boxes on a chest")
     test_b11(game, out / "KaeGae Map Test B11 - boxes on a chest, shape entry")
