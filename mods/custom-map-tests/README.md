@@ -227,6 +227,12 @@ Result of B27: **works**: chest there, slab solid. So 802 parts are fine; the li
 |---|---|---|
 | B28. Slab as 1,020 tiles | B26 with 1,020 tiles (34 x 30): 1,022 parts, shape entry 295,544 | Chest there: up to 1,022 parts work (then try just over 1,024). No chest: the limit is between 802 and 1,022, or it's the file size (B27's entry was 234,600) |
 
+Result of B28: **works**: chest there, slab solid. So 1,022 parts are fine.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B29. Slab as 1,029 tiles | B26 with 1,029 tiles (49 x 21): 1,031 parts, shape entry 298,040 (B28's 295,544) | No chest: the limit is 1,024 parts per shape. Chest there: it's higher (between 1,031 and 1,427) |
+
 ## Building
 
 ```

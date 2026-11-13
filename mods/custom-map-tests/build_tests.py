@@ -883,6 +883,7 @@ def test_b26(game, out, nx=57, nz=25, label="B26"):
 
 
 def main_1b(game, out, glb=None):
+    test_b26(game, out / "KaeGae Map Test B29 - slab as 1,029 tiles", 49, 21, "B29")
     test_b26(game, out / "KaeGae Map Test B28 - slab as 1,020 tiles", 34, 30, "B28")
     test_b26(game, out / "KaeGae Map Test B27 - slab as 800 tiles", 40, 20, "B27")
     test_b26(game, out / "KaeGae Map Test B26 - slab as 1,425 tiles")
