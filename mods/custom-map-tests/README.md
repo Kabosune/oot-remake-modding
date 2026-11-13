@@ -41,6 +41,10 @@ tree-root model shows in front of the entrance, but **no collision**. The scene 
 with `Bakeable` is probably expected to be in it and gets no collision of its own. B2: the same actor without
 `Bakeable`, plus an air-wall cube (3 x 1 x 3 m) beside it.
 
+Result of B2: still **no collision** on the tree root without `Bakeable` (the air-wall cube may have landed outside the
+playable area). B3: the tree-root actor set up like an air wall (`PreActorSettingRef` `Anchor` instead of
+`ConstPassive`), and the air-wall cube as a 1 x 1.5 x 1 m post 2 m from the entrance, on the way to the tree.
+
 ## Building
 
 ```

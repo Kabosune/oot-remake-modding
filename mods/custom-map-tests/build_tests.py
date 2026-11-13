@@ -137,7 +137,7 @@ def a_chest(game, pos, yaw=0.0):
     return c
 
 
-def host_pack(game, boxes):
+def host_pack(game, boxes, pre_actor=None):
     """HOST's pack with its collision replaced by `boxes` [(min xyz, max xyz) in metres, actor-local]."""
     sarc = zstool.Sarc(game.raw(HOST_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
@@ -159,6 +159,11 @@ def host_pack(game, boxes):
         } for b in boxes],
     }
     files[HOST_SHAPE] = byml.dumps(shape)
+    if pre_actor:                                  # e.g. Anchor, as the air walls use, instead of ConstPassive
+        ap = f"Actor/{HOST}.engine__actor__ActorParam.bgyml"
+        a = byml.loads(files[ap])
+        a["Components"]["PreActorSettingRef"] = f"?ActorSystem/PreActorSetting/{pre_actor}.game__actor__PreActorSetting.bgyml"
+        files[ap] = byml.dumps(a)
     return zsmod.sarc_pack(files, like=game.raw(HOST_PACK))
 
 
@@ -348,7 +353,22 @@ def test_b2(game, out):
     write_mod(out, files, game, notes)
 
 
+def test_b3(game, out):
+    """B2 with the box actor set up like an air wall (PreActorSetting Anchor), and the air-wall cube moved onto the
+    path to it: a 1 x 1.5 x 1 m post halfway between the entrance and the tree."""
+    dy = game.byml(DEKU_D)
+    sx, sy, sz = SPAWN
+    B = [((-1.5, 0.0, -1.5), (1.5, 1.0, 1.5))]
+    dy["Actors"].append(placed(HOST, (sx, sy, sz - 4)))
+    dy["Actors"].append(placed("FldObj_AirWall_Common_Cube", (sx, sy, sz - 2), scale=(1, 1.5, 1)))
+    files = {DEKU_D: (dy, 3), HOST_PACK: (host_pack(game, B, pre_actor="Anchor"), 4)}
+    notes = ["Test B3: the tree-root actor 4 m in front of the entrance, set up like an air wall (PreActorSetting Anchor),",
+             "3 x 3 x 1 m box collision; an air-wall post (1 x 1.5 x 1 m) halfway to it, 2 m from the entrance."]
+    write_mod(out, files, game, notes)
+
+
 def main_1b(game, out):
+    test_b3(game, out / "KaeGae Map Test B3 - anchor setting, air-wall post")
     test_b2(game, out / "KaeGae Map Test B2 - box without bake, air wall")
     test1(game, out / "KaeGae Map Test A - Deku door to Dodongo")
     test_b(game, out / "KaeGae Map Test B - Deku Tree plus one box")
