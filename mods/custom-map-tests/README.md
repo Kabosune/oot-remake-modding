@@ -264,6 +264,10 @@ Result of B31: **works**: the chest is there and the right half of the cut is so
 reach (24 x 48 m, 6 m up to 43 m down) are fine on a closed chest's body under the part cap; B24 / B25 failed only
 by the count.
 
+Result of B32: **works**: both chests there, the whole 48 x 48 cut solid, loading time normal. The seam between
+the halves can't be seen (the boxes are invisible); nothing odd walking over it. So **a map's collision can be spread
+over several host actors**, each shape under the part cap: the whole map (9,375 boxes) would need about 10.
+
 ## Building
 
 ```

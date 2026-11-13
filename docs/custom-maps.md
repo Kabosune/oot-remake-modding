@@ -69,6 +69,10 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 - **At most about 1,024 parts per shape (B27–B29, 12 Nov):** 1,022 work, 1,031 don't: the actor isn't created at
   all (no crash, nothing in the log). Not the reach (B26: 1,425 tiles in 3 x 3 m) and not the actor heap (B25).
   A map's collision gets split into shapes of up to ~1,000 boxes.
+- **Several hosts work together (B30–B32, 12 Nov):** the 48 x 48 Minecraft cut split into 729 + 699 boxes, one half
+  on the closed body of `Obj_TBox_A_02`, the other on `Obj_TBox_A_01`'s (a second chest type, since chests of one type
+  share a pack): both solid, normal load time. Each half alone also works (B31), so the cut's reach (48 x 48 m, 6 m up
+  to 43 m down) was never the problem.
 - **The closed chest's body works as a host (B22, 12 Nov):** `CloseBody` is a **Static** body the chest builds at
   load (shape `Body_Close` = `Obj_TBox_A_02__Tgt`). Given its own shape file (B19's setup: a new ShapeParam, the
   ControllerSetParam pointing at it, a new size table entry), boxes 15 m from the chest are solid. The open chest's
