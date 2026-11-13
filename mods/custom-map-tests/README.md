@@ -183,6 +183,14 @@ solid without opening.
 |---|---|---|
 | B22. Closed chest, far bridge | **Don't open the chest.** `Body_Close` gets its own shape: its two polytopes, B11's slab, and a 1 m wide bridge (top 0.3 m) from 2 m in front of the chest 15 m into the room, ending in a 3 x 3 m landing | Whether a shape's far parts are solid (walk the bridge), and whether a static body works as the map's host |
 
+Result of B22: **works.** Without opening the chest, B11's slab and the whole bridge (15 m into the room) are solid.
+So a **Static body that an actor builds at load can carry collision far from the actor**; the missing prompt in
+B12–B17 and B21 was only the open chest's prompt logic.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B23. Closed chest, 400-box staircase | **Don't open the chest.** B12's staircase (400 boxes, 20 m wide, up to 5 m) on the closed chest's body, as in B22: 402 parts | Whether more than 256 parts (more than any shape in the game) are solid, and the load time |
+
 ## Building
 
 ```

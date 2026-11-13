@@ -800,7 +800,23 @@ def test_b22(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def test_b23(game, out):
+    """B12's 400-box staircase on the closed chest's body (as B22), from 2 m in front of the chest into the room.
+    B22's bridge was solid 15 m out; this checks 400 boxes (402 parts with the closed chest's 2 polytopes) and the
+    load time."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, stair_boxes(), presets=["Material_Wood_Thick"],
+                                       source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B23: DON'T open the chest. B12's invisible staircase (400 boxes, 20 m wide, 20 steps of 0.25 m up",
+               "to 5 m, from 2 m in front of the chest into the room) on the closed chest's body, as in B22."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b23(game, out / "KaeGae Map Test B23 - closed chest, 400-box staircase")
     test_b22(game, out / "KaeGae Map Test B22 - closed chest, far bridge")
     test_b21(game, out / "KaeGae Map Test B21 - B11 boxes plus a far box")
     test_b20(game, out / "KaeGae Map Test B20 - slab as 240 tiles")

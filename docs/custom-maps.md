@@ -66,6 +66,11 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 - In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;
   **adding** parts crashed in main's BYML object reader (`0x612760`), even with a bigger entry for the pack and a bigger
   `InstanceHeapSize`. Details: [mods/custom-map-tests](../mods/custom-map-tests/README.md).
+- **The closed chest's body works as a host (B22, 12 Nov):** `CloseBody` is a **Static** body the chest builds at
+  load (shape `Body_Close` = `Obj_TBox_A_02__Tgt`). Given its own shape file (B19's setup: a new ShapeParam, the
+  ControllerSetParam pointing at it, a new size table entry), boxes 15 m from the chest are solid. The open chest's
+  body can carry 245 parts close by (B20), but a shape reaching 6+ m away makes the chest lose its Open prompt
+  (B12–B17, B21): a chest-only problem.
 - **Why adding parts crashed (found 12 Nov, confirmed by test B11):** there is no fixed part count. Every file inside a
   pack has **its own** size table entry, and for a `.bgyml` that entry is the memory for the file *and* the object the
   game reads out of it. B5 / B7 / B8 raised the pack's entry, never the ShapeParam's. See the next section.
