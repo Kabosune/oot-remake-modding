@@ -4,6 +4,13 @@ Until API 1.0 anything here may still change. From 0.6 Core runs mods built for 
 version and for older ones back to the oldest it still supports (0.5 for Core 0.6 to 0.8);
 before 0.6 the version had to match exactly.
 
+How the numbers move (from 0.8): **new functions or events for mods raise the middle number**
+(0.9, 0.10, 0.11, ...), because that is the number Core checks before it runs a mod. **Core
+changes that give mods nothing new** (the mod loader, fixes, menu and drawing work) raise the last
+one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mod format, the
+event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
+every feature is in: after 1.0, new Cores never break older mods.
+
 ## Core 0.8, API 0.8: the camera view event (11 November 2026; loads in the game, 12 November)
 
 Only additions: mods built for 0.5 to 0.7 run unchanged. In Fritchii on 12 Nov both hook points
