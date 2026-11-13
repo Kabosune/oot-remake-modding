@@ -104,6 +104,10 @@ raised the pack's entry. The formula is in [docs/custom-maps.md](../../docs/cust
 | B11. Boxes on a chest, shape entry | B7 again (slab and pillar added to the chest's shape), plus the shape file's own size table entry raised (10,824 → 15,560) | Whether the entry was the whole problem: no crash, and both boxes solid once the chest is open |
 | B12. 400 boxes on a chest | 400 boxes added to the chest's shape: an invisible staircase 20 m wide, 20 steps of 0.25 m up to 5 m, starting 2 m in front of the chest and going into the room. Shape entry raised (126,312), chest `InstanceHeapSize` + 2 MiB | Whether more parts than any shape in the game (236) work, and the load time. Run it after B11 |
 
+Result of B11 (12 Nov): **works.** No crash; after opening the chest the pillar (left of the entrance) and the slab
+(right, its edges grabbable) are solid. So the shape's own size table entry was the whole problem: a shape can have
+more parts than it shipped with once its entry is raised.
+
 ## Building
 
 ```

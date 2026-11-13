@@ -66,7 +66,7 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 - In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;
   **adding** parts crashed in main's BYML object reader (`0x612760`), even with a bigger entry for the pack and a bigger
   `InstanceHeapSize`. Details: [mods/custom-map-tests](../mods/custom-map-tests/README.md).
-- **Why adding parts crashed (found 12 Nov, test B11 checks it):** there is no fixed part count. Every file inside a
+- **Why adding parts crashed (found 12 Nov, confirmed by test B11):** there is no fixed part count. Every file inside a
   pack has **its own** size table entry, and for a `.bgyml` that entry is the memory for the file *and* the object the
   game reads out of it. B5 / B7 / B8 raised the pack's entry, never the ShapeParam's. See the next section.
 
@@ -84,6 +84,7 @@ The entry of every ShapeParam that has only primitives (2,478 files in 1.1.1) fo
 |---|---|---|---|---|
 | B5, B7, B8 | 3 boxes + 4 polytopes | ~11,458 | 10,824 | crash |
 | B9 | 3 boxes + 2 polytopes | ~9,534 | 10,824 | works |
+| B11 | 3 boxes + 4 polytopes | ~11,458 | 15,560 (raised) | works |
 
 So a shape can have any number of parts as long as its entry is raised. `build_tests.py`'s `shape_entry()` computes
 it. Biggest entries in the game: `Obj_ForestTemple_FallingCeiling_A_01__Physical` 167,184 (236 polytopes). Rough
