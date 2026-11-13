@@ -208,6 +208,19 @@ hashes for `nn::ro`); existing Switch mod loaders such as Skyline work around it
 on hardware yet (issue #2), so check this as part of that work. Workaround until then, tested in
 the game: link many mods into Core's own module with `kaemod.py --bundle`.
 
+### To do: size table entries from mods, applied in the game (proposed 12 November)
+
+Every file a romfs mod makes bigger needs a bigger resource size table entry, and for a `.bgyml` the entry also
+covers the object the game reads out of it (found with the custom-map tests, [docs/custom-maps.md](../docs/custom-maps.md#size-table-entries-of-shapeparams)).
+Today a mod either ships the whole 1.4 MB table (two such mods overwrite each other) or asks for entries in
+`mod.toml` and the player runs `kaegae build`. Proposed, after the mod loader is tested:
+
+- A hook point `Resource.Size` at `main + 0x1964e4`, right after the game's size table lookup returns the size
+  (`w0`; the path's text at `[x29 + 0x18]`). Core puts in the larger of the game's and a mod's number, never a
+  smaller one; a file no table knows gets the mod's number.
+- Mods ship their requests in their romfs, `romfs/KaeGae/Sizes/<mod id>.txt` (`path size` per line), so a folder
+  copied in by hand brings them along. `kaegae install` writes this file from the `mod.toml` requests.
+
 ### What Core gets without knowing any addresses
 
 By wrapping the game's imports, which are found by name:

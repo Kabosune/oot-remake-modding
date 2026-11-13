@@ -94,6 +94,16 @@ Result of B10: **no collision.** The marker chest ended up tipped over by the wa
 Confirmed: a newly placed static actor gets no collision. (The spot beside the entrance is close to walls on both
 sides: put later test pieces straight ahead, further into the room.)
 
+**Why B5 / B7 / B8 crashed (found 12 Nov, from the size table):** every file inside a pack has its own size table
+entry, and a `.bgyml`'s entry covers the object the game reads out of it. The chest shape's own entry is 10,824; with
+the two added boxes it needs about 11,458 (B9's swap needs about 9,534, which is why it worked). B5 / B7 / B8 only
+raised the pack's entry. The formula is in [docs/custom-maps.md](../../docs/custom-maps.md#size-table-entries-of-shapeparams).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B11. Boxes on a chest, shape entry | B7 again (slab and pillar added to the chest's shape), plus the shape file's own size table entry raised (10,824 → 15,560) | Whether the entry was the whole problem: no crash, and both boxes solid once the chest is open |
+| B12. 400 boxes on a chest | 400 boxes added to the chest's shape: an invisible staircase 20 m wide, 20 steps of 0.25 m up to 5 m, starting 2 m in front of the chest and going into the room. Shape entry raised (126,312), chest `InstanceHeapSize` + 2 MiB | Whether more parts than any shape in the game (236) work, and the load time. Run it after B11 |
+
 ## Building
 
 ```

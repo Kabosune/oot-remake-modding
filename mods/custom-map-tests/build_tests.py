@@ -83,10 +83,29 @@ class Game:
         return zsmod.unzs((self.r / rel).read_bytes(), self.dicts)[0]
 
 
-def write_mod(out, files, game, notes, extra=None):
+PRIMITIVES = ("Box", "Polytope", "Capsule", "Sphere", "Cylinder")
+
+
+def shape_entry(raw):
+    """Size table entry a ShapeParam .bgyml (inside a pack) needs: the file plus its parsed parts. Every file inside a
+    pack has its own entry, and the game's parsed shape has to fit in it (B5 / B7 / B8 crashed for lack of it).
+    Fitted on the 2,478 ShapeParams of 1.1.1 that have only these primitives: mean error 9 bytes, max 183."""
+    shape = byml.loads(raw)
+    parts = {k: shape.get(k) or [] for k in PRIMITIVES}
+    presets = sum(len(p.get("MaterialPresets") or []) for v in parts.values() for p in v)
+    vertices = sum(len(p.get("Vertices") or []) for p in parts["Polytope"])
+    cost = {"Box": 176, "Polytope": 336, "Capsule": 173, "Sphere": 166, "Cylinder": 173}
+    return 5862 + len(raw) + sum(cost[k] * len(v) for k, v in parts.items()) + 8 * presets + 12 * vertices
+
+
+def write_mod(out, files, game, notes, extra=None, entries=None):
     """files: {romfs path: (object or bytes, dict id)} -> out/romfs/..., with a fitted size table.
-    extra: {romfs path: bytes of room on top of the file's size} (default 512)."""
+    extra: {romfs path: bytes of room on top of the file's size} (default 512).
+    entries: {path of a file inside a pack: size table entry it needs} (raised, never lowered)."""
     rstb = Rstb(game.r / RSTB)
+    for rel, size in (entries or {}).items():
+        old, new = rstb.need(rel, size, 0)
+        notes.append(f"{rel}: size table {old} -> {new}")
     for rel, (obj, did) in files.items():
         raw = obj if isinstance(obj, bytes) else byml.dumps(obj)
         old, new = rstb.need(rel, len(raw), (extra or {}).get(rel, 512))
@@ -531,7 +550,54 @@ def test_b10(game, out):
                                              "air-wall cube scaled to a 4 x 4 x 0.6 m platform with a second chest on top marking it."])
 
 
+TBOX_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__Body_0.phive__ShapeParam.bgyml"
+
+
+def tbox_shape_entry(pack):
+    """The chest shape's own size table entry for a changed pack, with 4 KiB of room."""
+    return shape_entry(zstool.Sarc(pack).read(TBOX_SHAPE)) + 4096
+
+
+def test_b11(game, out):
+    """B7 again (slab and pillar added to the chest's shape), with the shape file's own size table entry raised.
+    B5 / B7 / B8 raised only the pack's entry; the shape needs about 11,458 bytes and the game gives it 10,824."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]
+    pack = tbox_with_boxes(game, extra, presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B11: as B7 (3 x 3 x 0.5 m slab on one side, 1 x 2.5 x 1 m pillar on the other, added to the chest's",
+               "shape), plus the shape file's own size table entry raised. Open the chest first."],
+              entries={TBOX_SHAPE: tbox_shape_entry(pack)})
+
+
+def stair_boxes(rows=20, cols=20, step=0.25):
+    """rows x cols 1 x 1 m columns ahead of the chest (-z, into the room), each row one step higher: an invisible
+    staircase cols m wide, rising to rows * step m."""
+    return [((c - cols / 2, 0.0, -2.0 - r - 1), (c - cols / 2 + 1, step * (r + 1), -2.0 - r))
+            for r in range(rows) for c in range(cols)]
+
+
+def test_b12(game, out):
+    """400 boxes in the chest's shape (the game's biggest shape has 236 parts), with the shape's entry raised and
+    the chest's actor heap raised by 2 MiB (room for the built Havok shape; how much it needs isn't known)."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack = tbox_with_boxes(game, stair_boxes(), presets=["Material_Wood_Thick"])
+    files = {DEKU_S: (st, 3), TBOX_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": 195616 + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              ["Test B12: 400 boxes added to the chest's shape: an invisible staircase 20 m wide, 20 steps of",
+               "0.25 m (up to 5 m), starting 2 m in front of the chest, going into the room. The shape's own",
+               "size table entry is raised, and the chest's InstanceHeapSize by 2 MiB. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries={TBOX_SHAPE: tbox_shape_entry(pack)})
+
+
 def main_1b(game, out):
+    test_b12(game, out / "KaeGae Map Test B12 - 400 boxes on a chest")
+    test_b11(game, out / "KaeGae Map Test B11 - boxes on a chest, shape entry")
     test_b10(game, out / "KaeGae Map Test B10 - air-wall platform recheck")
     test_b9(game, out / "KaeGae Map Test B9 - swap chest parts")
     test_b8(game, out / "KaeGae Map Test B8 - boxes on a chest, bigger heap")

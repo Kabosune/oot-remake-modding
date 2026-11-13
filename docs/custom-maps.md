@@ -64,8 +64,40 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 - A newly placed chest (an actor that builds its bodies at load time) works normally.
 - `MotionType` values are murmur3 hashes: `Static` 3498399415, `Dynamic` 3672686866, `Kinematic` 4269567940.
 - In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;
-  **adding** parts crashes in main's BYML object reader (`0x612760`), even with a bigger size table entry and a bigger
+  **adding** parts crashed in main's BYML object reader (`0x612760`), even with a bigger entry for the pack and a bigger
   `InstanceHeapSize`. Details: [mods/custom-map-tests](../mods/custom-map-tests/README.md).
+- **Why adding parts crashed (found 12 Nov, test B11 checks it):** there is no fixed part count. Every file inside a
+  pack has **its own** size table entry, and for a `.bgyml` that entry is the memory for the file *and* the object the
+  game reads out of it. B5 / B7 / B8 raised the pack's entry, never the ShapeParam's. See the next section.
+
+### Size table entries of ShapeParams
+
+The entry of every ShapeParam that has only primitives (2,478 files in 1.1.1) follows this, with a mean error of
+9 bytes (max 183):
+
+    entry ≈ 5,862 + file size + 176 per Box + 336 per Polytope + 173 per Capsule + 166 per Sphere
+            + 173 per Cylinder + 12 per Polytope vertex + 8 per MaterialPresets name
+
+(It predicts the chest's `Obj_TBox_A_02__Body_0` as 10,838; the table has 10,824.) What the tests needed by it:
+
+| Test | Chest shape | Needs | Table gave | Result |
+|---|---|---|---|---|
+| B5, B7, B8 | 3 boxes + 4 polytopes | ~11,458 | 10,824 | crash |
+| B9 | 3 boxes + 2 polytopes | ~9,534 | 10,824 | works |
+
+So a shape can have any number of parts as long as its entry is raised. `build_tests.py`'s `shape_entry()` computes
+it. Biggest entries in the game: `Obj_ForestTemple_FallingCeiling_A_01__Physical` 167,184 (236 polytopes). Rough
+need for the Minecraft test map: about 400 KB (1,425 boxes), 2.6 MB (9,375). Whether the game's heaps take a shape
+that big, and how much the built Havok shape needs from the actor's `InstanceHeapSize`, is still to test (B12: 400).
+
+The size table in `main` (1.1.1, offsets in `main`; the repo's `0x80…` style adds `0x80000000`):
+
+| Where | What |
+|---|---|
+| `0x31f5bf0` | resource system setup: the table's path `System/Resource/ResourceSizeTable.%s.%s.Nin_Ounce_NVN2.rsizetable` |
+| `0x36c3b90` | reads a table: checks `RESTBL`, stores hashed entries (count `+0x8`, pointer `+0x10`) and named ones (`+0x18`, `+0x20`, 0xA4 bytes each: 160-byte name, size at `+0xA0`) |
+| `0x36c3d30` | lookup (leaf, no prologue): `x0` table, `x1` → path string; CRC32 of the path, binary search in the hashed entries, then the named ones. Returns the size, or 0 |
+| `0x196340` | the resource manager's size for a file: builds the path, then calls the lookup on each loaded table (list at `+0x760`, lock at `+0x730`) until one answers. Its only direct call of `0x36c3d30` is at `0x1964e0`; `w0` = size right after it (`0x1964e4`), the path's text at `[x29 + 0x18]` |
 
 ## Test map
 
