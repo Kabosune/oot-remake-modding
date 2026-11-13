@@ -688,7 +688,30 @@ def test_b15(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def side_stair_boxes(rows=20, cols=20, step=0.25, start=4.0):
+    """stair_boxes turned to the chest's +x side, where B11's slab worked: rows x cols 1 x 1 m columns from `start` m
+    beside the chest outwards, each row one step higher, cols m deep (centred on the chest)."""
+    return [((start + r, 0.0, c - cols / 2), (start + r + 1, step * (r + 1), c - cols / 2 + 1))
+            for r in range(rows) for c in range(cols)]
+
+
+def test_b16(game, out):
+    """B15 with the staircase beside the chest (+x, from 4 m out) instead of in front of / behind it. B11's boxes were
+    beside the chest and it kept its Open prompt; B12-B15 had the staircase from 2 m along -z and lost it."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, side_stair_boxes(), presets=["Material_Wood_Thick"], grow_bounds=False)
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B16: as B15 (400 boxes in the open chest's own shape file, the chest's bounds, the game's heap), but",
+               "the staircase is beside the chest: from 4 m out to its +x side (where B11's slab was), 20 m deep,",
+               "rising 0.25 m per 1 m step away from the chest. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b16(game, out / "KaeGae Map Test B16 - 400 boxes beside the chest")
+    test_b15(game, out / "KaeGae Map Test B15 - 400 boxes, chest's bounds")
     test_b14(game, out / "KaeGae Map Test B14 - 400 boxes, game's heap")
     test_b13(game, out / "KaeGae Map Test B13 - 400 boxes, own shape file")
     test_b12(game, out / "KaeGae Map Test B12 - 400 boxes on a chest")

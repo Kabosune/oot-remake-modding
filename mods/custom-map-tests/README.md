@@ -134,6 +134,13 @@ which the prompt may be aimed at.
 |---|---|---|
 | B15. 400 boxes, chest's bounds | B14 with the new shape's `AutoCalc` left as the chest's own | Prompt back: the bounds moved the prompt. Then also: is the staircase solid outside those bounds? |
 
+Result of B15: **still no Open prompt**, so the bounds weren't the cause. Left: where the boxes are (B11's were beside
+the chest, B12–B15's along its -z from 2 m) or how many.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B16. 400 boxes beside the chest | B15 with the staircase on the chest's +x side, from 4 m out (where B11's slab was), 20 m deep, rising away from the chest | Prompt back: the staircase was in the way along -z (the chest's front or its line of sight). No prompt: the number of boxes |
+
 ## Building
 
 ```
