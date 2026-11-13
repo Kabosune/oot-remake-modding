@@ -1232,7 +1232,37 @@ def test_b36(game, out):
               extra={f"Pack/Actor/{name}.pack.zs": 64 * 1024}, entries=entries)
 
 
+def test_b37(game, out, glb):
+    """B32 on flags instead of chests: the Minecraft cut's right half (729 boxes) on KaeGae_MapHost_00 where the big
+    chest stood, the left half (699) on KaeGae_MapHost_01 2 m to its right where the small chest stood (B36's host
+    setup, each heap + 2 MiB). No chests."""
+    rng.seed("B37")
+    names = ["KaeGae_MapHost_00", "KaeGae_MapHost_01"]
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(placed(names[0], (sx, sy, sz - 3)))
+    st["Actors"].append(placed(names[1], (sx + A01_AT, sy, sz - 3)))
+    left, right, size = minecraft_halves(glb, 24, (0.0, 0.0, -24.0), 24)
+    assert len(left) < 1000 and len(right) < 1000
+    files, entries, extra = {DEKU_S: (st, 3)}, {}, {}
+    for name, boxes in ((names[0], right), (names[1], shift(left, -A01_AT))):
+        pack, e = flag_copy(game, name, boxes)
+        files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
+        entries.update(e)
+        extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
+    files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
+    write_mod(out, files, game,
+              [f"Test B37: B32 on flags instead of chests. The Minecraft cut ({len(left) + len(right)} boxes, {size[0]} x {size[1]} x {size[2]} blocks)",
+               f"split at the spawn column: the right half ({len(right)} boxes) on KaeGae_MapHost_00 (a flag where the big chest stood),",
+               f"the left half ({len(left)} boxes) on KaeGae_MapHost_01 (a flag 2 m to its right, where the small chest stood).",
+               "Both are B36's flag copy under new names, heap + 2 MiB. No chests."],
+              extra=extra, entries=entries)
+    return len(left), len(right)
+
+
 def main_1b(game, out, glb=None):
+    if glb:
+        test_b37(game, out / "KaeGae Map Test B37 - Minecraft cut on two flags", glb)
     test_b36(game, out / "KaeGae Map Test B36 - flag copy under a new name")
     test_b35(game, out / "KaeGae Map Test B35 - flag host, far bridge")
     test_b34(game, out / "KaeGae Map Test B34 - second body in the controller")

@@ -309,6 +309,13 @@ table doesn't list the flag.
 |---|---|---|
 | B36. Flag copy under a new name | B35 with the flag as `KaeGae_MapHost_00`: own pack, ActorParam (PhysicsRef), PhysicsParam (ControllerSetPath), ControllerSetParam (shape path) and shape; flag's model, body and controller files reused; new rows in `ActorInfo` (heap + 2 MiB) and `GameActorInfo`; new size table entries | Flag there and bridge solid: new actor names work, so a map gets as many hosts as it needs |
 
+Result of B36: **works**: flag there, slab and bridge solid. So **new actor names work**: a map can have as many hosts
+as it needs, with no chests.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B37. Minecraft cut on two flags | B32 with the two chests replaced by B36-style flags: the right half (729 boxes) on `KaeGae_MapHost_00` where the big chest stood, the left half (699) on `KaeGae_MapHost_01` 2 m to its right; both heaps + 2 MiB | The whole cut solid with no chests: the setup for whole maps (the full map would be about 10 such hosts) |
+
 ## Building
 
 ```
