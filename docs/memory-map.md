@@ -63,7 +63,7 @@ together in game hasn't been tried (its levitate option toggles on L3, like the 
 
 | Site | Used by |
 |---|---|
-| `0x804e5068` | First Person (view) |
+| `0x804e5068` | First Person 1.x (view); KaeGae Core 0.8: hook point `Camera.View` (the same instruction: the two can't be installed together) |
 | `0x82c41720` | First Person (Link position) |
 | `0x804e506c` | FPV Drone (view; runs after First Person's `0x804e5068`) |
 | `0x82c415e0` | FPV Drone (first instruction of the movement update: carrying Link) |

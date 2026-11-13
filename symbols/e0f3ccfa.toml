@@ -26,6 +26,11 @@ site    = 0x2C215E4         # second instruction of the movement update, f_82c41
 slot    = 0
 context = "x0 = actor; runs for every physics actor every frame on the game's thread"
 
+[hookpoint."Camera.View"]
+site    = 0x4C5068          # f_804e48c0, right after a view's matrix is written (ldr x8, [x19, #0x20])
+slot    = 1
+context = "x19 = camera, x20 = view; every view (menus too), mid-function: all registers live"
+
 # ---- functions ----
 
 [function.CctChangePosition]
@@ -400,6 +405,48 @@ type   = "f64[3]"
 [field."View.target"]
 offset = 0x78
 type   = "f64[3]"
+
+[field."View.position"]
+offset = 0x38
+type   = "f32[3]"
+note   = "the eye, float copy (sead LookAtCamera's position)"
+
+[field."View.look_at"]
+offset = 0x44
+type   = "f32[3]"
+note   = "the target, float copy"
+
+[field."View.projection"]
+offset = 0x90
+type   = "embedded"
+note   = "sead PerspectiveProjection: dirty flags +8 / +9, matrix +0xC, device matrix +0x4C"
+source = "sloperina (near, far, fovy and aspect read by them on 1.0.0 and 1.1.1); the flags and matrices from sead's layout, not checked"
+
+[field."View.fovy"]
+offset = 0x130
+type   = "f32"
+note   = "vertical field of view in radians, then sin, cos and tan of half of it"
+source = "sloperina"
+
+[field."View.aspect"]
+offset = 0x140
+type   = "f32"
+source = "sloperina"
+
+# Link's model, for hiding him (the way the OneShotSetModelVisible script command does; First Person 1.x)
+
+[field."Components.model"]
+offset = 0x260
+type   = "ptr"
+
+[field."Model.visible"]
+offset = 0xE5
+type   = "u8"
+
+[field."Model.flags"]
+offset = 0x120
+type   = "u32"
+note   = "bit 11: the model picks up a change of Model.visible"
 
 # Link, from the actor his movement update is handed (docs/structures.md). Core's kae_player_of
 # walks these; a mod asks Core instead of reading them.

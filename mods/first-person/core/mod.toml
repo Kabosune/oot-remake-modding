@@ -1,0 +1,18 @@
+# First Person 2's manifest: a core mod (no patches of its own; it runs on KaeGae Core 0.8 and up).
+# First Person 1.x (the folder above) patches main itself and is the download for real hardware.
+manifest = 1
+
+id       = "kabosune.first-person"
+name     = "First Person"
+version  = "2.0.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.8"
+sources = ["first_person.c"]
+events  = ["frame", "input", "player_move", "view"]

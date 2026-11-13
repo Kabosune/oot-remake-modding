@@ -1,8 +1,43 @@
 # KaeGae changelog
 
 Until API 1.0 anything here may still change. From 0.6 Core runs mods built for its own API
-version and for older ones back to the oldest it still supports (0.5 for Core 0.6 and 0.7);
+version and for older ones back to the oldest it still supports (0.5 for Core 0.6 to 0.8);
 before 0.6 the version had to match exactly.
+
+How the numbers move (from 0.8): **new functions or events for mods raise the middle number**
+(0.9, 0.10, 0.11, ...), because that is the number Core checks before it runs a mod. **Core
+changes that give mods nothing new** (the mod loader, fixes, menu and drawing work) raise the last
+one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mod format, the
+event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
+every feature is in: after 1.0, new Cores never break older mods.
+
+## Core 0.8, API 0.8: the camera view event (11 November 2026; loads in the game, 12 November)
+
+Only additions: mods built for 0.5 to 0.7 run unchanged. In Fritchii on 12 Nov both hook points
+are in place and First Person 2.0 and FPV Drone 2.0 work; whether the FOV setting holds is still to check.
+
+- **`kae_on_view(fn, user, priority)`**: the gameplay camera's view each frame, right after the
+  game has built it and before anything is drawn with it. The `KaeView` has the view matrix (3
+  rows of 4: right, up, back, each with its translation), the eye and look-at point, the vertical
+  field of view and the aspect. Change `matrix` to move or turn the view, `fovy` to zoom: Core puts
+  them back after the last subscriber. Only the gameplay view comes here (menus and previews
+  don't), picked out the way First Person and FPV Drone always did (the view's vtable and camera 0
+  of the camera manager). `kae_has("event.view")`, and `kae_has("view.fovy")` for the field of view.
+- **A second hook point, `Camera.View`**, in `f_804e48c0` right after a view's matrix is written:
+  **the instruction First Person 1.x hooks** (`0x804e5068`). So First Person 1.x and Core 0.8 can't
+  be installed together (`kaegae check` says so); First Person 2 replaces it on Core. FPV Drone
+  1.x hooks the next instruction and still works next to Core. The stub in main keeps x16, x17,
+  x29, x30; Core's entry (`core/view_entry.S`) keeps every other register, the flags, FPCR / FPSR.
+  Each stub now has the `KPHOOK01` tag in front of it.
+- **The field of view** is the view's sead `PerspectiveProjection` (found by sloperinaGZ): Core
+  writes the angle and its half's sine, cosine and tangent, sets the two "dirty" flags so the game
+  works the matrices out again, and scales their x / y scales in case they are read first. The
+  flags and the matrices are from sead's layout, **not checked against main**. If the game sets
+  its own FOV again later in the frame, the change won't hold: the in-game test will tell.
+- New symbol pack fields: `View.position`, `View.look_at`, `View.projection`, `View.fovy`,
+  `View.aspect`, and Link's model (`Components.model`, `Model.visible`, `Model.flags`) for hiding him.
+- Tested on a PC: every register kept across the hook point, only the gameplay view, matrix and
+  FOV written back, First Person 2 and FPV Drone 2 end to end.
 
 ## Core 0.7, API 0.7: keyboard keys (11 November 2026; tested in the game on 12 November)
 
