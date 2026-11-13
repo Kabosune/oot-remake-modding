@@ -815,7 +815,41 @@ def test_b23(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
-def main_1b(game, out):
+def minecraft_cut(glb, radius, at):
+    """The Minecraft map's (2 radius) x (2 radius) block cut around its spawn column, as merged boxes in host-local
+    metres, placed so the spawn column's top sits at `at`."""
+    solid, _ = fill_and_merge(voxels(glb, 70.0))
+    cx, cz, top = spawn_column(solid)
+    x0, z0 = max(cx - radius, 0), max(cz - radius, 0)
+    solid = solid[x0:cx + radius, :, z0:cz + radius]
+    cx, cz = cx - x0, cz - z0
+    off = np.subtract(at, (cx + 0.5, top, cz + 0.5))
+    return [(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in greedy(solid)], solid.shape
+
+
+def test_b24(game, out, glb):
+    """The 48 x 48 block cut of the Minecraft map (1,425 boxes) on the closed chest's body, as B23 (400 boxes,
+    solid). Placed in the normal Deku Tree with the map's spawn column top level with the chest's base, 24 m in front
+    of the chest (into the room): nothing of it rises above the floor within 3 m of the chest. Only the box count
+    changes from B23."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    boxes, size = minecraft_cut(glb, 24, (0.0, 0.0, -24.0))
+    pack, entries = tbox_own_map_shape(game, boxes, presets=["Material_Wood_Thick"],
+                                       source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              [f"Test B24: DON'T open the chest. The Minecraft map's 48 x 48 block cut ({len(boxes)} boxes, {size[0]} x {size[1]} x",
+               f"{size[2]} blocks, 1 block = 1 m) on the closed chest's body, as in B23. Its spawn column's top is level with the",
+               "chest's base, 24 m in front of the chest; the map spans about 1 to 49 m in front of it, as invisible hills and walls in",
+               "and under the room."],
+              extra={TBOX_PACK: 512 * 1024}, entries=entries)
+    return len(boxes)
+
+
+def main_1b(game, out, glb=None):
+    if glb:
+        test_b24(game, out / "KaeGae Map Test B24 - closed chest, Minecraft cut", glb)
     test_b23(game, out / "KaeGae Map Test B23 - closed chest, 400-box staircase")
     test_b22(game, out / "KaeGae Map Test B22 - closed chest, far bridge")
     test_b21(game, out / "KaeGae Map Test B21 - B11 boxes plus a far box")
@@ -853,7 +887,7 @@ def main():
     a = ap.parse_args()
     game, out = Game(a.romfs), Path(a.out)
     if a.round == "1b":
-        main_1b(game, out)
+        main_1b(game, out, a.glb)
         print("built round 1b")
         return
     test1(game, out / "KaeGae Map Test 1 - Deku door to Dodongo")

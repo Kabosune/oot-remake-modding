@@ -191,6 +191,13 @@ B12–B17 and B21 was only the open chest's prompt logic.
 |---|---|---|
 | B23. Closed chest, 400-box staircase | **Don't open the chest.** B12's staircase (400 boxes, 20 m wide, up to 5 m) on the closed chest's body, as in B22: 402 parts | Whether more than 256 parts (more than any shape in the game) are solid, and the load time |
 
+Result of B23: **works**: the whole staircase is solid and reaches far. 400 boxes in one shape, more than any shape
+in the game, with the chest's own heap and no change to `RSDB/ActorInfo`.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B24. Closed chest, Minecraft cut | **Don't open the chest.** The Minecraft map's 48 x 48 block cut (1,425 boxes) on the closed chest's body, as B23. Its spawn column's top is level with the chest's base, 24 m in front of it; the map spans about 1 to 49 m in front of the chest (nothing rises above the floor within 3 m). Shape entry 421,392 | Whether 1,425 boxes load and are solid (invisible hills and block walls in the room), and the load time |
+
 ## Building
 
 ```
