@@ -709,7 +709,24 @@ def test_b16(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def side_stair_test(game, out, cols, label):
+    """B16's staircase beside the chest, 20 steps of `cols` boxes. B16 (400 boxes, 405 parts) lost the Open prompt
+    wherever the boxes went; the biggest shape in the game has 236 parts. B17 / B18 sit just under and over 256."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    boxes = side_stair_boxes(cols=cols)
+    pack, entries = tbox_own_map_shape(game, boxes, presets=["Material_Wood_Thick"], grow_bounds=False)
+    parts = len(boxes) + 5
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              [f"Test {label}: as B16, but {len(boxes)} boxes ({parts} parts in the shape with the chest's own 5): 20 steps of",
+               f"{cols} boxes, from 4 m out on the chest's +x side, {cols} m deep. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    side_stair_test(game, out / "KaeGae Map Test B18 - 260 boxes beside the chest", 13, "B18")
+    side_stair_test(game, out / "KaeGae Map Test B17 - 240 boxes beside the chest", 12, "B17")
     test_b16(game, out / "KaeGae Map Test B16 - 400 boxes beside the chest")
     test_b15(game, out / "KaeGae Map Test B15 - 400 boxes, chest's bounds")
     test_b14(game, out / "KaeGae Map Test B14 - 400 boxes, game's heap")

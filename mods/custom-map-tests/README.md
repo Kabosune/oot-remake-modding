@@ -141,6 +141,15 @@ the chest, B12–B15's along its -z from 2 m) or how many.
 |---|---|---|
 | B16. 400 boxes beside the chest | B15 with the staircase on the chest's +x side, from 4 m out (where B11's slab was), 20 m deep, rising away from the chest | Prompt back: the staircase was in the way along -z (the chest's front or its line of sight). No prompt: the number of boxes |
 
+Result of B16: **still no Open prompt**, so it's not where the boxes are: it's how many. Guess: a limit of 256 parts
+per shape (the biggest shape in the game has 236). Over it, the open body's shape probably fails to build without a
+crash, and the chest's opening logic gives up with it.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B17. 240 boxes beside the chest | B16 with 20 steps of 12 boxes: 245 parts | Prompt back: under the limit works. Then is the staircase solid? |
+| B18. 260 boxes beside the chest | B16 with 20 steps of 13 boxes: 265 parts | With B17: whether the limit sits between 245 and 265 (256 fits) |
+
 ## Building
 
 ```
