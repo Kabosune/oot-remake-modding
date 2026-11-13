@@ -1,0 +1,39 @@
+# Custom map tests (round 1)
+
+Test mods toward custom maps: go into the Deku Tree, arrive somewhere else or in a map of your own.
+Background: [docs/custom-maps.md](../../docs/custom-maps.md). These are romfs mods (no Core needed). They are
+built from your own dump with `build_tests.py`, so nothing from the game is in this repository.
+
+**Turn on one test at a time.** Each one ships its own resource size table, and two tables overwrite each other.
+
+| Test | What it changes | What to look for |
+|---|---|---|
+| 1. Deku door to Dodongo | The Deku Tree's entrance in Kokiri Forest (child) now leads to Dodongo's Cavern, start position `EntrancePos` | Does the scene change happen? Is Link placed at Dodongo's Cavern's entrance? Any odd fade or cutscene? |
+| 2. Box room | Inside the Deku Tree emptied (only spawn points kept). In its place: 10 collision boxes in one actor (a 20 x 20 m floor, 6 steps up to a platform at 3 m, an 8 m pillar, a 1 m wall), a floating air-wall cube, two chests | Does the emptied scene load? Can Link stand and walk on the invisible floor, climb the steps, stand on the air-wall cube? |
+| 3. Minecraft small | Like 2, but the boxes are a 48 x 48 block cut of the Minecraft test map: 1,425 boxes | Can he walk on the terrain? Load time, frame rate |
+| 4. Minecraft full | The whole map, 171 x 70 x 127 blocks: 9,375 boxes | Same, and whether that many boxes is too many |
+
+In 2 to 4 the floor is **invisible**: only the chests (and a tree root model) show. The boxes are the collision of
+`Land_Deku_TreeRoot_B_01`, a Deku Tree piece whose collision these tests replace, placed once at the entrance
+(tests 3 and 4: so the spawn point sits on the top of a block column near the map's middle; 1 block = 1 m).
+If Link falls off, warp out or load a save.
+
+How it works: a collision shape (`Phive/ShapeParam/*.bgyml`) can be a list of plain boxes (`Box`, with
+`HalfExtents` and `OffsetTranslation`) instead of a Havok mesh. Block maps fit that well: the map's visible block
+faces are turned into blocks, closed-off insides filled, and the blocks merged into as few boxes as possible.
+
+## Building
+
+```
+python3 mods/custom-map-tests/build_tests.py --romfs <folder> --glb <map.glb> --out <dir>
+```
+
+`--romfs` is a folder with these files from your own dump, at their romfs paths: `Pack/ZsDic.pack.zs`, the resource
+size table, `Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs`, both `Banc/InsideTheDekuTree/` placement
+files and `Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs`. Needs `pip install zstandard trimesh scipy numpy`.
+
+Test map used: "High quality minecraft world" by SOLDMARS (Sketchfab), CC-BY-4.0. It isn't included here.
+
+## Credits
+
+KaboWabo/Kabosune (me :3), AI assistance (Claude Opus 5.5).

@@ -4,9 +4,10 @@ Until API 1.0 anything here may still change. From 0.6 Core runs mods built for 
 version and for older ones back to the oldest it still supports (0.5 for Core 0.6 to 0.8);
 before 0.6 the version had to match exactly.
 
-## Core 0.8, API 0.8: the camera view event (11 November 2026; not tested in the game yet)
+## Core 0.8, API 0.8: the camera view event (11 November 2026; loads in the game, 12 November)
 
-Only additions: mods built for 0.5 to 0.7 run unchanged. Built on 0.7, also untested in the game.
+Only additions: mods built for 0.5 to 0.7 run unchanged. In Fritchii on 12 Nov both hook points
+are in place and First Person 2.0 and FPV Drone 2.0 work; whether the FOV setting holds is still to check.
 
 - **`kae_on_view(fn, user, priority)`**: the gameplay camera's view each frame, right after the
   game has built it and before anything is drawn with it. The `KaeView` has the view matrix (3
@@ -31,7 +32,7 @@ Only additions: mods built for 0.5 to 0.7 run unchanged. Built on 0.7, also unte
 - Tested on a PC: every register kept across the hook point, only the gameplay view, matrix and
   FOV written back, First Person 2 and FPV Drone 2 end to end.
 
-## Core 0.7, API 0.7: keyboard keys (11 November 2026; not tested in the game yet)
+## Core 0.7, API 0.7: keyboard keys (11 November 2026; tested in the game on 12 November)
 
 Only additions: mods built for 0.5 and 0.6 run unchanged (the first real use of 0.6's rule).
 
@@ -62,8 +63,10 @@ Only additions: mods built for 0.5 and 0.6 run unchanged (the first real use of 
 - Tested on a PC (module tests in an emulated game): keys from the file, a 0.5-style mod (Hello)
   getting its buttons, a 0.7 mod by `kae_binding_held` / `_pressed`, the game not seeing them,
   the switch, a system without keyboard functions, the keyboard never read before it's set up.
+- Tested in the game (Fritchii v5.8.4, game 1.1.1, 12 November): works, with Slopped Up Sloperina
+  0.4.0 on it.
 
-## Slopped Up Sloperina 0.4.0: its shortcuts on Core's page (11 November 2026; not tested in the game yet)
+## Slopped Up Sloperina 0.4.0: its shortcuts on Core's page (11 November 2026; tested in the game on 12 November)
 
 Built for API 0.7, so it needs Core 0.7.
 
@@ -77,6 +80,7 @@ Built for API 0.7, so it needs Core 0.7.
 - Button prompts under its menu, as sloperinaGZ shows them in the game's style: "select L, return
   R + d-pad left, close R + right stick down", from the bindings as they are set: buttons as key
   caps, the d-pad and the sticks as small pictures.
+- Tested in the game (Fritchii v5.8.4, game 1.1.1, on Core 0.7, 12 November): works.
 
 ## Core 0.6, API 0.6 (11 November 2026; tested in the game the same day)
 

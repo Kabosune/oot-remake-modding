@@ -1,5 +1,7 @@
 # Slopped Up Sloperina
 
+**Download: [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip)**, and [KaeGae Core](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip), which it needs (install both; see [Install](#install)).
+
 [sloperinaGZ](https://github.com/PracticeROM/sloperina), PracticeROM's gz-style practice menu for the
 Ocarina of Time remake, running as a mod on [KaeGae Core](../../api/README.md). It's their code
 (release 0.0.4.2), ported: KaeGae Core starts it, runs it every frame, hands it the controller and
@@ -8,10 +10,11 @@ draws for it, so it sits next to other KaeGae mods instead of taking the game's 
 **Licence: GPL-3.0-or-later** ([LICENSE](LICENSE)), because sloperinaGZ is. This folder is the only
 part of the repository under the GPL; KaeGae Core and the other mods stay MIT.
 
-**Status, 11 November 2026: version 0.3.0, the first port. Works in the real game** (Fritchii
-v5.8.4, game 1.1.1, on KaeGae Core 0.6: KaboWabo, 20:46 PT), and its PC emulator test passes (it
-starts on game 1.1.1, opens and draws its menu, hides the controller from the game while the menu is
-open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
+**Status, 12 November 2026: version 0.4.0. Works in the real game** (Fritchii v5.8.4, game 1.1.1,
+on KaeGae Core 0.7), with its shortcuts rebindable on Core's page, keyboard keys and the button
+prompts under its menu. 0.3.0, the first port, worked the same way on Core 0.6 (11 November). Its PC
+emulator test passes too (it starts on game 1.1.1, opens and draws its menu, hides the controller
+from the game while the menu is open). Game version 1.1.1 for now: the mod keeps sloperinaGZ's
 offsets for 1.0.0 too, but KaeGae Core doesn't start mods on a game version it has no symbol pack for,
 and it has none for 1.0.0 yet.
 
@@ -61,8 +64,9 @@ python3 tools/kaegae.py install releases/kaegae-core.zip releases/slopped-up-slo
 ```
 
 or copy both zips' folders into the emulator's mod folder for the game by hand (in Fritchii,
-`%APPDATA%\fritchii\load\0400486024DEC000\`). **Turn sloperinaGZ itself off** while this one is on:
-they're the same menu on the same buttons. It needs no `.ips` of its own.
+`%APPDATA%\fritchii\load\0400486024DEC000\`). It needs no `.ips` of its own. sloperinaGZ itself can
+stay installed (tested: both run and both menus draw, sloperinaGZ's on top), but they're the same
+menu on the same buttons, so it's simplest to turn one of them off.
 
 ## Changes to sloperinaGZ's sources
 
