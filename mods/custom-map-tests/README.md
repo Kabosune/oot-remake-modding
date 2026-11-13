@@ -125,6 +125,15 @@ that file.
 |---|---|---|
 | B14. 400 boxes, game's heap | B13 without the `RSDB/ActorInfo` file (same pack as B13) | Prompt back: the heap raise or the rewritten ActorInfo broke the chest. A crash: the built shape needs a bigger heap (then try a smaller raise). Still no prompt: it's the boxes themselves (where they are, or how many) |
 
+Result of B14: **no crash, still no Open prompt.** So the heap raise wasn't the cause, and 400 boxes fit in the
+chest's own heap (195,616). It's the boxes. B12–B14 also grew the shape's `AutoCalc` bounds over the whole staircase
+(centre about 11 m behind the chest, 2.5 m up); B11 grew them by about 1 m. The open body is the chest's `Main` alias,
+which the prompt may be aimed at.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B15. 400 boxes, chest's bounds | B14 with the new shape's `AutoCalc` left as the chest's own | Prompt back: the bounds moved the prompt. Then also: is the staircase solid outside those bounds? |
+
 ## Building
 
 ```

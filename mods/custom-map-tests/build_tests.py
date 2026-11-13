@@ -615,7 +615,7 @@ MAP_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__KaeGaeMap.phive__ShapeParam.bgyml"
 TBOX_CSP = "Phive/ControllerSetParam/Obj_TBox_A_02.phive__ControllerSetParam.bgyml"
 
 
-def tbox_own_map_shape(game, extra, presets=None):
+def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True):
     """Obj_TBox_A_02's pack where only the open chest's body (Body_Body) gets a shape of its own: the chest's shape
     plus `extra` boxes, in a new file. Body_0 stays as it is for the other user of it, the Tgt sensor (TgtBody):
     B12 put the boxes in Body_0 and the chest lost its Open prompt."""
@@ -632,8 +632,9 @@ def tbox_own_map_shape(game, extra, presets=None):
             b["MaterialPresets"] = list(presets)
         shape["Box"].append(b)
         for i, k in enumerate("XYZ"):
-            ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
-            ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
+            if grow_bounds:
+                ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
+                ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
     files[MAP_SHAPE] = byml.dumps(shape)
     csp = byml.loads(files[TBOX_CSP])
     row = next(r for r in csp["ShapeNamePathAry"] if r["Name"] == "Body_Body")
@@ -670,6 +671,20 @@ def test_b14(game, out):
     write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
               ["Test B14: as B13 (the 400-box staircase in the open chest's own new shape file), but without the",
                "RSDB ActorInfo file: the chest's InstanceHeapSize stays at the game's 195,616. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
+def test_b15(game, out):
+    """B14 with the new shape's AutoCalc (centre, bounds, mass) left as the chest's own. B12-B14 grew its bounds over
+    the whole staircase (centre about 11 m behind the chest, 2.5 m up) and lost the Open prompt; B11 grew them by
+    about 1 m and kept it. The open body is the chest's Main body, which the prompt may be aimed at."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, stair_boxes(), presets=["Material_Wood_Thick"], grow_bounds=False)
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B15: as B14 (the 400-box staircase in the open chest's own new shape file, the game's heap), but",
+               "the new shape's AutoCalc (centre, bounds, mass) is left as the chest's own. Open the chest first."],
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
