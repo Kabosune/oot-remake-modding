@@ -55,6 +55,17 @@ The most used geometry pieces in the Dynamic file: `Land_Deku_CaveProp_B_09` (16
 
 Unknown: which of the bake, culling, navmesh and foliage files a scene can do without.
 
+### Collision: what the round-1 tests showed (12 Nov 2026)
+
+- A newly placed **static** actor (no `MotionType`: tree root, air-wall cube) gets **no collision**, with or without
+  `Bakeable`, with `PreActorSetting` `Anchor`, or with a Kinematic body on that actor type. Static collision most likely
+  comes only from the scene's pre-built `StaticCompoundBody`.
+- A newly placed chest (an actor that builds its bodies at load time) works normally.
+- `MotionType` values are murmur3 hashes: `Static` 3498399415, `Dynamic` 3672686866, `Kinematic` 4269567940.
+- In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;
+  **adding** parts crashes in main's BYML object reader (`0x612760`), even with a bigger size table entry and a bigger
+  `InstanceHeapSize`. Details: [mods/custom-map-tests](../mods/custom-map-tests/README.md).
+
 ## Test map
 
 `test_map.glb` (KaboWabo's pick): "High quality minecraft world" by SOLDMARS on Sketchfab, CC-BY-4.0 (credit the

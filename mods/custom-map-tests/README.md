@@ -77,6 +77,16 @@ through an object that was never allocated). So neither the size table nor the a
 shape's parts. B9: the same number of parts (3 boxes + 2 polytopes instead of 1 + 4: two side walls swapped for the
 slab and the pillar).
 
+Result of B9: **works.** After opening the chest the added boxes are solid, and their edges can be grabbed (no
+`Wall_NoClamber`). So a shape's **number of parts is fixed** (adding one crashes the reader), but each part can be
+changed into any box. Where that number is kept is not known yet (not the size table, not `InstanceHeapSize`,
+not `GameActorInfo`).
+
+Actors whose shapes have the most parts (all 8,373 packs scanned): `Obj_ForestTemple_FallingCeiling_A_01` 236
+(Dynamic + Kinematic bodies), `Obj_ForestTemple_PivotedFloor_A_01` 206, `Obj_DodongoCave_CrackWall_A_02` 81 (Static),
+`Obj_DodongoCave_BrokenStair_A_01` 55 (Kinematic), `Obj_InsideJabu_Jabu_ElevatorLift_A_02` 50. The Minecraft test map
+needs 1,425 boxes (48 x 48 cut) or 9,375 (whole).
+
 ## Building
 
 ```
