@@ -108,6 +108,15 @@ Result of B11 (12 Nov): **works.** No crash; after opening the chest the pillar 
 (right, its edges grabbable) are solid. So the shape's own size table entry was the whole problem: a shape can have
 more parts than it shipped with once its entry is raised.
 
+Result of B12: loads, no crash, the chest is solid, but **no Open prompt**, so the staircase couldn't be checked. Likely
+cause (a guess): `Body_0` is also the shape of the chest's `Tgt` sensor (`Tgt_TgtBody` in its ControllerSetParam),
+which the Open prompt probably goes by; with the boxes in it, that sensor covers the whole 20 x 22 m staircase. B11
+only grew it by about 2 m.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B13. 400 boxes, own shape file | B12's staircase in a **new** shape file, `Obj_TBox_A_02__KaeGaeMap`, used only by the open chest's body (`Body_Body`); `Body_0` and the sensor unchanged. The new file gets a new size table entry (inserted in hash order) | Open prompt back (then the sensor was the cause), and whether 400 boxes work. Also that a new file in a pack plus a new size table entry works |
+
 ## Building
 
 ```

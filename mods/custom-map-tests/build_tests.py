@@ -56,19 +56,35 @@ class Rstb:
         _, n_hashed, _ = struct.unpack_from("<III", self.t, 10)
         self.at = {struct.unpack_from("<I", self.t, 22 + 8 * i)[0]: 22 + 8 * i + 4 for i in range(n_hashed)}
 
+        self.added = {}                      # new hashed entries {crc32: size}, inserted in order on save
+
     def need(self, romfs_path, size, extra=512):
-        """Make sure the entry for romfs_path (with or without .zs) is at least size + extra."""
+        """Make sure the entry for romfs_path (with or without .zs) is at least size + extra. A path the table
+        doesn't have gets a new entry (the hashed entries are sorted by hash; the game binary-searches them)."""
         p = romfs_path[:-3] if romfs_path.endswith(".zs") else romfs_path
-        at = self.at[zlib.crc32(p.encode())]
+        h = zlib.crc32(p.encode())
+        want = (size + extra + 7) & ~7
+        if h not in self.at:
+            self.added[h] = max(self.added.get(h, 0), want)
+            return 0, self.added[h]
+        at = self.at[h]
         old = struct.unpack_from("<I", self.t, at)[0]
-        new = max(old, (size + extra + 7) & ~7)
+        new = max(old, want)
         struct.pack_into("<I", self.t, at, new)
         return old, new
 
     def save(self, path):
         import zstandard
+        t = self.t
+        if self.added:
+            _, n_hashed, n_named = struct.unpack_from("<III", t, 10)
+            end = 22 + 8 * n_hashed
+            rows = [struct.unpack_from("<II", t, 22 + 8 * i) for i in range(n_hashed)]
+            rows = sorted(rows + list(self.added.items()))
+            t = bytearray(t[:22]) + b"".join(struct.pack("<II", h, s) for h, s in rows) + t[end:]
+            struct.pack_into("<I", t, 14, len(rows))
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(zstandard.ZstdCompressor(level=19, write_content_size=True).compress(bytes(self.t)))
+        path.write_bytes(zstandard.ZstdCompressor(level=19, write_content_size=True).compress(bytes(t)))
 
 
 class Game:
@@ -595,7 +611,57 @@ def test_b12(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries={TBOX_SHAPE: tbox_shape_entry(pack)})
 
 
+MAP_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__KaeGaeMap.phive__ShapeParam.bgyml"
+TBOX_CSP = "Phive/ControllerSetParam/Obj_TBox_A_02.phive__ControllerSetParam.bgyml"
+
+
+def tbox_own_map_shape(game, extra, presets=None):
+    """Obj_TBox_A_02's pack where only the open chest's body (Body_Body) gets a shape of its own: the chest's shape
+    plus `extra` boxes, in a new file. Body_0 stays as it is for the other user of it, the Tgt sensor (TgtBody):
+    B12 put the boxes in Body_0 and the chest lost its Open prompt."""
+    sarc = zstool.Sarc(game.raw(TBOX_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    shape = byml.loads(files[TBOX_SHAPE])
+    proto, ac = shape["Box"][0], shape["AutoCalc"]
+    for lo, hi in extra:
+        b = copy.deepcopy(proto)
+        b["Center"] = f3(0, 0, 0)
+        b["HalfExtents"] = f3(*(np.subtract(hi, lo) / 2))
+        b["OffsetTranslation"] = f3(*(np.add(lo, hi) / 2))
+        if presets is not None:
+            b["MaterialPresets"] = list(presets)
+        shape["Box"].append(b)
+        for i, k in enumerate("XYZ"):
+            ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
+            ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
+    files[MAP_SHAPE] = byml.dumps(shape)
+    csp = byml.loads(files[TBOX_CSP])
+    row = next(r for r in csp["ShapeNamePathAry"] if r["Name"] == "Body_Body")
+    row["FilePath"] = "Work/" + MAP_SHAPE[:-len(".bgyml")] + ".gyml"
+    files[TBOX_CSP] = byml.dumps(csp)
+    pack = zsmod.sarc_pack(files, like=game.raw(TBOX_PACK))
+    entries = {MAP_SHAPE: shape_entry(files[MAP_SHAPE]) + 4096, TBOX_CSP: len(files[TBOX_CSP]) + 8 * 1024 + 2048}
+    return pack, entries
+
+
+def test_b13(game, out):
+    """B12's 400-box staircase, in a shape file of its own that only the open chest's body uses."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    pack, entries = tbox_own_map_shape(game, stair_boxes(), presets=["Material_Wood_Thick"])
+    files = {DEKU_S: (st, 3), TBOX_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": 195616 + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              ["Test B13: B12's invisible staircase (400 boxes, 20 m wide, 20 steps of 0.25 m up to 5 m, from 2 m in",
+               "front of the chest into the room), but in a new shape file that only the open chest's body uses; the",
+               "chest's own shape (also used by its Tgt sensor) is unchanged. New size table entry for the new file.",
+               "Chest InstanceHeapSize + 2 MiB as in B12. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b13(game, out / "KaeGae Map Test B13 - 400 boxes, own shape file")
     test_b12(game, out / "KaeGae Map Test B12 - 400 boxes on a chest")
     test_b11(game, out / "KaeGae Map Test B11 - boxes on a chest, shape entry")
     test_b10(game, out / "KaeGae Map Test B10 - air-wall platform recheck")
