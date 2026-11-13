@@ -10,6 +10,7 @@
     Banc/InsideTheDekuTree/InsideTheDekuTree_Static.bcett.byml.zs
     Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs
     Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs
+    Pack/Actor/Obj_TBox_A_02.pack.zs
 
 Needs: pip install zstandard trimesh scipy numpy
 """
@@ -137,7 +138,11 @@ def a_chest(game, pos, yaw=0.0):
     return c
 
 
-def host_pack(game, boxes, pre_actor=None):
+TBOX_PACK = "Pack/Actor/Obj_TBox_A_02.pack.zs"
+KINEMATIC_BODY = f"Phive/RigidBodyEntityParam/{HOST}_Kinematic.phive__RigidBodyEntityParam.bgyml"
+
+
+def host_pack(game, boxes, pre_actor=None, kinematic=False):
     """HOST's pack with its collision replaced by `boxes` [(min xyz, max xyz) in metres, actor-local]."""
     sarc = zstool.Sarc(game.raw(HOST_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
@@ -164,6 +169,17 @@ def host_pack(game, boxes, pre_actor=None):
         a = byml.loads(files[ap])
         a["Components"]["PreActorSettingRef"] = f"?ActorSystem/PreActorSetting/{pre_actor}.game__actor__PreActorSetting.bgyml"
         files[ap] = byml.dumps(a)
+    if kinematic:
+        # Static bodies (no MotionType) come from the scene's pre-built StaticCompoundBody; a chest's main body is
+        # Kinematic (MotionType = murmur3("Kinematic")) and is built when the actor loads. Use the chest body's setup.
+        tbox = zstool.Sarc(game.raw(TBOX_PACK))
+        body = byml.loads(tbox.read("Phive/RigidBodyEntityParam/Obj_TBox_Body_2_Body.phive__RigidBodyEntityParam.bgyml"))
+        body["ShapeName"] = "Physical"
+        files[KINEMATIC_BODY] = byml.dumps(body)
+        cs = f"Phive/ControllerSetParam/{HOST}.phive__ControllerSetParam.bgyml"
+        c = byml.loads(files[cs])
+        c["RigidBodyEntityNamePathAry"] = [{"FilePath": "Work/" + KINEMATIC_BODY.replace(".bgyml", ".gyml"), "Name": "Physical"}]
+        files[cs] = byml.dumps(c)
     return zsmod.sarc_pack(files, like=game.raw(HOST_PACK))
 
 
@@ -367,7 +383,23 @@ def test_b3(game, out):
     write_mod(out, files, game, notes)
 
 
+def test_b4(game, out):
+    """The tree-root actor with a Kinematic body (like a chest's), and a copied chest 2 m from the entrance as a check
+    that a newly placed actor can collide at all."""
+    dy = game.byml(DEKU_D)
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    B = [((-1.5, 0.0, -1.5), (1.5, 1.0, 1.5))]
+    dy["Actors"].append(placed(HOST, (sx, sy, sz - 4)))
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 2)))
+    files = {DEKU_S: (st, 3), DEKU_D: (dy, 3), HOST_PACK: (host_pack(game, B, pre_actor="Anchor", kinematic=True), 4)}
+    notes = ["Test B4: the tree-root actor 4 m in front of the entrance with a Kinematic rigid body (the chest body's",
+             "settings) and 3 x 3 x 1 m box collision; a copy of the compass chest 2 m from the entrance as a check."]
+    write_mod(out, files, game, notes)
+
+
 def main_1b(game, out):
+    test_b4(game, out / "KaeGae Map Test B4 - kinematic body, chest check")
     test_b3(game, out / "KaeGae Map Test B3 - anchor setting, air-wall post")
     test_b2(game, out / "KaeGae Map Test B2 - box without bake, air wall")
     test1(game, out / "KaeGae Map Test A - Deku door to Dodongo")

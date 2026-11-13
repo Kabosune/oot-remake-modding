@@ -45,6 +45,12 @@ Result of B2: still **no collision** on the tree root without `Bakeable` (the ai
 playable area). B3: the tree-root actor set up like an air wall (`PreActorSettingRef` `Anchor` instead of
 `ConstPassive`), and the air-wall cube as a 1 x 1.5 x 1 m post 2 m from the entrance, on the way to the tree.
 
+Result of B3: **nothing collides**, not even the air-wall post. So a newly placed static actor gets no collision at
+all: static bodies (no `MotionType`) most likely come only from the scene's pre-built `StaticCompoundBody`, looked
+up by placement ID. `MotionType` values are murmur3 hashes: `Static` 3498399415, `Dynamic` 3672686866, `Kinematic`
+4269567940. A chest's main body is Kinematic. B4: the tree root with a Kinematic body (the chest body's settings), and
+a copied chest 2 m from the entrance as a check that a new placement can collide at all.
+
 ## Building
 
 ```
