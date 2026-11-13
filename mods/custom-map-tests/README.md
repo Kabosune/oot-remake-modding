@@ -268,6 +268,14 @@ Result of B32: **works**: both chests there, the whole 48 x 48 cut solid, loadin
 the halves can't be seen (the boxes are invisible); nothing odd walking over it. So **a map's collision can be spread
 over several host actors**, each shape under the part cap: the whole map (9,375 boxes) would need about 10.
 
+One chest type per shape would run out of chest types (and fill maps with chests). Next: more than one map body on one
+chest. The chest's ControllerSetParam lists 4 rigid bodies (Cover, Body, CloseBody, AirWall); AirWall has no alias and
+still exists, so every listed body looks built at load.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B33. Second body, far bridge | B22's exact shape (the closed chest's two polytopes, B11's slab, the bridge and landing) on a new, fifth Static body `KaeGaeMap0` (a copy of `CloseBody`'s RigidBodyEntityParam, own shape name, new size table entries); `CloseBody` left vanilla | Bridge solid: an actor builds extra bodies listed in its ControllerSetParam, so one host can carry several map shapes. Chest there but no bridge: only the bodies the chest's code asks for are built |
+
 ## Building
 
 ```

@@ -993,7 +993,73 @@ def test_b32(game, out, glb):
     return len(left), len(right)
 
 
+# ---------------------------------------------------------------- B33 on: more bodies on one chest
+
+TBOX_CLOSE_BODY = "Phive/RigidBodyEntityParam/Obj_TBox_Body_2_Close.phive__RigidBodyEntityParam.bgyml"
+CLOSE_BODY_ENTRY = 5552                                   # its size table entry in 1.1.1 (file 216 bytes)
+
+
+def tbox_extra_bodies(game, bodies, presets=None):
+    """Obj_TBox_A_02's pack with extra Static bodies, each a copy of the closed chest's body (CloseBody) with a shape
+    of its own: bodies = [(name, extra boxes, source shape)]. Each shape is `source` (e.g. the closed chest's two
+    polytopes) plus the boxes, as tbox_own_map_shape makes them. The chest's own bodies are left as they are. Every
+    body listed in the ControllerSetParam looks built at load (the AirWall body has no alias and exists)."""
+    sarc = zstool.Sarc(game.raw(TBOX_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    proto = byml.loads(files[TBOX_SHAPE])["Box"][0]
+    csp = byml.loads(files[TBOX_CSP])
+    entries = {}
+    for name, extra, source in bodies:
+        shape = byml.loads(files[source])
+        ac = shape["AutoCalc"]
+        shape.setdefault("Box", [])
+        for lo, hi in extra:
+            b = copy.deepcopy(proto)
+            b["Center"] = f3(0, 0, 0)
+            b["HalfExtents"] = f3(*(np.subtract(hi, lo) / 2))
+            b["OffsetTranslation"] = f3(*(np.add(lo, hi) / 2))
+            if presets is not None:
+                b["MaterialPresets"] = list(presets)
+            shape["Box"].append(b)
+            for i, k in enumerate("XYZ"):
+                ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
+                ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
+        shape_p = f"Phive/ShapeParam/Obj_TBox_A_02__{name}.phive__ShapeParam.bgyml"
+        body_p = f"Phive/RigidBodyEntityParam/Obj_TBox_A_02_{name}.phive__RigidBodyEntityParam.bgyml"
+        files[shape_p] = byml.dumps(shape)
+        body = byml.loads(files[TBOX_CLOSE_BODY])
+        body["ShapeName"] = name
+        files[body_p] = byml.dumps(body)
+        csp["RigidBodyEntityNamePathAry"].append({"FilePath": "Work/" + body_p[:-len(".bgyml")] + ".gyml", "Name": name})
+        csp["ShapeNamePathAry"].append({"FilePath": "Work/" + shape_p[:-len(".bgyml")] + ".gyml", "Name": name})
+        entries[shape_p] = shape_entry(files[shape_p]) + 4096
+        entries[body_p] = CLOSE_BODY_ENTRY + len(files[body_p]) - len(files[TBOX_CLOSE_BODY]) + 1024
+    files[TBOX_CSP] = byml.dumps(csp)
+    entries[TBOX_CSP] = len(files[TBOX_CSP]) + 8 * 1024 + 2048
+    return zsmod.sarc_pack(files, like=game.raw(TBOX_PACK)), entries
+
+
+def test_b33(game, out):
+    """Control for more than one map body on one chest: B22's shape (the closed chest's two polytopes, B11's slab,
+    the 15 m bridge and landing) on a NEW fifth Static body, KaeGaeMap0, a copy of CloseBody. The chest's own
+    CloseBody is left vanilla. Only change from B22: which body carries the shape."""
+    rng.seed("B33")
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),            # B22's boxes, exactly
+             ((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]
+    pack, entries = tbox_extra_bodies(game, [("KaeGaeMap0", extra, TBOX_CLOSE_SHAPE)], presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B33: DON'T open the chest. As B22 (B11's slab beside the chest, a 1 m wide invisible bridge from 2 m in front",
+               "of it 15 m into the room, a 3 x 3 m landing), but the shape is on a new, fifth Static body of the chest (KaeGaeMap0,",
+               "a copy of the closed chest's body); the closed chest's own body is unchanged."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out, glb=None):
+    test_b33(game, out / "KaeGae Map Test B33 - second body, far bridge")
     if glb:
         test_b32(game, out / "KaeGae Map Test B32 - Minecraft cut on two chests", glb)
         test_b31(game, out / "KaeGae Map Test B31 - Minecraft half on one chest", glb)
