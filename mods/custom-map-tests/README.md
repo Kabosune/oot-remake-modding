@@ -214,6 +214,13 @@ to 43 m down (it includes the map's underground); B23 about 22 x 20 x 5 m.
 |---|---|---|
 | B26. Slab as 1,425 tiles | B11's 3 x 3 m slab cut into 1,425 tiles (57 x 25) on the closed chest's body, heap + 2 MiB as B25 | Chest there: the count is fine and the cut's reach / depth was it (then trim the map's underground, or split it over several hosts). No chest: the count or the file size (then halve, ~800) |
 
+Result of B26: **no chest.** So it's the number of parts (or the file size that grows with it), not the reach:
+402 parts work (B23), 1,427 don't.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B27. Slab as 800 tiles | B26 with 800 tiles (40 x 20): shape entry 234,600 | Which half the limit is in (402–802 or 802–1,427) |
+
 ## Building
 
 ```

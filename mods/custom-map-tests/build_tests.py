@@ -864,25 +864,26 @@ def test_b25(game, out, glb):
               extra={TBOX_PACK: 512 * 1024}, entries=entries)
 
 
-def test_b26(game, out):
+def test_b26(game, out, nx=57, nz=25, label="B26"):
     """B25's box count (1,425) and heap raise, but in B11's 3 x 3 m footprint: B11's slab cut into 57 x 25 tiles, on
     the closed chest's body. B24 / B25 (the Minecraft cut: 48 x 48 m, 6 m up to 43 m down) had no chest at all; B23
     (400 boxes, about 22 x 20 x 5 m) worked. Tells the count / file size apart from the reach."""
     st = game.byml(DEKU_S)
     sx, sy, sz = SPAWN
     st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
-    boxes = tiled_slab(57, 25)
+    boxes = tiled_slab(nx, nz)
     pack, entries = tbox_own_map_shape(game, boxes, presets=["Material_Wood_Thick"],
                                        source=TBOX_CLOSE_SHAPE, body="Body_Close")
     files = {DEKU_S: (st, 3), TBOX_PACK: (pack, 4),
              ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": 195616 + 2 * 1024 * 1024}), None)}
     write_mod(out, files, game,
-              [f"Test B26: DON'T open the chest. B11's 3 x 3 x 0.5 m slab beside the chest, cut into {len(boxes)} tiles (57 x 25),",
+              [f"Test {label}: DON'T open the chest. B11's 3 x 3 x 0.5 m slab beside the chest, cut into {len(boxes)} tiles ({nx} x {nz}),",
                "on the closed chest's body; chest InstanceHeapSize + 2 MiB, as in B25."],
               extra={TBOX_PACK: 512 * 1024}, entries=entries)
 
 
 def main_1b(game, out, glb=None):
+    test_b26(game, out / "KaeGae Map Test B27 - slab as 800 tiles", 40, 20, "B27")
     test_b26(game, out / "KaeGae Map Test B26 - slab as 1,425 tiles")
     if glb:
         test_b25(game, out / "KaeGae Map Test B25 - Minecraft cut, bigger heap", glb)
