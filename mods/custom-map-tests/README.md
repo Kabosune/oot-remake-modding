@@ -245,6 +245,18 @@ differ by 1 %). Over it, the game doesn't create the actor at all, with nothing 
 A map's collision gets split into shapes of at most ~1,000 boxes: the 1,425-box Minecraft cut needs 2, the whole map
 (9,375) about 10.
 
+Next: the Minecraft cut in two halves on two bodies. Chests of one type share one pack (and so one shape), so the
+second half goes on a second chest type, `Obj_TBox_A_01` (the small chest; the Deku Tree has one, with Deku nuts).
+Its pack is set up like A_02's: a Static `CloseBody` whose shape `Body_Close` is `Obj_TBox_A_01__Tgt` (one polytope),
+its own ControllerSetParam, `InstanceHeapSize` 178,704. Split at the spawn column (grid x 24), each half greedied on
+its own: 699 + 729 boxes (1,428, three more than in one piece). Three tests, one change each:
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B30. Small chest, far bridge | Control for A_01: B22's bridge and landing (no slab) on A_01's closed body, A_01 heap + 2 MiB; the small chest 3 m in front of the entrance, 2 m to the right (where B32 puts it). No big chest | Small chest there and the bridge solid 15 m out: A_01 hosts like A_02 (then B32 can use it) |
+| B31. Minecraft half on one chest | B25 with only the right half of the cut (729 boxes, 731 parts, entry 223,784): grid x 24-47, from the big chest's line 24 m to the right, 1 to 49 m in front, 6 m up to 43 m down | Chest there and that half solid: the map's shapes and reach are fine under the cap |
+| B32. Minecraft cut on two chests | B31 plus the left half (699 boxes, 700 parts, entry 212,696) on the small chest's closed body (B30's setup), both heaps + 2 MiB | Both chests there and the whole cut solid: a map can be spread over several hosts |
+
 ## Building
 
 ```
@@ -253,7 +265,8 @@ python3 mods/custom-map-tests/build_tests.py --romfs <folder> --glb <map.glb> --
 
 `--romfs` is a folder with these files from your own dump, at their romfs paths: `Pack/ZsDic.pack.zs`, the resource
 size table, `Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs`, both `Banc/InsideTheDekuTree/` placement
-files and `Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs`. Needs `pip install zstandard trimesh scipy numpy`.
+files, `Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs`, `Pack/Actor/Obj_TBox_A_02.pack.zs`, `Pack/Actor/Obj_TBox_A_01.pack.zs`
+and `RSDB/ActorInfo.Product.111.rstbl.byml.zs`. Needs `pip install zstandard trimesh scipy numpy`.
 
 Test map used: "High quality minecraft world" by SOLDMARS (Sketchfab), CC-BY-4.0. It isn't included here.
 

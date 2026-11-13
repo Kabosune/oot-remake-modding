@@ -11,6 +11,7 @@
     Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs
     Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs
     Pack/Actor/Obj_TBox_A_02.pack.zs
+    Pack/Actor/Obj_TBox_A_01.pack.zs (B30 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -161,11 +162,15 @@ def emptied_deku(game):
     return st, dy
 
 
-def a_chest(game, pos, yaw=0.0):
-    """A copy of the Deku Tree's compass chest, moved (a landmark you can see)."""
+def a_chest(game, pos, yaw=0.0, gyaml="Obj_TBox_A_02"):
+    """A copy of the Deku Tree's compass chest, moved (a landmark you can see). Another gyaml: a copy of the Deku
+    Tree's first chest of that type (Obj_TBox_A_01: the small Deku nut chest), with the compass chest's room index."""
     st = game.byml(DEKU_S)
-    src = next(a for a in st["Actors"] if a["Gyaml"] == "Obj_TBox_A_02" and a.get("Dynamic", {}).get("Drop__DropActor") == "Item_Dungeon_Compass")
+    compass = next(a for a in st["Actors"] if a["Gyaml"] == "Obj_TBox_A_02" and a.get("Dynamic", {}).get("Drop__DropActor") == "Item_Dungeon_Compass")
+    src = compass if gyaml == "Obj_TBox_A_02" else next(a for a in st["Actors"] if a["Gyaml"] == gyaml)
     c = copy.deepcopy(src)
+    if src is not compass:
+        c["Dynamic"]["DefaultDungeonRoomIndex"] = copy.deepcopy(compass["Dynamic"]["DefaultDungeonRoomIndex"])
     h = new_hash()
     c["Hash"], c["Phive"] = h, {"Placement": {"ID": h}}
     c["SRTHash"] = byml.U32(rng.getrandbits(32))
@@ -615,14 +620,18 @@ MAP_SHAPE = "Phive/ShapeParam/Obj_TBox_A_02__KaeGaeMap.phive__ShapeParam.bgyml"
 TBOX_CSP = "Phive/ControllerSetParam/Obj_TBox_A_02.phive__ControllerSetParam.bgyml"
 
 
-def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True, source=None, body="Body_Body"):
+def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True, source=None, body="Body_Body", chest="Obj_TBox_A_02"):
     """Obj_TBox_A_02's pack where only the open chest's body (Body_Body) gets a shape of its own: the chest's shape
     plus `extra` boxes, in a new file. Body_0 stays as it is for the other user of it, the Tgt sensor (TgtBody):
-    B12 put the boxes in Body_0 and the chest lost its Open prompt."""
-    sarc = zstool.Sarc(game.raw(TBOX_PACK))
+    B12 put the boxes in Body_0 and the chest lost its Open prompt. `chest`: another chest type's pack (B30 on:
+    Obj_TBox_A_01, whose closed body is set up the same way); the added boxes are always copies of A_02's box."""
+    pack_p = f"Pack/Actor/{chest}.pack.zs"
+    csp_p = f"Phive/ControllerSetParam/{chest}.phive__ControllerSetParam.bgyml"
+    map_p = f"Phive/ShapeParam/{chest}__KaeGaeMap.phive__ShapeParam.bgyml"
+    sarc = zstool.Sarc(game.raw(pack_p))
     files = {n: sarc.read(n) for n in sarc.names()}
     shape = byml.loads(files[source or TBOX_SHAPE])
-    proto, ac = byml.loads(files[TBOX_SHAPE])["Box"][0], shape["AutoCalc"]
+    proto, ac = byml.loads(zstool.Sarc(game.raw(TBOX_PACK)).read(TBOX_SHAPE))["Box"][0], shape["AutoCalc"]
     shape.setdefault("Box", [])
     for lo, hi in extra:
         b = copy.deepcopy(proto)
@@ -636,13 +645,13 @@ def tbox_own_map_shape(game, extra, presets=None, grow_bounds=True, source=None,
             if grow_bounds:
                 ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
                 ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
-    files[MAP_SHAPE] = byml.dumps(shape)
-    csp = byml.loads(files[TBOX_CSP])
+    files[map_p] = byml.dumps(shape)
+    csp = byml.loads(files[csp_p])
     row = next(r for r in csp["ShapeNamePathAry"] if r["Name"] == body)
-    row["FilePath"] = "Work/" + MAP_SHAPE[:-len(".bgyml")] + ".gyml"
-    files[TBOX_CSP] = byml.dumps(csp)
-    pack = zsmod.sarc_pack(files, like=game.raw(TBOX_PACK))
-    entries = {MAP_SHAPE: shape_entry(files[MAP_SHAPE]) + 4096, TBOX_CSP: len(files[TBOX_CSP]) + 8 * 1024 + 2048}
+    row["FilePath"] = "Work/" + map_p[:-len(".bgyml")] + ".gyml"
+    files[csp_p] = byml.dumps(csp)
+    pack = zsmod.sarc_pack(files, like=game.raw(pack_p))
+    entries = {map_p: shape_entry(files[map_p]) + 4096, csp_p: len(files[csp_p]) + 8 * 1024 + 2048}
     return pack, entries
 
 
@@ -882,7 +891,113 @@ def test_b26(game, out, nx=57, nz=25, label="B26"):
               extra={TBOX_PACK: 512 * 1024}, entries=entries)
 
 
+# ---------------------------------------------------------------- B30-B32: the Minecraft cut over two chests
+
+A01 = "Obj_TBox_A_01"
+A01_PACK = f"Pack/Actor/{A01}.pack.zs"
+A01_CLOSE_SHAPE = f"Phive/ShapeParam/{A01}__Tgt.phive__ShapeParam.bgyml"   # A_01's Body_Close (1 polytope)
+A01_HEAP, A02_HEAP = 178704, 195616                                          # their InstanceHeapSize in 1.1.1
+A01_AT = 2.0                                                                 # A_01 sits 2 m right of A_02
+
+
+def minecraft_halves(glb, radius, at, split):
+    """minecraft_cut, split at grid column x = split into two shapes greedied on their own: (left, right, size).
+    With radius 24 and split 24 (the spawn column's x): 699 + 729 boxes."""
+    solid, _ = fill_and_merge(voxels(glb, 70.0))
+    cx, cz, top = spawn_column(solid)
+    x0, z0 = max(cx - radius, 0), max(cz - radius, 0)
+    solid = solid[x0:cx + radius, :, z0:cz + radius]
+    cx, cz = cx - x0, cz - z0
+    off = np.subtract(at, (cx + 0.5, top, cz + 0.5))
+    halves = []
+    for keep in (slice(0, split), slice(split, None)):
+        s = np.zeros_like(solid)
+        s[keep] = solid[keep]
+        halves.append([(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in greedy(s)])
+    return halves[0], halves[1], solid.shape
+
+
+def shift(boxes, dx):
+    return [((lo[0] + dx, lo[1], lo[2]), (hi[0] + dx, hi[1], hi[2])) for lo, hi in boxes]
+
+
+def test_b30(game, out):
+    """Control for the second chest type: B22's bridge and landing (no slab) on Obj_TBox_A_01's closed body
+    (CloseBody, Static, shape Body_Close = Obj_TBox_A_01__Tgt), A_01 heap + 2 MiB as B26-B29. The A_01 chest sits
+    where B32 puts it, 2 m right of the usual chest spot. Nothing else in the scene changes."""
+    rng.seed("B30")
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx + A01_AT, sy, sz - 3), gyaml=A01))
+    extra = [((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),         # B22's 1 m wide bridge, top 0.3 m, into the room
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]        # B22's 3 x 3 m landing at its end
+    pack, entries = tbox_own_map_shape(game, extra, presets=["Material_Wood_Thick"],
+                                       source=A01_CLOSE_SHAPE, body="Body_Close", chest=A01)
+    files = {DEKU_S: (st, 3), A01_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {A01: A01_HEAP + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              ["Test B30: DON'T open the chests. Control for a second chest type: a small chest (Obj_TBox_A_01, a copy of the",
+               "Deku Tree's Deku nut chest) 3 m in front of the entrance, 2 m to the right. Its closed body gets a shape of",
+               "its own: its polytope plus B22's 1 m wide invisible bridge (top 0.3 m) from 2 m in front of it 15 m into the",
+               "room, ending in a 3 x 3 m landing. A_01 InstanceHeapSize + 2 MiB."],
+              extra={A01_PACK: 64 * 1024}, entries=entries)
+
+
+def test_b31(game, out, glb):
+    """Half of B24's Minecraft cut (the right half, grid x 24-47, with the spawn column: 729 boxes, 731 parts) on
+    the closed A_02 chest's body, heap + 2 MiB as B25 / B28. Only change from B25: half the boxes. Tells whether the
+    map's own shapes and reach (24 x 48 m, 6 m up to 43 m down) are fine under the part cap."""
+    rng.seed("B31")
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    _, right, size = minecraft_halves(glb, 24, (0.0, 0.0, -24.0), 24)
+    assert len(right) < 1000
+    pack, entries = tbox_own_map_shape(game, right, presets=["Material_Wood_Thick"],
+                                       source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    files = {DEKU_S: (st, 3), TBOX_PACK: (pack, 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": A02_HEAP + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              [f"Test B31: DON'T open the chest. The right half of B24's Minecraft cut ({len(right)} boxes: grid x 24-47 of",
+               f"{size[0]} x {size[1]} x {size[2]} blocks, with the spawn column) on the closed chest's body; heap + 2 MiB as B25.",
+               "The spawn column's top is level with the chest's base, 24 m in front of it. The half spans from the chest's",
+               "line about 24 m to the right, and 1 to 49 m in front."],
+              extra={TBOX_PACK: 512 * 1024}, entries=entries)
+    return len(right)
+
+
+def test_b32(game, out, glb):
+    """The whole Minecraft cut over two chest types: B31's right half (729 boxes) on A_02's closed body and the
+    left half (699 boxes) on A_01's closed body (B30's setup), the A_01 chest 2 m right of the A_02 one. Both heaps
+    + 2 MiB. Chests of one type share a pack, so the two halves need two types."""
+    rng.seed("B32")
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    st["Actors"].append(a_chest(game, (sx + A01_AT, sy, sz - 3), gyaml=A01))
+    left, right, size = minecraft_halves(glb, 24, (0.0, 0.0, -24.0), 24)
+    assert len(left) < 1000 and len(right) < 1000
+    pack2, e2 = tbox_own_map_shape(game, right, presets=["Material_Wood_Thick"],
+                                   source=TBOX_CLOSE_SHAPE, body="Body_Close")
+    pack1, e1 = tbox_own_map_shape(game, shift(left, -A01_AT), presets=["Material_Wood_Thick"],
+                                   source=A01_CLOSE_SHAPE, body="Body_Close", chest=A01)
+    files = {DEKU_S: (st, 3), TBOX_PACK: (pack2, 4), A01_PACK: (pack1, 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": A02_HEAP + 2 * 1024 * 1024,
+                                               A01: A01_HEAP + 2 * 1024 * 1024}), None)}
+    write_mod(out, files, game,
+              [f"Test B32: DON'T open the chests. B24's whole Minecraft cut ({len(left) + len(right)} boxes, {size[0]} x {size[1]} x",
+               f"{size[2]} blocks) split at the spawn column: the right half ({len(right)} boxes) on the big chest's closed body",
+               f"(as B31), the left half ({len(left)} boxes) on a small chest's closed body (Obj_TBox_A_01, as B30), the small",
+               "chest 2 m right of the big one. Both heaps + 2 MiB."],
+              extra={TBOX_PACK: 512 * 1024, A01_PACK: 512 * 1024}, entries={**e1, **e2})
+    return len(left), len(right)
+
+
 def main_1b(game, out, glb=None):
+    if glb:
+        test_b32(game, out / "KaeGae Map Test B32 - Minecraft cut on two chests", glb)
+        test_b31(game, out / "KaeGae Map Test B31 - Minecraft half on one chest", glb)
+    test_b30(game, out / "KaeGae Map Test B30 - small chest, far bridge")
     test_b26(game, out / "KaeGae Map Test B29 - slab as 1,029 tiles", 49, 21, "B29")
     test_b26(game, out / "KaeGae Map Test B28 - slab as 1,020 tiles", 34, 30, "B28")
     test_b26(game, out / "KaeGae Map Test B27 - slab as 800 tiles", 40, 20, "B27")
