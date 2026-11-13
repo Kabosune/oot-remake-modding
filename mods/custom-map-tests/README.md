@@ -51,6 +51,11 @@ up by placement ID. `MotionType` values are murmur3 hashes: `Static` 3498399415,
 4269567940. A chest's main body is Kinematic. B4: the tree root with a Kinematic body (the chest body's settings), and
 a copied chest 2 m from the entrance as a check that a new placement can collide at all.
 
+Result of B4: the copied chest shows up, opens, and comes back when the map reloads; the Kinematic tree root still has
+no collision. B5: two boxes added to the chest's own collision shape (`Obj_TBox_A_02__Body_0`): a 3 x 3 x 0.5 m
+slab on one side and a 1 x 2.5 x 1 m pillar on the other. If those are solid, box shapes work on an actor type that
+builds its collision at load time, and custom maps go on such an actor.
+
 ## Building
 
 ```

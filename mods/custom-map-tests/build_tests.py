@@ -398,7 +398,43 @@ def test_b4(game, out):
     write_mod(out, files, game, notes)
 
 
+def tbox_with_boxes(game, extra):
+    """Obj_TBox_A_02's pack with extra boxes [(min, max), chest-local metres] added to its main body's shape."""
+    sarc = zstool.Sarc(game.raw(TBOX_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    name = "Phive/ShapeParam/Obj_TBox_A_02__Body_0.phive__ShapeParam.bgyml"
+    shape = byml.loads(files[name])
+    proto = shape["Box"][0]
+    ac = shape["AutoCalc"]
+    for lo, hi in extra:
+        b = copy.deepcopy(proto)
+        b["Center"] = f3(0, 0, 0)
+        b["HalfExtents"] = f3(*(np.subtract(hi, lo) / 2))
+        b["OffsetTranslation"] = f3(*(np.add(lo, hi) / 2))
+        shape["Box"].append(b)
+        for i, k in enumerate("XYZ"):
+            ac["Min"][k] = float(min(ac["Min"][k], lo[i]))
+            ac["Max"][k] = float(max(ac["Max"][k], hi[i]))
+    files[name] = byml.dumps(shape)
+    return zsmod.sarc_pack(files, like=game.raw(TBOX_PACK))
+
+
+def test_b5(game, out):
+    """Boxes added to a chest's own collision (a chest builds its collision when it loads)."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),     # a 3 x 3 m slab, 0.5 m high, beside the chest (+x)
+             ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]   # a 1 x 1 m pillar, 2.5 m tall, on the other side (-x)
+    files = {DEKU_S: (st, 3), TBOX_PACK: (tbox_with_boxes(game, extra), 4)}
+    notes = ["Test B5: a compass chest 3 m from the entrance. Its own collision gets two extra boxes: a 3 x 3 m slab,",
+             "0.5 m high, starting 1.5 m to one side, and a 1 x 2.5 x 1 m pillar 2 m to the other side. Every Obj_TBox_A_02",
+             "chest gets them while this is on."]
+    write_mod(out, files, game, notes)
+
+
 def main_1b(game, out):
+    test_b5(game, out / "KaeGae Map Test B5 - boxes on a chest")
     test_b4(game, out / "KaeGae Map Test B4 - kinematic body, chest check")
     test_b3(game, out / "KaeGae Map Test B3 - anchor setting, air-wall post")
     test_b2(game, out / "KaeGae Map Test B2 - box without bake, air wall")
