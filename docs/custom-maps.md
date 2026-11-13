@@ -66,6 +66,9 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
 - In a ShapeParam of such an actor, boxes can be **resized** and parts **swapped** (polytope → box) and work in game;
   **adding** parts crashed in main's BYML object reader (`0x612760`), even with a bigger entry for the pack and a bigger
   `InstanceHeapSize`. Details: [mods/custom-map-tests](../mods/custom-map-tests/README.md).
+- **At most about 1,024 parts per shape (B27–B29, 12 Nov):** 1,022 work, 1,031 don't: the actor isn't created at
+  all (no crash, nothing in the log). Not the reach (B26: 1,425 tiles in 3 x 3 m) and not the actor heap (B25).
+  A map's collision gets split into shapes of up to ~1,000 boxes.
 - **The closed chest's body works as a host (B22, 12 Nov):** `CloseBody` is a **Static** body the chest builds at
   load (shape `Body_Close` = `Obj_TBox_A_02__Tgt`). Given its own shape file (B19's setup: a new ShapeParam, the
   ControllerSetParam pointing at it, a new size table entry), boxes 15 m from the chest are solid. The open chest's

@@ -233,6 +233,18 @@ Result of B28: **works**: chest there, slab solid. So 1,022 parts are fine.
 |---|---|---|
 | B29. Slab as 1,029 tiles | B26 with 1,029 tiles (49 x 21): 1,031 parts, shape entry 298,040 (B28's 295,544) | No chest: the limit is 1,024 parts per shape. Chest there: it's higher (between 1,031 and 1,427) |
 
+Result of B29: **no chest.** So **one shape holds at most about 1,024 parts** (1,022 work, 1,031 don't; the files
+differ by 1 %). Over it, the game doesn't create the actor at all, with nothing in the log. So far:
+
+- the shape's own size table entry must fit it (`shape_entry()`), B11;
+- up to 1,022 parts work, close by or 22+ m away (B22, B23, B27, B28); 1,031+ drop the actor (B24–B26, B29);
+- the actor's `InstanceHeapSize` didn't need raising up to 402 parts (B23), and raising it didn't help over the cap;
+- on the **open** chest's body, a shape reaching 6+ m from the chest also costs the chest its Open prompt (B12–B17,
+  B21); the closed chest's body has no such problem.
+
+A map's collision gets split into shapes of at most ~1,000 boxes: the 1,425-box Minecraft cut needs 2, the whole map
+(9,375) about 10.
+
 ## Building
 
 ```
