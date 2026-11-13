@@ -72,6 +72,11 @@ Result of B7: **same crash** as B5, so the size table wasn't the limit. Each act
 `InstanceHeapSize` in `RSDB/ActorInfo.Product.111.rstbl.byml.zs` (zstd without a dictionary; the chest's is 195,616,
 the tree root's 25,336, air walls 0). B8: B7 plus the chest's `InstanceHeapSize` raised to 1,244,192.
 
+Result of B8: **same crash**. It is in main's generic BYML-to-object reader (`0x612760`, crash at `+0xf0`, a call
+through an object that was never allocated). So neither the size table nor the actor heap sets the room for a
+shape's parts. B9: the same number of parts (3 boxes + 2 polytopes instead of 1 + 4: two side walls swapped for the
+slab and the pillar).
+
 ## Building
 
 ```

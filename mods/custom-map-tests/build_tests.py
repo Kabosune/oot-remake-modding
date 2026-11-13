@@ -400,7 +400,7 @@ def test_b4(game, out):
     write_mod(out, files, game, notes)
 
 
-def tbox_with_boxes(game, extra, presets=None):
+def tbox_with_boxes(game, extra, presets=None, drop_polytopes=0):
     """Obj_TBox_A_02's pack with extra boxes [(min, max), chest-local metres] added to its main body's shape."""
     sarc = zstool.Sarc(game.raw(TBOX_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
@@ -408,6 +408,8 @@ def tbox_with_boxes(game, extra, presets=None):
     shape = byml.loads(files[name])
     proto = shape["Box"][0]
     ac = shape["AutoCalc"]
+    if drop_polytopes:                       # keep the number of parts: swap polytopes for the added boxes
+        shape["Polytope"] = shape["Polytope"][:-drop_polytopes]
     for lo, hi in extra:
         b = copy.deepcopy(proto)
         b["Center"] = f3(0, 0, 0)
@@ -503,7 +505,20 @@ def test_b8(game, out):
               extra={TBOX_PACK: 256 * 1024})
 
 
+def test_b9(game, out):
+    """Two boxes added to the chest's shape while two of its four polytopes (side walls) are removed: same number of
+    parts (5). Adding parts crashed (B5, B7, B8) even with a bigger size table entry and actor heap."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]
+    files = {DEKU_S: (st, 3), TBOX_PACK: (tbox_with_boxes(game, extra, presets=["Material_Wood_Thick"], drop_polytopes=2), 4)}
+    write_mod(out, files, game, ["Test B9: the chest's main shape as 3 boxes + 2 polytopes (was 1 + 4): slab and pillar added,",
+                                 "two side walls removed, same number of parts. Open the chest first."])
+
+
 def main_1b(game, out):
+    test_b9(game, out / "KaeGae Map Test B9 - swap chest parts")
     test_b8(game, out / "KaeGae Map Test B8 - boxes on a chest, bigger heap")
     test_b7(game, out / "KaeGae Map Test B7 - boxes on a chest, more room")
     test_b6(game, out / "KaeGae Map Test B6 - bigger chest base")
