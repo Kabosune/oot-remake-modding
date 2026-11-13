@@ -298,6 +298,17 @@ world, one shape (its 4.6 m pole, one polytope), `InstanceHeapSize` 26,912.
 |---|---|---|
 | B35. Flag host, far bridge | No chest. One `Obj_Flag_A_01` 3 m in front of the entrance (where the chests stood), its shape = its pole plus B22's slab, bridge and landing (changed in place, entry raised); flag heap + 2 MiB | Flag there and the bridge solid: a plain actor hosts map collision (then: the Minecraft halves on two flags, which would share one pack, so on two copies under new names or one shape per flag type). No flag: a new actor type in this scene doesn't load as placed. Flag but no bridge: its body isn't solid to Link |
 
+Result of B35: **works**: the flag is there, the slab and the whole bridge out to the landing are solid. So **a plain
+actor with no behaviour hosts map collision**, built at load and solid 15+ m away.
+
+Actors of one name share one pack (and shape), so a map needs hosts under new names. A copy needs rows in two RSDB
+tables (both sorted by `__RowId`): `ActorInfo` (heap, model) and `GameActorInfo` (`MainRigidBodyLayer`); the `Tag`
+table doesn't list the flag.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B36. Flag copy under a new name | B35 with the flag as `KaeGae_MapHost_00`: own pack, ActorParam (PhysicsRef), PhysicsParam (ControllerSetPath), ControllerSetParam (shape path) and shape; flag's model, body and controller files reused; new rows in `ActorInfo` (heap + 2 MiB) and `GameActorInfo`; new size table entries | Flag there and bridge solid: new actor names work, so a map gets as many hosts as it needs |
+
 ## Building
 
 ```

@@ -13,6 +13,7 @@
     Pack/Actor/Obj_TBox_A_02.pack.zs
     Pack/Actor/Obj_TBox_A_01.pack.zs (B30 on)
     Pack/Actor/Obj_Flag_A_01.pack.zs (B35 on)
+    RSDB/GameActorInfo.Product.111.rstbl.byml.zs (B36 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -1143,7 +1144,96 @@ def test_b35(game, out):
               extra={FLAG_PACK: 64 * 1024}, entries=entries)
 
 
+# ---------------------------------------------------------------- B36 on: hosts under new actor names
+
+GAMEACTORINFO = "RSDB/GameActorInfo.Product.111.rstbl.byml.zs"
+
+
+def rstb_entry(game, path):
+    """The size table entry the game has for a path (0 if none)."""
+    rs = Rstb(game.r / RSTB)
+    at = rs.at.get(zlib.crc32(path.encode()))
+    return struct.unpack_from("<I", rs.t, at)[0] if at else 0
+
+
+def rows_with(rows, src, names, change=None):
+    """An RSDB table (rows sorted by __RowId) with a copy of row `src` for each new name, inserted in order."""
+    import bisect
+    base = next(r for r in rows if r.get("__RowId") == src)
+    for n in names:
+        r = copy.deepcopy(base)
+        r["__RowId"] = n
+        if change:
+            change(r)
+        ids = [x["__RowId"] for x in rows]
+        assert n not in ids
+        rows.insert(bisect.bisect(ids, n), r)
+    return rows
+
+
+def flag_copy(game, name, extra, presets=("Material_Wood_Thick",)):
+    """A new actor `name`: Obj_Flag_A_01 (same model, body and controller) with an ActorParam, PhysicsParam,
+    ControllerSetParam and shape of its own; the shape is the pole plus `extra` boxes. Returns (pack, entries) for
+    the new pack's own files. The RSDB rows come from host_rows()."""
+    sarc = zstool.Sarc(game.raw(FLAG_PACK))
+    files = {n: sarc.read(n) for n in sarc.names()}
+    fpack, fentries = flag_with_boxes(game, extra, presets)
+    shape_raw = zstool.Sarc(fpack).read(FLAG_SHAPE)
+    ren = {f"Actor/{FLAG}.engine__actor__ActorParam.bgyml": f"Actor/{name}.engine__actor__ActorParam.bgyml",
+           f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml": f"Component/Physics/{name}.engine__component__PhysicsParam.bgyml",
+           f"Phive/ControllerSetParam/{FLAG}.phive__ControllerSetParam.bgyml": f"Phive/ControllerSetParam/{name}.phive__ControllerSetParam.bgyml",
+           FLAG_SHAPE: f"Phive/ShapeParam/{name}__Physical.phive__ShapeParam.bgyml"}
+    gy = lambda p: "Work/" + p[:-len(".bgyml")] + ".gyml"          # noqa: E731
+    out = {ren.get(n, n): b for n, b in files.items()}
+    out[ren[FLAG_SHAPE]] = shape_raw
+    ap = byml.loads(files[f"Actor/{FLAG}.engine__actor__ActorParam.bgyml"])
+    ap["Components"]["PhysicsRef"] = "?" + ren[f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml"]
+    out[ren[f"Actor/{FLAG}.engine__actor__ActorParam.bgyml"]] = byml.dumps(ap)
+    ph = byml.loads(files[f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml"])
+    ph["ControllerSetPath"] = gy(ren[f"Phive/ControllerSetParam/{FLAG}.phive__ControllerSetParam.bgyml"])
+    out[ren[f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml"]] = byml.dumps(ph)
+    cs = byml.loads(files[f"Phive/ControllerSetParam/{FLAG}.phive__ControllerSetParam.bgyml"])
+    next(r for r in cs["ShapeNamePathAry"] if r["Name"] == "Physical")["FilePath"] = gy(ren[FLAG_SHAPE])
+    out[ren[f"Phive/ControllerSetParam/{FLAG}.phive__ControllerSetParam.bgyml"]] = byml.dumps(cs)
+    entries = {ren[FLAG_SHAPE]: fentries[FLAG_SHAPE]}
+    for old, new in ren.items():
+        if old != FLAG_SHAPE:
+            entries[new] = rstb_entry(game, old) + len(out[new]) - len(files[old]) + 1024
+    return zsmod.sarc_pack(out, like=game.raw(FLAG_PACK)), entries
+
+
+def host_rows(game, names, heap):
+    """ActorInfo and GameActorInfo with a copy of Obj_Flag_A_01's row for each new host name (heap: InstanceHeapSize)."""
+    def h(r):
+        r["InstanceHeapSize"] = type(r["InstanceHeapSize"])(heap)
+    return {ACTORINFO: (rows_with(game.byml(ACTORINFO), FLAG, names, h), None),
+            GAMEACTORINFO: (rows_with(game.byml(GAMEACTORINFO), FLAG, names), None)}
+
+
+def test_b36(game, out):
+    """B35 with the flag as a new actor, KaeGae_MapHost_00: a copy of Obj_Flag_A_01 under a new name (own pack,
+    ActorParam, PhysicsParam, ControllerSetParam and shape; new RSDB ActorInfo / GameActorInfo rows; new size table
+    entries). Same place and boxes as B35. Control for hosts under new names (a map needs ~10 shapes)."""
+    rng.seed("B35")                                          # same placement hash as B35
+    name = "KaeGae_MapHost_00"
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(placed(name, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),
+             ((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]
+    pack, entries = flag_copy(game, name, extra)
+    files = {DEKU_S: (st, 3), f"Pack/Actor/{name}.pack.zs": (pack, 4), **host_rows(game, [name], FLAG_HEAP + 2 * 1024 * 1024)}
+    write_mod(out, files, game,
+              ["Test B36: as B35 (a flag 3 m in front of the entrance carrying B22's slab, bridge and landing), but the flag is a",
+               "new actor, KaeGae_MapHost_00: a copy of Obj_Flag_A_01 under a new name, with its own pack, ActorParam,",
+               "PhysicsParam, ControllerSetParam and shape, new RSDB rows (ActorInfo, GameActorInfo) and new size table entries.",
+               "Heap + 2 MiB as B35."],
+              extra={f"Pack/Actor/{name}.pack.zs": 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out, glb=None):
+    test_b36(game, out / "KaeGae Map Test B36 - flag copy under a new name")
     test_b35(game, out / "KaeGae Map Test B35 - flag host, far bridge")
     test_b34(game, out / "KaeGae Map Test B34 - second body in the controller")
     test_b33(game, out / "KaeGae Map Test B33 - second body, far bridge")
