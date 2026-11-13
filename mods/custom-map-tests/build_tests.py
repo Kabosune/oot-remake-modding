@@ -999,11 +999,16 @@ TBOX_CLOSE_BODY = "Phive/RigidBodyEntityParam/Obj_TBox_Body_2_Close.phive__Rigid
 CLOSE_BODY_ENTRY = 5552                                   # its size table entry in 1.1.1 (file 216 bytes)
 
 
-def tbox_extra_bodies(game, bodies, presets=None):
+TBOX_CONTROLLER = "Phive/RigidBodyControllerEntityParam/Obj_TBox_A_02_Body.phive__RigidBodyControllerEntityParam.bgyml"
+
+
+def tbox_extra_bodies(game, bodies, presets=None, controller=False):
     """Obj_TBox_A_02's pack with extra Static bodies, each a copy of the closed chest's body (CloseBody) with a shape
     of its own: bodies = [(name, extra boxes, source shape)]. Each shape is `source` (e.g. the closed chest's two
     polytopes) plus the boxes, as tbox_own_map_shape makes them. The chest's own bodies are left as they are. Every
-    body listed in the ControllerSetParam looks built at load (the AirWall body has no alias and exists)."""
+    body listed in the ControllerSetParam looks built at load (the AirWall body has no alias and exists).
+    B33: not so, the new body was never solid. controller=True also adds each body to the chest's controller
+    (Obj_TBox_A_02_Body: one unit per body, IsAddToWorldOnReset), as a copy of CloseBody's unit."""
     sarc = zstool.Sarc(game.raw(TBOX_PACK))
     files = {n: sarc.read(n) for n in sarc.names()}
     proto = byml.loads(files[TBOX_SHAPE])["Box"][0]
@@ -1036,6 +1041,15 @@ def tbox_extra_bodies(game, bodies, presets=None):
         entries[body_p] = CLOSE_BODY_ENTRY + len(files[body_p]) - len(files[TBOX_CLOSE_BODY]) + 1024
     files[TBOX_CSP] = byml.dumps(csp)
     entries[TBOX_CSP] = len(files[TBOX_CSP]) + 8 * 1024 + 2048
+    if controller:
+        ctl = byml.loads(files[TBOX_CONTROLLER])
+        unit = next(u for u in ctl["RigidBodyControllerUnitAry"] if u["Name"] == "CloseBody")
+        for name, _, _ in bodies:
+            u = copy.deepcopy(unit)
+            u["Name"] = name
+            ctl["RigidBodyControllerUnitAry"].append(u)
+        files[TBOX_CONTROLLER] = byml.dumps(ctl)
+        entries[TBOX_CONTROLLER] = len(files[TBOX_CONTROLLER]) + 8 * 1024 + 2048
     return zsmod.sarc_pack(files, like=game.raw(TBOX_PACK)), entries
 
 
@@ -1058,7 +1072,27 @@ def test_b33(game, out):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def test_b34(game, out):
+    """B33 plus a unit for the new body in the chest's controller (Obj_TBox_A_02_Body), a copy of CloseBody's
+    (IsAddToWorldOnReset). B33's body was in the ControllerSetParam only and was never solid."""
+    rng.seed("B33")                                          # same placement as B33
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)),
+             ((-0.5, 0.1, -17.0), (0.5, 0.3, -2.0)),
+             ((-1.5, 0.1, -20.0), (1.5, 0.3, -17.0))]
+    pack, entries = tbox_extra_bodies(game, [("KaeGaeMap0", extra, TBOX_CLOSE_SHAPE)], presets=["Material_Wood_Thick"],
+                                      controller=True)
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B34: DON'T open the chest. As B33 (B22's slab, bridge and landing on a new fifth Static body of the chest,",
+               "KaeGaeMap0), plus that body added to the chest's controller (Obj_TBox_A_02_Body) as a copy of the closed body's",
+               "unit, which adds it to the world when the chest is set up."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out, glb=None):
+    test_b34(game, out / "KaeGae Map Test B34 - second body in the controller")
     test_b33(game, out / "KaeGae Map Test B33 - second body, far bridge")
     if glb:
         test_b32(game, out / "KaeGae Map Test B32 - Minecraft cut on two chests", glb)

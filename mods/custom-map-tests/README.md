@@ -276,6 +276,15 @@ still exists, so every listed body looks built at load.
 |---|---|---|
 | B33. Second body, far bridge | B22's exact shape (the closed chest's two polytopes, B11's slab, the bridge and landing) on a new, fifth Static body `KaeGaeMap0` (a copy of `CloseBody`'s RigidBodyEntityParam, own shape name, new size table entries); `CloseBody` left vanilla | Bridge solid: an actor builds extra bodies listed in its ControllerSetParam, so one host can carry several map shapes. Chest there but no bridge: only the bodies the chest's code asks for are built |
 
+Result of B33: the chest is there, but **no slab and no bridge**. So a body listed only in the ControllerSetParam
+isn't added to the world. Each of the chest's four bodies also has a unit in its controller
+(`Obj_TBox_A_02_Body`, a RigidBodyControllerEntityParam: Cover, Body, CloseBody, AirWall, all `IsAddToWorldOnReset`);
+B33's body had none. (The chest's AI also asks for `CloseBody` by name, to add and remove it.)
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B34. Second body in the controller | B33 plus a unit for `KaeGaeMap0` in the chest's controller, a copy of `CloseBody`'s (only that file differs from B33) | Bridge solid: a body needs a controller unit, and then one host can carry several shapes. Still nothing: the chest's code adds only the bodies it knows by name |
+
 ## Building
 
 ```
