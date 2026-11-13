@@ -81,6 +81,9 @@ Unknown: which of the bake, culling, navmesh and foliage files a scene can do wi
   new rows in RSDB `ActorInfo` and `GameActorInfo`, which are sorted by `__RowId`, new size table entries). **The whole
   Minecraft map (9,397 boxes) on 14 such hosts works, performance fine (B38).** The flag's `CalcRadius` is 100 m; in B38
   all hosts stood at the entrance, with the map reaching ~120 m away.
+- **Seeing it without new formats (B39):** the game's 1 m stone block `Land_SacredForest_Prop_A_06` placed once per
+  collision box, scaled to it (uneven `Scale` in the placement, Dynamic file, `Bakeable`), shows the map's shape where the
+  collision is; performance fine with 217 blocks. Textures are the block's own, stretched.
 - **The closed chest's body works as a host (B22, 12 Nov):** `CloseBody` is a **Static** body the chest builds at
   load (shape `Body_Close` = `Obj_TBox_A_02__Tgt`). Given its own shape file (B19's setup: a new ShapeParam, the
   ControllerSetParam pointing at it, a new size table entry), boxes 15 m from the chest are solid. The open chest's

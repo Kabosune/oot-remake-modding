@@ -342,6 +342,10 @@ scaled to it. The game's own Deku Tree placement has 68 actors with uneven scale
 |---|---|---|
 | B39. Minecraft cut you can see | B37 plus 217 stone blocks, one per collision box whose top is above the floor, scaled to it (Dynamic placement file, `Bakeable`, as the game's Land pieces), and one unscaled 1 m block 2 m left of the flags as a control | Blocks show where the collision is: the map's shape can be seen with stretched stone textures. Only the control shows: scaled placements don't render. Nothing shows: a newly placed Land piece of a type the scene doesn't use doesn't render |
 
+Result of B39: **works**: the control block shows (no collision, as expected for a newly placed Land piece), the
+scaled blocks show the cut's shape, they match the collision (you walk on top of them), performance fine. So **scaled
+placements of the game's own models are a quick way to see a map** (stretched textures), until real models exist.
+
 ## Building
 
 ```
