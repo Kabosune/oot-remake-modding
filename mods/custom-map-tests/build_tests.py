@@ -724,7 +724,23 @@ def side_stair_test(game, out, cols, label):
               extra={TBOX_PACK: 64 * 1024}, entries=entries)
 
 
+def test_b19(game, out):
+    """Control: B11's two boxes (which kept the Open prompt), but put the B13-B17 way: in the new shape file used only
+    by the open body, with the rewritten ControllerSetParam and the added size table entry. B17 (245 parts) still lost
+    the prompt, and every test since B13 shares this setup."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]
+    pack, entries = tbox_own_map_shape(game, extra, presets=["Material_Wood_Thick"])
+    write_mod(out, {DEKU_S: (st, 3), TBOX_PACK: (pack, 4)}, game,
+              ["Test B19: B11's slab and pillar, but in a new shape file only the open chest's body uses (as in",
+               "B13-B17), with the ControllerSetParam pointing at it and a new size table entry. Open the chest first."],
+              extra={TBOX_PACK: 64 * 1024}, entries=entries)
+
+
 def main_1b(game, out):
+    test_b19(game, out / "KaeGae Map Test B19 - B11 boxes, own shape file")
     side_stair_test(game, out / "KaeGae Map Test B18 - 260 boxes beside the chest", 13, "B18")
     side_stair_test(game, out / "KaeGae Map Test B17 - 240 boxes beside the chest", 12, "B17")
     test_b16(game, out / "KaeGae Map Test B16 - 400 boxes beside the chest")

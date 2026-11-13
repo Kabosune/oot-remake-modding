@@ -150,6 +150,14 @@ crash, and the chest's opening logic gives up with it.
 | B17. 240 boxes beside the chest | B16 with 20 steps of 12 boxes: 245 parts | Prompt back: under the limit works. Then is the staircase solid? |
 | B18. 260 boxes beside the chest | B16 with 20 steps of 13 boxes: 265 parts | With B17: whether the limit sits between 245 and 265 (256 fits) |
 
+Result of B17: **still no Open prompt** at 245 parts (B18 not run). But every test since B13 also uses the new
+shape file (rewritten ControllerSetParam, added size table entry), which B11 didn't; and B12's failure had other
+causes possible (heap, the shared sensor shape). So the new-file setup itself may be what breaks the chest.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B19. B11 boxes, own shape file | B11's slab and pillar, put the B13–B17 way (new shape file for the open body only, rewritten ControllerSetParam, new size table entry) | Prompt: the setup is fine and the count matters (then halve: ~120, ~60). No prompt: the new-file setup breaks the chest |
+
 ## Building
 
 ```
