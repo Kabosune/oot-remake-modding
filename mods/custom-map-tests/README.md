@@ -68,6 +68,10 @@ the base box is in the open chest's `Body`). Link can stand on it, not grab its 
 loading **and unpacking** the pack, and +512 bytes left no room for the unpacked extra boxes. B7: B5's two added
 boxes again, with the pack's entry raised by 256 KiB, presets `Material_Wood_Thick` only.
 
+Result of B7: **same crash** as B5, so the size table wasn't the limit. Each actor type has its own fixed heap,
+`InstanceHeapSize` in `RSDB/ActorInfo.Product.111.rstbl.byml.zs` (zstd without a dictionary; the chest's is 195,616,
+the tree root's 25,336, air walls 0). B8: B7 plus the chest's `InstanceHeapSize` raised to 1,244,192.
+
 ## Building
 
 ```

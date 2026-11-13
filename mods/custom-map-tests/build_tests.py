@@ -11,6 +11,7 @@
     Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs
     Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs
     Pack/Actor/Obj_TBox_A_02.pack.zs
+    RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
 """
@@ -477,7 +478,33 @@ def test_b7(game, out):
               extra={TBOX_PACK: 256 * 1024})
 
 
+ACTORINFO = "RSDB/ActorInfo.Product.111.rstbl.byml.zs"
+
+
+def actorinfo_heap(game, sizes):
+    """RSDB ActorInfo with InstanceHeapSize changed: {actor name: bytes}. Each actor gets a fixed heap of that size;
+    a bigger collision shape needs more (B5 / B7 crashed with the chest's own 195,616)."""
+    rows = game.byml(ACTORINFO)
+    for r in rows:
+        if r.get("__RowId") in sizes:
+            r["InstanceHeapSize"] = type(r["InstanceHeapSize"])(sizes[r["__RowId"]])
+    return rows
+
+
+def test_b8(game, out):
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    extra = [((1.5, 0.0, -1.5), (4.5, 0.5, 1.5)), ((-2.5, 0.0, -0.5), (-1.5, 2.5, 0.5))]
+    files = {DEKU_S: (st, 3), TBOX_PACK: (tbox_with_boxes(game, extra, presets=["Material_Wood_Thick"]), 4),
+             ACTORINFO: (actorinfo_heap(game, {"Obj_TBox_A_02": 195616 + 1024 * 1024}), None)}
+    write_mod(out, files, game, ["Test B8: as B7 (slab and pillar added to the chest's shape, size table room), plus the chest's",
+                                 "InstanceHeapSize in RSDB/ActorInfo raised from 195,616 to 1,244,192 bytes. Open the chest first."],
+              extra={TBOX_PACK: 256 * 1024})
+
+
 def main_1b(game, out):
+    test_b8(game, out / "KaeGae Map Test B8 - boxes on a chest, bigger heap")
     test_b7(game, out / "KaeGae Map Test B7 - boxes on a chest, more room")
     test_b6(game, out / "KaeGae Map Test B6 - bigger chest base")
     test_b5(game, out / "KaeGae Map Test B5 - boxes on a chest")
