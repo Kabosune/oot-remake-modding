@@ -517,7 +517,22 @@ def test_b9(game, out):
                                  "two side walls removed, same number of parts. Open the chest first."])
 
 
+def test_b10(game, out):
+    """Re-check of B2 / B3 that can't be missed: a newly placed air-wall cube as a 4 x 4 m platform, 0.6 m high, where
+    B9's slab was (beside the chest 3 m from the entrance), with a second chest floating on top to mark it.
+    No pack is changed."""
+    st = game.byml(DEKU_S)
+    sx, sy, sz = SPAWN
+    st["Actors"].append(a_chest(game, (sx, sy, sz - 3)))
+    st["Actors"].append(a_chest(game, (sx + 3, sy + 0.6, sz - 3)))
+    st["Actors"].append(placed("FldObj_AirWall_Common_Cube", (sx + 3, sy, sz - 3), scale=(4, 0.6, 4),
+                               extra={"Rotate": [0.0, 0.0, 0.0]}))
+    write_mod(out, {DEKU_S: (st, 3)}, game, ["Test B10: a chest 3 m from the entrance (as in B9) and, where B9's slab was, a new",
+                                             "air-wall cube scaled to a 4 x 4 x 0.6 m platform with a second chest on top marking it."])
+
+
 def main_1b(game, out):
+    test_b10(game, out / "KaeGae Map Test B10 - air-wall platform recheck")
     test_b9(game, out / "KaeGae Map Test B9 - swap chest parts")
     test_b8(game, out / "KaeGae Map Test B8 - boxes on a chest, bigger heap")
     test_b7(game, out / "KaeGae Map Test B7 - boxes on a chest, more room")

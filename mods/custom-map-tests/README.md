@@ -87,6 +87,9 @@ Actors whose shapes have the most parts (all 8,373 packs scanned): `Obj_ForestTe
 `Obj_DodongoCave_BrokenStair_A_01` 55 (Kinematic), `Obj_InsideJabu_Jabu_ElevatorLift_A_02` 50. The Minecraft test map
 needs 1,425 boxes (48 x 48 cut) or 9,375 (whole).
 
+B10 re-checks the air-wall result (B2's cube may have been out of bounds, B3's 1 m post was easy to miss): a new
+air-wall cube as a 4 x 4 x 0.6 m platform where B9's slab worked, with a chest floating on top marking it.
+
 ## Building
 
 ```
