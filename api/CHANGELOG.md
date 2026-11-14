@@ -11,7 +11,7 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
-## Core 0.8.1: the field of view works (12 November 2026; not tested in the game yet)
+## Core 0.8.1: the field of view works (12 November 2026; works in the game, 14 November, Fritchii)
 
 Core only, nothing new for mods (API still 0.8).
 
