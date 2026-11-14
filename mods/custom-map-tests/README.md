@@ -540,7 +540,8 @@ old level; source param `IsUseMutableLayer: true`, no `PresenceSetting`). The ga
 |---|---|---|
 | B58. B57 with tiny volume stats | Only `InsideTheDekuTree.bpvsts.zs`: replaced by `DeathMountainTrail_Adult_X0_Z0`'s (342 bytes) | Link walks past z 40: the volume stats were the limit. Worse (respawn everywhere) or crash: they define where Link may be, and need writing for the map |
 
-Result of B57: not tested yet. Result of B58: not tested yet.
+Result of B57 (13 Nov 2026): **works: the ferns are gone, no foliage left at all.** No freeze near the entrance
+(around z 35) in B56 / B57 either (it froze there once in B53, with the Kokiri Forest preload still on). Result of B58: not tested yet.
 
 ## Building
 
