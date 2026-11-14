@@ -352,7 +352,21 @@ The whole map you can see (KaboWabo picked option 1 of 4, 13 Nov 2026):
 |---|---|---|
 | B40. Whole Minecraft map you can see | B38 (byte-identical hosts, RSDB rows and Static file) plus 2,450 stone blocks, one per collision box whose top is above the floor, scaled to it, as in B39; and one unscaled control block 2 m left of the row of flags. Dynamic placement file 553 KB (size table entry 230,472 -> 553,600) | Blocks show the whole map's shape where it's solid. Blocks missing far out only: their draw distance (or the scene's culling boxes). Load fails or frame rate drops a lot: too many placed actors in one scene, so merge blocks per material or real models are needed sooner |
 
-Result of B40: not tested yet.
+Result of B40 (13 Nov 2026): **works, partly**: loads normally, frame rate fine with 2,450 blocks. The stone blocks
+show, the Deku Tree's own level is still there, and there's solid ground you can't see: the map's boxes whose top is
+at the old floor got no block (outside the Deku Tree's room there's no old floor to hide them). Walking far out, the
+game sends Link back for going out of bounds, so the far map (and the control block) couldn't be checked.
+Likely cause of the respawn: the scene's `HeightMapParam` bounding box in `GameBancParam` (x -90..50, y 40..124,
+z -25..100) is smaller than the map (x -85..86, y 58..128, z -77..50). `WorldAabb` (-125..125, y to 250) already covers it.
+
+Two follow-ups, each one change from B40:
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B42. B40 with wider scene bounds | Only `InsideTheDekuTree.game__banc__GameBancParam.bgyml`: `HeightMapParam` bounding box to x -95..95, y 40..135, z -85..100 (same file size, so the size table is unchanged) | No respawn when walking out over the map: that box is the out-of-bounds limit. Still a respawn: something else (next guess: being outside every `DungeonRoomArea`). Crash or odd ground: the box also indexes the height map |
+| B41. B40 with every box drawn | A block for each of the 9,397 collision boxes, not just those above the floor (Dynamic file 1.45 MB, entry 230,472 -> 1,448,496) | No invisible ground left, and whether 9,397 placed blocks still load and run fine |
+
+Result of B42: not tested yet. Result of B41: not tested yet.
 
 ## Building
 

@@ -39,6 +39,7 @@ RSTB = "System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.
 KOKIRI = "Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs"
 DEKU_S = "Banc/InsideTheDekuTree/InsideTheDekuTree_Static.bcett.byml.zs"
 DEKU_D = "Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs"
+DEKU_BANC = "Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml"   # B42 on
 HOST = "Land_Deku_TreeRoot_B_01"           # a plain static Deku Tree piece; its collision gets replaced
 HOST_PACK = f"Pack/Actor/{HOST}.pack.zs"
 HOST_SHAPE = f"Phive/ShapeParam/{HOST}__Physical.phive__ShapeParam.bgyml"
@@ -1358,7 +1359,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb):
+def test_b40(game, out, glb, show_all=False, bounds=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1382,12 +1383,26 @@ def test_b40(game, out, glb):
         extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
     files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
     rng.seed("B40")
-    shown = [b for b in every if b[1][1] > 0.01]              # boxes whose top is above the floor
+    shown = every if show_all else [b for b in every if b[1][1] > 0.01]   # B40: boxes whose top is above the floor
     at = (sx, sy, sz - 3)
     dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
     dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
     files.update({DEKU_S: (st, 3), DEKU_D: (dy, 3)})
-    write_mod(out, files, game,
+    notes = []
+    if bounds:                                                # B42: the scene's HeightMapParam bounding box
+        bp = game.byml(DEKU_BANC)
+        hm = bp["HeightMapParam"]
+        old = (dict(hm["BoundingBoxMin"]), dict(hm["BoundingBoxMax"]))
+        for k, v in zip("XYZ", bounds[0]):
+            hm["BoundingBoxMin"][k] = float(v)
+        for k, v in zip("XYZ", bounds[1]):
+            hm["BoundingBoxMax"][k] = float(v)
+        files[DEKU_BANC] = (bp, 0)
+        notes = [f"{label}: only change from B40: {DEKU_BANC} HeightMapParam bounding box {old[0]}..{old[1]} -> "
+                 f"{dict(hm['BoundingBoxMin'])}..{dict(hm['BoundingBoxMax'])} (the map spans x -85..86, y 58..128, z -77..50)."]
+    if show_all:
+        notes = [f"{label}: only change from B40: a block for every collision box ({len(shown)}), not just those above the floor."]
+    write_mod(out, files, game, notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
                f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
                "unscaled 1 m block 2 m left of the row of flags as a control. Blocks in the Dynamic placement file, as in B39."],
@@ -1397,6 +1412,9 @@ def test_b40(game, out, glb):
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B42 - B40 with wider scene bounds", glb,
+                 bounds=((-95.0, 40.0, -85.0), (95.0, 135.0, 100.0)), label="B42")
+        test_b40(game, out / "KaeGae Map Test B41 - B40 with every box drawn", glb, show_all=True, label="B41")
         test_b40(game, out / "KaeGae Map Test B40 - whole Minecraft map you can see", glb)
         test_b39(game, out / "KaeGae Map Test B39 - Minecraft cut you can see", glb)
         test_b38(game, out / "KaeGae Map Test B38 - whole Minecraft map on 14 flags", glb)
