@@ -1454,6 +1454,13 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B49 - B48 with Hyrule Field's lighting", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "RenderingMode": byml.U32(1713552710),
+                           "EnvSetName": "Master_Field"},
+                 palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, no_compound=True, label="B49")
+        test_b40(game, out / "KaeGae Map Test B50 - B48 with a brighter palette", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None},
+                 palette_set={"AmbientIntensity": 3.0, "HemiLightIntensity": 3.0}, empty=True, no_compound=True, label="B50")
         test_b40(game, out / "KaeGae Map Test B48 - B47 without foliage", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None},
                  palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, no_compound=True, label="B48")

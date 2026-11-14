@@ -437,7 +437,20 @@ Stone, Turf, Undergrowth4, LowTree, Ornament), tied to the scene by `GameBancPar
 |---|---|---|
 | B48. B47 without foliage | Only `GameBancParam`: the `FoliageScene` line removed | Foliage gone: the scene settings switch it off. Some left (low trees, ornaments): those load another way |
 
-Result of B48: not tested yet.
+Result of B48 (13 Nov 2026): **mostly works**: most foliage is gone; some is left (the climbable-vine kind and
+bushes: they load another way, not looked into yet). The scene is still really dim; KaboWabo asked for stronger
+lighting everywhere, like Hyrule Field's.
+
+Hyrule Field (`HyruleField_Child`) uses `RenderingMode` `1713552710` (also Kokiri Forest and 14 `Master_Field`
+scenes: the outdoor mode) and `EnvSetName` `Master_Field` (time-of-day palettes with sun and sky); the Deku Tree has
+`121762225` (the dungeon mode, 14 scenes) and `Dungeon`.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B49. B48 with Hyrule Field's lighting | Only `GameBancParam`: `RenderingMode` -> `1713552710`, `EnvSetName` -> `Master_Field` | Lit like a field (sun, sky): the outdoor mode works in this scene. Broken / black: try the outdoor mode alone, or B50 |
+| B50. B48 with a brighter palette | Only the Deku Tree's env palette: `AmbientIntensity` and `HemiLightIntensity` 1.0 -> 3.0 | A fallback: evenly brighter everywhere, no sun |
+
+Result of B49: not tested yet. Result of B50: not tested yet.
 
 ## Building
 
