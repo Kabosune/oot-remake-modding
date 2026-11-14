@@ -424,7 +424,20 @@ and 45 others have none) is a murmur3 hash that no word in `main` matched.
 
 Result of B46 (13 Nov 2026): **works**: loads, the Deku Tree's walls and floor are gone. Only the foliage decoration
 is left (the scene's foliage files). So the static compound is the Deku Tree's collision, and the game's empty one
-loads in its place. Result of B47: not tested yet.
+loads in its place. Result of B47 (13 Nov 2026): **works: the map alone in the Deku Tree's place.** It loads, Link arrives where he
+would in the vanilla Deku Tree, the map is there (foliage still there too). The horizontal out-of-bounds limit is now
+far out, but **low parts of the map trip a vertical out-of-bounds respawn** (the map reaches 43 m below the spawn,
+down to world y 58). Height of the trigger not known yet.
+
+The foliage is six placement files (`Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.*.flnt.zs`: Moss,
+Stone, Turf, Undergrowth4, LowTree, Ornament), tied to the scene by `GameBancParam`'s `FoliageScene`. 34 of the game's
+80 scenes have no `FoliageScene` line at all.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B48. B47 without foliage | Only `GameBancParam`: the `FoliageScene` line removed | Foliage gone: the scene settings switch it off. Some left (low trees, ornaments): those load another way |
+
+Result of B48: not tested yet.
 
 ## Building
 

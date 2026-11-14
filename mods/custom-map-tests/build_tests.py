@@ -1421,8 +1421,11 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if banc_set:                                              # B43 on: B41 plus GameBancParam values
         bp = game.byml(DEKU_BANC)
         for k, v in banc_set.items():
-            notes.append(f"{label}: only change from B41: {DEKU_BANC} {k} {bp.get(k)!r} -> {v!r}")
-            bp[k] = v
+            notes.append(f"{label}: {DEKU_BANC} {k} {bp.get(k)!r} -> {'(removed)' if v is None else repr(v)}")
+            if v is None:                                     # B48: drop the line (FoliageScene)
+                bp.pop(k, None)
+            else:
+                bp[k] = v
         files[DEKU_BANC] = (bp, 0)
     if no_compound:                                           # B47: B45 plus B46's empty static compound
         files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
@@ -1451,6 +1454,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B48 - B47 without foliage", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None},
+                 palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, no_compound=True, label="B48")
         test_b40(game, out / "KaeGae Map Test B47 - B45 without the Deku Tree's collision", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False},
                  palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, no_compound=True, label="B47")
