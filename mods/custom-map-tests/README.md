@@ -346,6 +346,14 @@ Result of B39: **works**: the control block shows (no collision, as expected for
 scaled blocks show the cut's shape, they match the collision (you walk on top of them), performance fine. So **scaled
 placements of the game's own models are a quick way to see a map** (stretched textures), until real models exist.
 
+The whole map you can see (KaboWabo picked option 1 of 4, 13 Nov 2026):
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B40. Whole Minecraft map you can see | B38 (byte-identical hosts, RSDB rows and Static file) plus 2,450 stone blocks, one per collision box whose top is above the floor, scaled to it, as in B39; and one unscaled control block 2 m left of the row of flags. Dynamic placement file 553 KB (size table entry 230,472 -> 553,600) | Blocks show the whole map's shape where it's solid. Blocks missing far out only: their draw distance (or the scene's culling boxes). Load fails or frame rate drops a lot: too many placed actors in one scene, so merge blocks per material or real models are needed sooner |
+
+Result of B40: not tested yet.
+
 ## Building
 
 ```

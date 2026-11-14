@@ -1358,8 +1358,46 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
+def test_b40(game, out, glb):
+    """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
+    above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
+    flags. Only the visible blocks change from B38."""
+    rng.seed("B38")                                          # B38's placement hashes for the flags
+    solid, _ = fill_and_merge(voxels(glb, 70.0))
+    cx, cz, top = spawn_column(solid)
+    off = np.subtract((0.0, 0.0, -24.0), (cx + 0.5, top, cz + 0.5))
+    chunks = map_chunks(solid)
+    names = [f"KaeGae_MapHost_{i:02d}" for i in range(len(chunks))]
+    st, dy = game.byml(DEKU_S), game.byml(DEKU_D)
+    sx, sy, sz = SPAWN
+    files, entries, extra, every = {}, {}, {}, []
+    for i, (name, ch) in enumerate(zip(names, chunks)):
+        dx = i - (len(chunks) - 1) / 2
+        st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
+        boxes = [(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in ch[4]]
+        every += boxes
+        pack, e = flag_copy(game, name, shift(boxes, -dx))
+        files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
+        entries.update(e)
+        extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
+    files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
+    rng.seed("B40")
+    shown = [b for b in every if b[1][1] > 0.01]              # boxes whose top is above the floor
+    at = (sx, sy, sz - 3)
+    dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
+    dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
+    files.update({DEKU_S: (st, 3), DEKU_D: (dy, 3)})
+    write_mod(out, files, game,
+              [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
+               f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
+               "unscaled 1 m block 2 m left of the row of flags as a control. Blocks in the Dynamic placement file, as in B39."],
+              extra=extra, entries=entries)
+    return len(shown)
+
+
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B40 - whole Minecraft map you can see", glb)
         test_b39(game, out / "KaeGae Map Test B39 - Minecraft cut you can see", glb)
         test_b38(game, out / "KaeGae Map Test B38 - whole Minecraft map on 14 flags", glb)
         test_b37(game, out / "KaeGae Map Test B37 - Minecraft cut on two flags", glb)
