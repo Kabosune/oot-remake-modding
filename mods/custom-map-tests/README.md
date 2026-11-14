@@ -450,7 +450,10 @@ scenes: the outdoor mode) and `EnvSetName` `Master_Field` (time-of-day palettes 
 | B49. B48 with Hyrule Field's lighting | Only `GameBancParam`: `RenderingMode` -> `1713552710`, `EnvSetName` -> `Master_Field` | Lit like a field (sun, sky): the outdoor mode works in this scene. Broken / black: try the outdoor mode alone, or B50 |
 | B50. B48 with a brighter palette | Only the Deku Tree's env palette: `AmbientIntensity` and `HemiLightIntensity` 1.0 -> 3.0 | A fallback: evenly brighter everywhere, no sun |
 
-Result of B49: not tested yet. Result of B50: not tested yet.
+Result of B49 (13 Nov 2026): **no change**: lighting exactly as B48, nothing broken, the map the same, vines and some
+bushes still there. Checked: the installed files match the build (`RenderingMode` 1713552710, `EnvSetName`
+`Master_Field` in place) and nothing is switched off in Fritchii. So neither value picks the lighting here; the
+Deku Tree's own palette (by scene name, or its `Location`) most likely does. Result of B50: not tested yet.
 
 ## Building
 
