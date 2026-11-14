@@ -422,7 +422,9 @@ and 45 others have none) is a murmur3 hash that no word in `main` matched.
 | B46. C without the Deku Tree's collision | C plus `InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs` replaced by the empty compound (`MorphaStage_X0_Z0`'s); only that file differs from C | Walls, floor and vines gone (Link falls or voids out at the spawn): the compound is the Deku Tree's collision and an empty one loads. Crash: the scene needs a matching compound |
 | B47. B45 without the Deku Tree's collision | B45 (the map, every box drawn, the B44 light, in C's emptied scene) plus B46's empty compound | The map alone in the Deku Tree's place |
 
-Result of B46: not tested yet. Result of B47: not tested yet.
+Result of B46 (13 Nov 2026): **works**: loads, the Deku Tree's walls and floor are gone. Only the foliage decoration
+is left (the scene's foliage files). So the static compound is the Deku Tree's collision, and the game's empty one
+loads in its place. Result of B47: not tested yet.
 
 ## Building
 
