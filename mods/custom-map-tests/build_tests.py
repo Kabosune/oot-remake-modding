@@ -39,6 +39,8 @@ RSTB = "System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.
 KOKIRI = "Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs"
 DEKU_S = "Banc/InsideTheDekuTree/InsideTheDekuTree_Static.bcett.byml.zs"
 DEKU_D = "Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs"
+ENV_PACK = "Pack/EnvPalette.pack.zs"   # B44 on
+DEKU_PALETTE = "WorldMgr/ResEnvPalette/InsideTheDekuTree.game__wm__ResEnvPalette.bgyml"
 DEKU_BANC = "Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml"   # B42 on
 HOST = "Land_Deku_TreeRoot_B_01"           # a plain static Deku Tree piece; its collision gets replaced
 HOST_PACK = f"Pack/Actor/{HOST}.pack.zs"
@@ -1359,7 +1361,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1408,6 +1410,18 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, label="
             notes.append(f"{label}: only change from B41: {DEKU_BANC} {k} {bp.get(k)!r} -> {v!r}")
             bp[k] = v
         files[DEKU_BANC] = (bp, 0)
+    if palette_set:                                           # B44 on: B43 plus a brighter Deku Tree env palette
+        raw = game.raw(ENV_PACK)
+        sarc = zstool.Sarc(raw)
+        names = [str(n) for n in sarc.names()]
+        inner = {n: sarc.read(n) for n in names}
+        pal = byml.loads(inner[DEKU_PALETTE])
+        for k, v in palette_set.items():
+            notes.append(f"{label}: only change from B43: {ENV_PACK} {DEKU_PALETTE} {k} {pal.get(k)!r} -> {v!r}")
+            pal[k] = v
+        inner[DEKU_PALETTE] = byml.dumps(pal)
+        entries[DEKU_PALETTE] = len(inner[DEKU_PALETTE]) + 512
+        files[ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / ENV_PACK))
     write_mod(out, files, game, notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
                f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
@@ -1418,6 +1432,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, label="
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B44 - B43 with a brighter palette", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False},
+                 palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, label="B44")
         test_b40(game, out / "KaeGae Map Test B43 - B41 with baked light off", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False}, label="B43")
         test_b40(game, out / "KaeGae Map Test B42 - B40 with wider scene bounds", glb,

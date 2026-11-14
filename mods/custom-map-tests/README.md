@@ -381,7 +381,19 @@ still there. Outside the Deku Tree's rooms it's very dark, which makes the map h
 |---|---|---|
 | B43. B41 with baked light off | Only `GameBancParam` `IsEnableBakeLight` true -> false (same file size) | Out-of-bounds map lit: the darkness is the baked light (probes only cover the real rooms). Everything dark or black: the scene needs its bake, try the environment next (`EnvSetName` / `RenderingMode` from Kokiri Forest, or the room env in `DungeonRoomEnvParam`) |
 
-Result of B43: not tested yet.
+Result of B43 (13 Nov 2026): **a little lighter, still mostly dark**: out of bounds is barely lit; the Deku Tree
+itself turns very dark (not black). Navi's light lights things up around Link, so dynamic lights still work. The
+out-of-bounds respawn is unchanged.
+
+The Deku Tree's env palette (`Pack/EnvPalette.pack.zs`, `WorldMgr/ResEnvPalette/InsideTheDekuTree...`, parent
+`Parent_Dungeon`) has `AmbientIntensity` 0.1 (the parent's is 1.0), `HemiLightIntensity` 0.25, `BgDifIntensity` 0,
+`ExposureValue` 2.88.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B44. B43 with a brighter palette | Only the Deku Tree's env palette in `EnvPalette.pack.zs`: `AmbientIntensity` 0.1 -> 1.0, `HemiLightIntensity` 0.25 -> 1.0 (same file size; the pack's entry 422,744 -> 422,936) | Map lit everywhere: a temporary light for map tests (tune the two numbers). No change: the palette isn't read here or the bake-off path ignores it |
+
+Result of B44: not tested yet.
 
 ## Building
 
