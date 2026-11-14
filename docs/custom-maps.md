@@ -123,6 +123,50 @@ The size table in `main` (1.1.1, offsets in `main`; the repo's `0x80…` style a
 | `0x36c3d30` | lookup (leaf, no prologue): `x0` table, `x1` → path string; CRC32 of the path, binary search in the hashed entries, then the named ones. Returns the size, or 0 |
 | `0x196340` | the resource manager's size for a file: builds the path, then calls the lookup on each loaded table (list at `+0x760`, lock at `+0x730`) until one answers. Its only direct call of `0x36c3d30` is at `0x1964e0`; `w0` = size right after it (`0x1964e4`), the path's text at `[x29 + 0x18]` |
 
+## Clearing a scene for a custom map (tests C, B40–B59, 13 Nov 2026)
+
+Inside the Deku Tree turned into a blank slate for the Minecraft test map, one change per test (setups and results
+in [mods/custom-map-tests](../mods/custom-map-tests/README.md)). Every step is a data file; no code (Core) needed.
+
+| What | Where | Change | What it removed |
+|---|---|---|---|
+| Placed actors | `Banc/<scene>/<scene>_Static` / `_Dynamic` | Keep only the `StartPos` actors, clear `AiGroups`, `FarDeleteGroups`, `SimultaneousGroups`, `PlgGdTable`, `PhiveHeader.PlacementGroups` (test C) | The level's look, enemies, doors, room areas. Also its exit: leaving needs a save reload |
+| Static collision | `Phive/StaticCompoundBody/<scene>/<scene>.Nin_Ounce_NVN2.bphsc.zs` | Replace with the game's empty compound, e.g. `DreamWorld/MorphaStage_X0_Z0`'s (B46; 16 such files, byte-identical unpacked, 53,264 bytes, every body section empty) | Walls, floors, climbable vines (static collision lives here, not in the placement) |
+| Foliage | `GameBancParam` `FoliageScene`; `Foliage/Placement/Scene/<scene>/<scene>.LowTree.flnt.zs`, `.Ornament.flnt.zs` | Remove the `FoliageScene` line (B48; 34 of 80 scenes have none); replace `LowTree` and `Ornament` with a near-empty placement, e.g. `LostWood/LostWood_Child.LostWood_Child.Undergrowth8`'s (B54, B57; 56 bytes unpacked; the format number, 2 or 4, doesn't matter) | Moss, stones, grass, undergrowth (`FoliageScene`); climbable-vine leaves (`Ornament`); ferns (`LowTree`) |
+| Height map | `GameBancParam` `HeightMapParam` | Remove the line (B55; 27 of 80 scenes, the boss stages, have none) | An abyss floor under the old ground (see below) |
+| Preloading the next scene | `GameBancParam` `OptimizeChangeBancUnits` | Remove the line (B56; only 2 of 80 scenes lack it) | The Kokiri Forest preload within 30 m of the entrance. With a big map on top it froze the game once |
+| Volume stats | `Phive/VolumeStats/<scene>/<scene>.bpvsts.zs` | Replace with a tiny one, e.g. `DeathMountainTrail/DeathMountainTrail_Adult_X0_Z0`'s (B58; 342 bytes unpacked; 1,065 such files in the game) | **The last walking limit**: Link couldn't go past the old level's space (the Deku Tree's is 1 MB unpacked) |
+| Lighting | `GameBancParam` `WorldMgrName` → `WorldMgr/WorldParam/<name>` | Point it at `HyruleField_Child`'s `WorldParam` (B52) | The dark dungeon light. The scene gets Hyrule Field's time-of-day palettes, sky, sun and moon |
+
+Changed in the tests but not needed: `VolumeStatsAABB` (`Game/VolumeStatsAABB/<scene>`, B53), the `HeightMapParam`
+box (B42, B51), `RenderingMode` / `EnvSetName` (B49: the lighting comes from the `WorldParam`, not these),
+`IsEnableBakeLight` and the scene's own palette (B43, B44, B50: brighter, but superseded by B52).
+
+The map itself is 9,397 collision boxes on 14 copies of `Obj_Flag_A_01` under new names (B38), with one scaled 1 m
+stone block per box to see it (B41), and the hosts' model swapped for `Dummy` (B59, being tested).
+
+### Abyss (void out) and other limits
+
+The game's word for falling out of a level is **abyss** (`FallIntoAbyss`, with `_Mountain` and `_Whirlpools`
+variants, `IsAbyss`, `AbyssType`, `ExecuteEventPlayerAbyss`, `ExecuteEventPlayerPostAbyss`, `ExecuteCameraAbyss`,
+`AfterReturnAbyssInvincibleTime`); players call it a void out. Link is put back at his last safe spot, the restart
+position (`ReturnToSafePos`, `ExecuteEventPlayerWarpSafePos`, `InvalidateRestartPos`, `QueryPlayerGetRestartPosAndRot`).
+Names from `main`'s strings; the code around them hasn't been read.
+
+What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
+
+- **The height map sets an abyss floor.** With `HeightMapParam` in place, Link was sent back as soon as he went about
+  12 m below the old ground (y 88–89 near the entrance, whose floor is y 101). Without it (B55) he fell to about y 66
+  (8 m above the map's lowest block) before the abyss; with tiny volume stats as well (B58), to y -44, far below the
+  map. So the volume stats count for falling too.
+- **The volume stats limit where Link may walk.** With the Deku Tree's `.bpvsts`, Link stopped about 25 m behind the
+  spawn (x 2, y 96, z 40), on open map ground, roughly where the old level ends; he was shown tumbling, so it looks like
+  the abyss check firing there, but that isn't confirmed. With a tiny `.bpvsts` (B58) the whole map is walkable.
+- **Not limits** (no change when widened or removed): `VolumeStatsAABB`, the `HeightMapParam` box, the Kokiri Forest
+  preload radius (its 30 m matched the z 40 spot by coincidence).
+- Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
+  `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
+
 ## Test map
 
 `test_map.glb` (KaboWabo's pick): "High quality minecraft world" by SOLDMARS on Sketchfab, CC-BY-4.0 (credit the
