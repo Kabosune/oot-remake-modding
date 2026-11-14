@@ -579,6 +579,35 @@ the blocks, screen dark). Most likely the noclip mod pushing Link into solid box
 into further (to tell: does it happen without noclip, or when noclipping into the vanilla Deku Tree's walls?). Also
 still there: the Deku Tree's dungeon map in the corner (B1 floor), from its `UI/CustomTex/Map/Dungeon` / `DungeonParam`.
 
+## The map as a scene of its own (S1, 13 Nov 2026)
+
+KaboWabo picked the new scene next ("I just want to see it mostly complete now"), so the real Deku Tree stays
+playable. Everything from B60, moved to a new scene `KaeGae_Minecraft`:
+
+- The B60 build's Deku Tree files under the new name: scene settings (`Banc.Main` → `Work/Banc/Scene/KaeGae_Minecraft/
+  KaeGae_Minecraft.bcett.json`), both placement files, empty static compound, tiny volume stats, widened
+  `VolumeStatsAABB`. No leftover-foliage files (a new scene has none) and no change to the shared palette pack.
+- The Deku Tree's other files looked up by the scene's name, copied under the new name: `Bake/Light`, `Bake/Scene`
+  (4), `Bake/Probe/Scene/<scene>/` (30), `Game/AdjacentRoomsInfo`, `Game/BakeSceneLayerConfig`,
+  `PreComputedCulling/<scene>/Boxes.bbox`, `Phive/NavMesh`, the volume stats' source param. (Sound, `Sound/Shape`, the
+  `VolumeFogAreaParam`s and the HUD map textures are named per actor, area or dungeon, not per scene.)
+- RSDB `GameBancInfo`: a row for `KaeGae_Minecraft` (a copy of the Deku Tree's, sorted by `__RowId`).
+- `AoC1/Banc/BancBasedResource/StartPos.byml`: every scene's start positions by scene name; a `KaeGae_Minecraft`
+  entry (a copy of the Deku Tree's: `Entrance` at 0.2, 101, 14.7, ...).
+- Kokiri Forest's Deku Tree door (`FrontDekuTree`, `FieldAndDungeonEntranceEventRequestActor` in
+  `KokiriForest_Child_Static`): `NextBancParamNameChild` / `Adult` → `KaeGae_Minecraft`, `NextStartPosName` `Entrance`,
+  `NextEventName` → the generic `Dm_SY_BancChangeArrive` (as the Kokiri Forest → Hyrule Field door uses), the
+  Deku Tree's `InitEventName` / `InitEventFlag` dropped.
+
+No control test before it (KaboWabo asked for few test rounds): if S1 fails, the controls are test A (the door to
+an existing scene) and a plain renamed copy of the Deku Tree.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S1. The map as its own scene | All of the above; the real Deku Tree's files untouched | Entering the Deku Tree from Kokiri Forest lands on the map, same as B60: new scenes work. Black screen / crash / back in Kokiri: a missing piece (then test A and a renamed Deku Tree as controls) |
+
+Result of S1: not tested yet.
+
 ## Building
 
 ```
