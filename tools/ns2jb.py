@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Repack a mod zip from the emulator layout into ns2jb-modloader's layout (real Switch 2).
 
-    python3 tools/ns2jb.py releases/first-person.zip out.zip
+    python3 tools/ns2jb.py releases/archive/first-person-1.2.0.zip out.zip
 
 Emulator layout (Lichii / Fritchii / Eden load folder):
 

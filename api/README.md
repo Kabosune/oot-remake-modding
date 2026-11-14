@@ -122,7 +122,7 @@ The first four need no game files. `--log` on the second prints the log of a ful
 
 Install `releases/kaegae-core.zip` and any mod built on it (Moon Jump or Speedometer show
 something right away), close and reopen the emulator, start the game. Core's
-log starts with `kaegae: Core 0.7 loaded, game 1.1.1, main at ...`, then each mod's own lines
+log starts with `kaegae: Core 0.8.1 loaded, game 1.1.1, main at ...`, then each mod's own lines
 (`kaegae [its.id]: ...`); while the emulator runs, the log is `eden_log.busy.txt`. The Mods menu (- and + together) lists every mod Core found, with the
 reason next to any it switched off. Close the emulator before changing mod folders: it locks a
 mod's exefs files while it runs.

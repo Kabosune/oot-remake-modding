@@ -1,6 +1,9 @@
 # FPV Drone
 
-Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/releases/fpv-drone.zip
+**Download: [`fpv-drone.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip)** (2.0.0). It needs
+[KaeGae Core](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip) 0.8 or newer installed as well.
+Older version without Core (for a real Switch 2 for now):
+[`fpv-drone-1.0.0.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/archive/fpv-drone-1.0.0.zip).
 
 Fly a free camera or a first-person-view quadcopter around Hyrule, and take Link along if you
 like. Press **L3** (click the left stick) and the camera leaves from wherever the game camera is.
@@ -9,8 +12,8 @@ Link stands still while you fly. Press L3 again to go back to the normal game.
 The first time you press L3 after starting the game you're in **Free fly**, a noclip camera.
 After that it keeps whichever mode you last picked, until the game restarts.
 
-> **FPV Drone 2.0 runs on KaeGae Core 0.8** ([`core/`](core/fpv_drone.c), on the `kaegae-0.8`
-> branch, not tested in the game yet). It flies the same; what used to be build options is now a
+> **FPV Drone 2.0 runs on KaeGae Core 0.8** ([`core/`](core/fpv_drone.c); works in Fritchii,
+> 12 November 2026). It flies the same; what used to be build options is now a
 > page in the Mods menu (- and +), saved between runs:
 >
 > - every button below is a binding (any buttons, or a keyboard key): on / off, back to the game
@@ -104,11 +107,16 @@ untested elsewhere.
 
 ## Install
 
-Copy `0400486024DEC000` from `releases/fpv-drone.zip` into the emulator's `load` folder (Fritchii v5.8
+Copy `0400486024DEC000` from [`kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip) and then from
+[`fpv-drone.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) into the emulator's `load` folder (Fritchii v5.8
 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older Fritchii: `%APPDATA%\eden\load\`) and restart
-the game.
+the game. Or: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/fpv-drone.zip`.
 
-## Tune it
+**1.x without Core** (the old download, kept for a real Switch 2, where Core may not run yet):
+[`releases/archive/fpv-drone-1.0.0.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/archive/fpv-drone-1.0.0.zip), installed the same way
+on its own. Don't install it next to the 2.0 version.
+
+## Tune it (1.x build; 2.0 has these on its settings page)
 
 ```
 python mods/fpv-drone/build.py --acro-uptilt 40 --rate-max 800

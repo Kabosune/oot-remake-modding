@@ -78,7 +78,7 @@ python mods/first-person/build.py --verify-main work/main.bin
 ```
 
 ```
-python tests/test_first_person.py work/main.bin releases/first-person.zip
+python tests/test_first_person.py work/main.bin releases/archive/first-person-1.2.0.zip
 ```
 
 The first builds the zip and checks every replaced instruction against your `main`. The second

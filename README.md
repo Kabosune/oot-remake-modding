@@ -20,14 +20,14 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 ## Mods
 
 **Install [KaeGae Core](api/README.md) first** ([download `kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip)),
-in its own folder, before any of the mods below. Mouse Grab, Slopped Up Sloperina, Moon Jump, Speedometer and Drunk Mode run on it and
+in its own folder, before any of the mods below. All of them run on it and
 do nothing without it. Kaegae has its own mod menu and button mapping system. activate its menu by pressing + and -. On a real Switch 2, KaeGae
 Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2))
 
 | Mod | Download | What it does | Needs KaeGae Core | Status |
 |---|---|---|---|---|
-| [First Person](mods/first-person/README.md) | [first-person.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Keyboard: `,` `.` eye height, `;` show / hide Link. | 1.x: no. 2.0: yes (Core 0.8) | 1.x works in Lichii / Fritchii. 2.0 (`mods/first-person/core`, needs Core 0.8): on Core, with a settings page (FOV, eye height and forward, look speed, show Link, rebindable toggle); works in Fritchii (12 Nov) |
-| [FPV Drone](mods/fpv-drone/README.md) | [fpv-drone.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. | 1.x: no. 2.0: yes (Core 0.8) | 1.x works in Fritchii: drone modes, Free fly and carrying Link. 2.0 (`mods/fpv-drone/core`, needs Core 0.8): on Core, every button rebindable (and keys), FOV, speeds, rates, camera tilt, thrust, top speed, carry spot; works in Fritchii (12 Nov) |
+| [First Person](mods/first-person/README.md) | [first-person.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Settings page: FOV, eye height and forward, look speed, show Link, rebindable toggle. | Yes (Core 0.8) | 2.0.1 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core (for a real Switch 2) is on [its page](mods/first-person/README.md) |
+| [FPV Drone](mods/fpv-drone/README.md) | [fpv-drone.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. Every button rebindable (and keys); FOV, speeds, rates, tilt, thrust on its settings page. | Yes (Core 0.8) | 2.0.0 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core (for a real Switch 2) is on [its page](mods/fpv-drone/README.md) |
 | [Mouse Grab](mods/mouse-grab/README.md) | [mouse-grab.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/mouse-grab.zip) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes | 0.3.0 works in Fritchii (KaeGae Core 0.5.2, 11 Nov) |
 | [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.4.0 works in Fritchii (KaeGae Core 0.7, 12 Nov): shortcuts rebindable on Core's page, with keyboard keys. Needs Core 0.7 |
 
@@ -45,7 +45,9 @@ Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
 Fritchii: `%APPDATA%\eden\load\`), then close and reopen the emulator. Do this for
-`kaegae-core.zip` first, then for each mod; each one gets its own folder. Or let the tool do it,
+`kaegae-core.zip` first, then for each mod; each one gets its own folder. Every mod zip has its
+module as `exefs/subsdk2`, so when you copy more than one by hand, rename the file in each extra
+mod to a free number (`subsdk3`, `subsdk4`, ... up to `subsdk8`), or only one of them loads. Or let the tool do it,
 with a check for conflicts first (it also tells you when a mod needs Core and Core is missing or
 switched off): `python3 tools/kaegae.py install releases/kaegae-core.zip releases/mouse-grab.zip`
 ([api/MANIFEST.md](api/MANIFEST.md)).

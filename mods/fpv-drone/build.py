@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the FPV Drone mod (exefs IPS32 for main build E0F3CCFA).
 
-    python3 mods/fpv-drone/build.py                          # releases/fpv-drone.zip
+    python3 mods/fpv-drone/build.py                          # releases/archive/fpv-drone-1.0.0.zip
     python3 mods/fpv-drone/build.py --verify-main main.bin   # also check against your own main
     python3 mods/fpv-drone/build.py --acro-uptilt 40 --rate-max 800
 
@@ -95,7 +95,7 @@ def main():
     p.add_argument("--free", choices=BUTTONS, default="l", help="Free fly mode (default l)")
     p.add_argument("--carry", choices=BUTTONS, default="r", help="carry / drop Link (default r)")
     p.add_argument("--name", default="FPV Drone", help="mod folder name inside the zip")
-    p.add_argument("--out", type=Path, default=REPO / "releases" / "fpv-drone.zip")
+    p.add_argument("--out", type=Path, default=REPO / "releases" / "archive" / "fpv-drone-1.0.0.zip")
     a = p.parse_args()
 
     rad = math.radians

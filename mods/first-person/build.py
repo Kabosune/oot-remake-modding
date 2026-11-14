@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the First Person mod (exefs IPS32 for main build E0F3CCFA).
 
-    python3 mods/first-person/build.py                          # releases/first-person.zip
+    python3 mods/first-person/build.py                          # releases/archive/first-person-1.2.0.zip
     python3 mods/first-person/build.py --verify-main main.bin   # also check against your own main
     python3 mods/first-person/build.py --forward 0.25 --height-add 0.1
 
@@ -51,7 +51,7 @@ def main():
     p.add_argument("--diagnostic", action="store_true",
                    help="when Link isn't found, use the camera's look-at point as the eye (for testing the hooks)")
     p.add_argument("--name", default="First Person", help="mod folder name inside the zip")
-    p.add_argument("--out", type=Path, default=REPO / "releases" / "first-person.zip")
+    p.add_argument("--out", type=Path, default=REPO / "releases" / "archive" / "first-person-1.2.0.zip")
     a = p.parse_args()
 
     defines = {

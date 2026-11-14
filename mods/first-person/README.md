@@ -1,11 +1,14 @@
 # First Person
 
-Link to download: https://github.com/Kabosune/oot-remake-modding/blob/main/releases/first-person.zip
+**Download: [`first-person.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip)** (2.0.1). It needs
+[KaeGae Core](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip) 0.8 or newer installed as well.
+Older version without Core (for a real Switch 2 for now):
+[`first-person-1.2.0.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/archive/first-person-1.2.0.zip).
 
 Press **R3** (click the right stick) to switch to Link's eyes. Press it again to switch back.
 
-> **First Person 2.0 runs on KaeGae Core 0.8** ([`core/`](core/first_person.c), on the `kaegae-0.8`
-> branch, not tested in the game yet). Same view, plus a page in the Mods menu (- and +):
+> **First Person 2.0 runs on KaeGae Core 0.8** ([`core/`](core/first_person.c); works in Fritchii,
+> 12 November 2026). Same view, plus a page in the Mods menu (- and +):
 >
 > | Setting | Default | |
 > |---|---|---|
@@ -56,9 +59,14 @@ Compatible with: FPV Drone (when both are on, the drone's view wins), Ultrawide,
 
 ## Install
 
-Copy `0400486024DEC000` from `releases/first-person.zip` into the emulator's `load` folder (Fritchii v5.8
+Copy `0400486024DEC000` from [`kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip) and then from
+[`first-person.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) into the emulator's `load` folder (Fritchii v5.8
 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older Fritchii: `%APPDATA%\eden\load\`) and restart
-the game.
+the game. Or: `python3 tools/kaegae.py install releases/kaegae-core.zip releases/first-person.zip`.
+
+**1.x without Core** (the old download, kept for a real Switch 2, where Core may not run yet):
+[`releases/archive/first-person-1.2.0.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/archive/first-person-1.2.0.zip), installed the same way
+on its own. Don't install it next to Core: both hook the same instruction.
 
 ## Real Switch 2 (testing)
 
@@ -82,7 +90,7 @@ same places. If the first one works, the fix is for the mod to switch the keyboa
 game imports `InitializeKeyboard`) or to leave the keys out of hardware builds.
 `python3 tools/build_hw_tests.py` rebuilds these.
 
-## Tune it
+## Tune it (1.x build; 2.0 has these on its settings page)
 
 ```
 python mods/first-person/build.py --forward 0.25 --height-add 0.1
