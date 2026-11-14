@@ -528,7 +528,19 @@ map set that floor; what's left is the normal "fell off the level" respawn, belo
 show (expected). Walking as far as possible behind the spawn, Link stops at **x 2.03, y 96.00,
 z 40.50**: 30.36 m from `OptimizeChangeBancUnits`' Kokiri Forest point (0.03, 101.12, 10.64), whose `LoadRadius` is 30
 (that entry also has `IsUseFailSafe`). The B53 freeze (x 6.00, y 95.40, z 35.74) was in the same area. So B56 tests
-both. Result of B56: not tested yet. Result of B57: not tested yet.
+both. Result of B56 (13 Nov 2026): **the limit behind the spawn is unchanged**: Link still stops at x 2.03, y 96.00,
+z 40.13 (so the 30 m preload radius was a coincidence). The ferns are still there (expected: B57). Checked: the map is
+open there (at x 2 the ground is at y 96 and runs on to z 50, no wall), so something invisible stops Link roughly
+where the old Deku Tree's entrance is. Next suspect: the scene's Havok volume stats
+`Phive/VolumeStats/InsideTheDekuTree/InsideTheDekuTree.bpvsts.zs` (1,015,667 bytes unpacked, a detailed map of the
+old level; source param `IsUseMutableLayer: true`, no `PresenceSetting`). The game has 1,065 `.bpvsts`; the smallest
+(Death Mountain Trail tiles) are 342 bytes unpacked, same `Phive` header.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B58. B57 with tiny volume stats | Only `InsideTheDekuTree.bpvsts.zs`: replaced by `DeathMountainTrail_Adult_X0_Z0`'s (342 bytes) | Link walks past z 40: the volume stats were the limit. Worse (respawn everywhere) or crash: they define where Link may be, and need writing for the map |
+
+Result of B57: not tested yet. Result of B58: not tested yet.
 
 ## Building
 

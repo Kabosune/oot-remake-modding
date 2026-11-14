@@ -19,6 +19,7 @@
     Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs (B46 on)
     Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml (B53 on)
     Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs (B54 on)
+    Phive/VolumeStats/DeathMountainTrail/DeathMountainTrail_Adult_X0_Z0.bpvsts.zs (B58 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -49,6 +50,8 @@ DEKU_COMPOUND = "Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Ni
 EMPTY_COMPOUND = "Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs"   # one of the game's
 # 16 byte-identical empty static compounds (53,264 bytes unpacked, every body section empty)
 DEKU_AABB = "Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml"   # B53 on: the out-of-bounds box?
+DEKU_VSTATS = "Phive/VolumeStats/InsideTheDekuTree/InsideTheDekuTree.bpvsts.zs"   # B58 on (1 MB unpacked)
+SMALL_VSTATS = "Phive/VolumeStats/DeathMountainTrail/DeathMountainTrail_Adult_X0_Z0.bpvsts.zs"   # 342 bytes unpacked
 DEKU_LOWTREE = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.LowTree.flnt.zs"   # B57 on (format 2)
 DEKU_ORNAMENT = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.Ornament.flnt.zs"   # B54 on
 EMPTY_FOLIAGE = "Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs"   # 56 bytes unpacked,
@@ -1382,7 +1385,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1449,6 +1452,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if no_lowtree:                                            # B57: LowTree (format 2) gets the same format-4 file;
         files[DEKU_LOWTREE] = (game.raw(EMPTY_FOLIAGE), 1)       # Ornament files come in both formats
         notes.append(f"{label}: {DEKU_LOWTREE} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
+    if small_vstats:                                          # B58: the scene's volume stats swapped for a tiny one
+        files[DEKU_VSTATS] = (game.raw(SMALL_VSTATS), 1)
+        notes.append(f"{label}: {DEKU_VSTATS} replaced by {SMALL_VSTATS} (342 bytes unpacked)")
     if no_compound:                                           # B47: B45 plus B46's empty static compound
         files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
         notes.append(f"{label}: only change from B45: {DEKU_COMPOUND} replaced by the game's empty compound ({EMPTY_COMPOUND}).")
@@ -1477,6 +1483,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 def main_1b(game, out, glb=None):
     if glb:
         for lab, name, extra, more in (
+                ("B58", "B57 with tiny volume stats", dict(no_ornament=True, no_lowtree=True, small_vstats=True),
+                 {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B57", "B56 without the LowTree foliage", dict(no_ornament=True, no_lowtree=True),
                  {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B56", "B55 without the preload list", dict(no_ornament=True),
