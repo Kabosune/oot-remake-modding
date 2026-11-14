@@ -17,6 +17,8 @@
     Pack/Actor/Land_SacredForest_Prop_A_06.pack.zs (B39 on; not changed, only checked)
     Pack/EnvPalette.pack.zs, Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml (B42 on)
     Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs (B46 on)
+    Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml (B53 on)
+    Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs (B54 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -46,6 +48,10 @@ DEKU_PALETTE = "WorldMgr/ResEnvPalette/InsideTheDekuTree.game__wm__ResEnvPalette
 DEKU_COMPOUND = "Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs"   # B46 on
 EMPTY_COMPOUND = "Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs"   # one of the game's
 # 16 byte-identical empty static compounds (53,264 bytes unpacked, every body section empty)
+DEKU_AABB = "Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml"   # B53 on: the out-of-bounds box?
+DEKU_ORNAMENT = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.Ornament.flnt.zs"   # B54 on
+EMPTY_FOLIAGE = "Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs"   # 56 bytes unpacked,
+# the same format number (4) as Ornament; one entry
 DEKU_BANC = "Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml"   # B42 on
 HOST = "Land_Deku_TreeRoot_B_01"           # a plain static Deku Tree piece; its collision gets replaced
 HOST_PACK = f"Pack/Actor/{HOST}.pack.zs"
@@ -1375,7 +1381,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1427,6 +1433,18 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
             else:
                 bp[k] = v
         files[DEKU_BANC] = (bp, 0)
+    if aabb:                                                  # B53: the scene's VolumeStatsAABB widened
+        box = game.byml(DEKU_AABB)
+        old = (dict(box["Min"]), dict(box["Max"]))
+        for k, v in zip("XYZ", aabb[0]):
+            box["Min"][k] = float(v)
+        for k, v in zip("XYZ", aabb[1]):
+            box["Max"][k] = float(v)
+        files[DEKU_AABB] = (box, 0)
+        notes.append(f"{label}: {DEKU_AABB} {old[0]}..{old[1]} -> {dict(box['Min'])}..{dict(box['Max'])}")
+    if no_ornament:                                           # B54: the Ornament foliage replaced by a near-empty file
+        files[DEKU_ORNAMENT] = (game.raw(EMPTY_FOLIAGE), 1)
+        notes.append(f"{label}: {DEKU_ORNAMENT} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
     if no_compound:                                           # B47: B45 plus B46's empty static compound
         files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
         notes.append(f"{label}: only change from B45: {DEKU_COMPOUND} replaced by the game's empty compound ({EMPTY_COMPOUND}).")
@@ -1454,6 +1472,13 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        for lab, name, extra in (("B54", "B53 without the Ornament foliage", dict(no_ornament=True)),
+                                 ("B53", "B52 with a wider VolumeStatsAABB", {})):
+            test_b40(game, out / f"KaeGae Map Test {lab} - {name}", glb, show_all=True,
+                     bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                     banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                     palette_set={"AmbientIntensity": 3.0, "HemiLightIntensity": 3.0}, empty=True, no_compound=True,
+                     aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), label=lab, **extra)
         test_b40(game, out / "KaeGae Map Test B52 - B51 with Hyrule Field's world settings", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},

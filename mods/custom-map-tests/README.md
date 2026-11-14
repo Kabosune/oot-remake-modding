@@ -471,7 +471,24 @@ reaches past it to the right (x 86) and ahead (z -77).
 | B51. B50 with wider scene bounds | Only `GameBancParam`: `HeightMapParam` box -> x -95..95, y 0..135, z -85..100 | Link can walk the whole map: that box is the limit (and maybe the vertical one) |
 | B52. B51 with Hyrule Field's world settings | Only `GameBancParam`: `WorldMgrName` -> `HyruleField_Child`'s `WorldParam` | Lit like Hyrule Field (sun, sky, time of day). If dark or odd: add the outdoor `RenderingMode` too |
 
-Result of B51: not tested yet. Result of B52: not tested yet.
+Result of B51 (13 Nov 2026): **no change**: the out-of-bounds limit feels the same (strict); vines and some foliage
+still there. So `HeightMapParam`'s box isn't the limit.
+
+Next suspect: **`Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml`** (136 bytes, one per scene, 78 in
+the game): `Min` (-83, 47, -21), `Max` (42, 134, 89), exactly the Deku Tree's rooms. The map reaches x 86 and z -77,
+past it to the right and ahead. (A Havok volume-stats file goes with it: `Phive/VolumeStats/InsideTheDekuTree/
+InsideTheDekuTree.bpvsts.zs`, 532 KB, the next suspect if the AABB isn't it.)
+
+The leftover foliage: `LowTree` (format 2, 34 entries, `ResShootBranch` pieces) and `Ornament` (format 4, 3,302 entries,
+`ResShootLeaf` pieces) load without `FoliageScene`. The game's smallest foliage placements are 34 bytes packed
+(`LostWood_*.Undergrowth8`, format 4, one entry, 56 bytes unpacked).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B53. B52 with a wider VolumeStatsAABB | Only `VolumeStatsAABB`: -> x -95..95, y 0..150, z -90..100 | No respawn walking the whole map: that box is the out-of-bounds limit (maybe the vertical one too) |
+| B54. B53 without the Ornament foliage | Only `InsideTheDekuTree.Ornament.flnt.zs`: replaced by `LostWood_Child...Undergrowth8`'s (same format) | Vines / leafy bits gone; what's left is `LowTree` (bushes) |
+
+Result of B52: not tested yet. Result of B53: not tested yet. Result of B54: not tested yet.
 
 ## Building
 
