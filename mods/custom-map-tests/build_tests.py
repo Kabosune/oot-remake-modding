@@ -15,6 +15,8 @@
     Pack/Actor/Obj_Flag_A_01.pack.zs (B35 on)
     RSDB/GameActorInfo.Product.111.rstbl.byml.zs (B36 on)
     Pack/Actor/Land_SacredForest_Prop_A_06.pack.zs (B39 on; not changed, only checked)
+    Pack/EnvPalette.pack.zs, Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml (B42 on)
+    Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs (B46 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
 
 Needs: pip install zstandard trimesh scipy numpy
@@ -41,6 +43,9 @@ DEKU_S = "Banc/InsideTheDekuTree/InsideTheDekuTree_Static.bcett.byml.zs"
 DEKU_D = "Banc/InsideTheDekuTree/InsideTheDekuTree_Dynamic.bcett.byml.zs"
 ENV_PACK = "Pack/EnvPalette.pack.zs"   # B44 on
 DEKU_PALETTE = "WorldMgr/ResEnvPalette/InsideTheDekuTree.game__wm__ResEnvPalette.bgyml"
+DEKU_COMPOUND = "Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs"   # B46 on
+EMPTY_COMPOUND = "Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs"   # one of the game's
+# 16 byte-identical empty static compounds (53,264 bytes unpacked, every body section empty)
 DEKU_BANC = "Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml"   # B42 on
 HOST = "Land_Deku_TreeRoot_B_01"           # a plain static Deku Tree piece; its collision gets replaced
 HOST_PACK = f"Pack/Actor/{HOST}.pack.zs"
@@ -401,6 +406,15 @@ def test_c(game, out, keep_terrain):
     files = {DEKU_S: (st, 3), DEKU_D: (dy, 3)}
     what = "spawn points and the 5 terrain chunks" if keep_terrain else "only its spawn points"
     write_mod(out, files, game, [f"Test {'D' if keep_terrain else 'C'}: Inside the Deku Tree emptied to {what}; nothing added."])
+
+
+def test_b46(game, out):
+    """Test C (the Deku Tree emptied to its spawn points) plus the scene's pre-built static collision replaced by one of
+    the game's empty static compounds, so the Deku Tree's walls, floor and vines (which C kept) should be gone too."""
+    st, dy = emptied_deku(game)
+    files = {DEKU_S: (st, 3), DEKU_D: (dy, 3), DEKU_COMPOUND: (game.raw(EMPTY_COMPOUND), 1)}
+    write_mod(out, files, game, ["Test B46: test C plus the Deku Tree's static compound (walls, floor, vines) replaced by the game's",
+                                 f"empty one ({EMPTY_COMPOUND}). Only that file differs from C."])
 
 
 def test_b2(game, out):
@@ -1361,7 +1375,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1410,6 +1424,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
             notes.append(f"{label}: only change from B41: {DEKU_BANC} {k} {bp.get(k)!r} -> {v!r}")
             bp[k] = v
         files[DEKU_BANC] = (bp, 0)
+    if no_compound:                                           # B47: B45 plus B46's empty static compound
+        files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
+        notes.append(f"{label}: only change from B45: {DEKU_COMPOUND} replaced by the game's empty compound ({EMPTY_COMPOUND}).")
     if empty:
         notes.append(f"{label}: only change from B44: the map in test C's emptied Deku Tree (only its 6 spawn points kept, groups cleared).")
     if palette_set:                                           # B44 on: B43 plus a brighter Deku Tree env palette
@@ -1434,6 +1451,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B47 - B45 without the Deku Tree's collision", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False},
+                 palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, no_compound=True, label="B47")
         test_b40(game, out / "KaeGae Map Test B45 - B44 in the emptied Deku Tree", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False},
                  palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, label="B45")
@@ -1449,6 +1469,7 @@ def main_1b(game, out, glb=None):
         test_b39(game, out / "KaeGae Map Test B39 - Minecraft cut you can see", glb)
         test_b38(game, out / "KaeGae Map Test B38 - whole Minecraft map on 14 flags", glb)
         test_b37(game, out / "KaeGae Map Test B37 - Minecraft cut on two flags", glb)
+    test_b46(game, out / "KaeGae Map Test B46 - C without the Deku Tree's collision")
     test_b36(game, out / "KaeGae Map Test B36 - flag copy under a new name")
     test_b35(game, out / "KaeGae Map Test B35 - flag host, far bridge")
     test_b34(game, out / "KaeGae Map Test B34 - second body in the controller")

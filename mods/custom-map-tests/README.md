@@ -406,7 +406,23 @@ its 6 spawn points (Static 475 actors and Dynamic 1,615 actors removed, all grou
 |---|---|---|
 | B45. B44 in the emptied Deku Tree | B44 with C's emptied placement files (only the 6 spawn points left), hosts and blocks added to them as before | The map on its own: no Deku Tree level, and maybe no out-of-bounds respawn (if it came from the placement) |
 
-Result of C: not tested yet. Result of B45: not tested yet.
+Result of C (13 Nov 2026): **loads**. The Deku Tree's level is mostly gone from view (some foliage is still there:
+it comes from the scene's own foliage files, not the placement). The out-of-bounds respawn is mostly gone too: only
+far out does the game send Link back. But **the Deku Tree's collision is still there, climbable vines included**: it
+lives in the scene's pre-built static compound (`Phive/StaticCompoundBody/InsideTheDekuTree/...bphsc`, 2.6 MB
+packed, 3.98 MB unpacked), not in the placement. B45 (the map in C) waits for the next step.
+
+The game has 16 tiny static compounds (DarkLinkStage and MorphaStage tiles, 85 / 88 bytes packed), all **byte-identical**
+when unpacked (53,264 bytes, same header layout as the Deku Tree's, every body section empty): a generic empty compound.
+`GameBancParam`'s `StaticCompoundMode` (Kokiri and 24 other scenes have `1277310799`, 9 have `2165085917`, the Deku Tree
+and 45 others have none) is a murmur3 hash that no word in `main` matched.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B46. C without the Deku Tree's collision | C plus `InsideTheDekuTree.Nin_Ounce_NVN2.bphsc.zs` replaced by the empty compound (`MorphaStage_X0_Z0`'s); only that file differs from C | Walls, floor and vines gone (Link falls or voids out at the spawn): the compound is the Deku Tree's collision and an empty one loads. Crash: the scene needs a matching compound |
+| B47. B45 without the Deku Tree's collision | B45 (the map, every box drawn, the B44 light, in C's emptied scene) plus B46's empty compound | The map alone in the Deku Tree's place |
+
+Result of B46: not tested yet. Result of B47: not tested yet.
 
 ## Building
 
