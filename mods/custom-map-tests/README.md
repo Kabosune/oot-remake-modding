@@ -393,7 +393,20 @@ The Deku Tree's env palette (`Pack/EnvPalette.pack.zs`, `WorldMgr/ResEnvPalette/
 |---|---|---|
 | B44. B43 with a brighter palette | Only the Deku Tree's env palette in `EnvPalette.pack.zs`: `AmbientIntensity` 0.1 -> 1.0, `HemiLightIntensity` 0.25 -> 1.0 (same file size; the pack's entry 422,744 -> 422,936) | Map lit everywhere: a temporary light for map tests (tune the two numbers). No change: the palette isn't read here or the bake-off path ignores it |
 
-Result of B44: not tested yet.
+Result of B44 (13 Nov 2026): **works**: a little dim, but the map can be seen out of bounds. So turning off the bake
+and raising the palette's ambient and hemi light is the temporary map-test light for now. Exploring with the noclip mod,
+the game froze once (not looked into: could be the noclip mod, or something far out), and the out-of-bounds respawn
+is still there.
+
+KaboWabo agreed (13 Nov) to go for the emptied scene: the map should replace the Deku Tree's own level, not sit inside
+it. Control first: **test C** (built on 12 Nov, never tested; rebuilt byte-identical): Inside the Deku Tree emptied to
+its 6 spawn points (Static 475 actors and Dynamic 1,615 actors removed, all groups cleared), nothing added. Then:
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B45. B44 in the emptied Deku Tree | B44 with C's emptied placement files (only the 6 spawn points left), hosts and blocks added to them as before | The map on its own: no Deku Tree level, and maybe no out-of-bounds respawn (if it came from the placement) |
+
+Result of C: not tested yet. Result of B45: not tested yet.
 
 ## Building
 

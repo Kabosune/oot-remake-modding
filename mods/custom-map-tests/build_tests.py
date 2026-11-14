@@ -1361,7 +1361,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1371,7 +1371,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     off = np.subtract((0.0, 0.0, -24.0), (cx + 0.5, top, cz + 0.5))
     chunks = map_chunks(solid)
     names = [f"KaeGae_MapHost_{i:02d}" for i in range(len(chunks))]
-    st, dy = game.byml(DEKU_S), game.byml(DEKU_D)
+    st, dy = emptied_deku(game) if empty else (game.byml(DEKU_S), game.byml(DEKU_D))   # B45: test C's emptied scene
     sx, sy, sz = SPAWN
     files, entries, extra, every = {}, {}, {}, []
     for i, (name, ch) in enumerate(zip(names, chunks)):
@@ -1410,6 +1410,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
             notes.append(f"{label}: only change from B41: {DEKU_BANC} {k} {bp.get(k)!r} -> {v!r}")
             bp[k] = v
         files[DEKU_BANC] = (bp, 0)
+    if empty:
+        notes.append(f"{label}: only change from B44: the map in test C's emptied Deku Tree (only its 6 spawn points kept, groups cleared).")
     if palette_set:                                           # B44 on: B43 plus a brighter Deku Tree env palette
         raw = game.raw(ENV_PACK)
         sarc = zstool.Sarc(raw)
@@ -1432,6 +1434,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B45 - B44 in the emptied Deku Tree", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False},
+                 palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, empty=True, label="B45")
         test_b40(game, out / "KaeGae Map Test B44 - B43 with a brighter palette", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False},
                  palette_set={"AmbientIntensity": 1.0, "HemiLightIntensity": 1.0}, label="B44")
