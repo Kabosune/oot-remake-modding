@@ -488,7 +488,12 @@ The leftover foliage: `LowTree` (format 2, 34 entries, `ResShootBranch` pieces) 
 | B53. B52 with a wider VolumeStatsAABB | Only `VolumeStatsAABB`: -> x -95..95, y 0..150, z -90..100 | No respawn walking the whole map: that box is the out-of-bounds limit (maybe the vertical one too) |
 | B54. B53 without the Ornament foliage | Only `InsideTheDekuTree.Ornament.flnt.zs`: replaced by `LostWood_Child...Undergrowth8`'s (same format) | Vines / leafy bits gone; what's left is `LowTree` (bushes) |
 
-Result of B52: not tested yet. Result of B53: not tested yet. Result of B54: not tested yet.
+Result of B52 (13 Nov 2026): **works: the lighting looks way better and like Hyrule Field.** Time of day comes from
+`MainField`'s `WorldParam` (in `Pack/Bootup`): palette time tables (`MainField_Bluesky` / `_Cloudy` in
+`EnvPalette.pack`: BeforeSunrise 3:20, Sunrise 5:00, ... each blended over 20–30 game minutes), the sun and moon moving
+with the clock (`IsSolarMotion`; child Hyrule Field: sunrise 4:00, sunset 19:40), and a first-visit table with a fixed
+sun angle while `HyruleField_ChangeENV` holds. The Deku Tree's `GameBancParam` has `IsEnableTimerCounting: false`
+(dungeons stop the clock; Hyrule Field has no such line), so on the map the time likely stays where it was on entry. Result of B53: not tested yet. Result of B54: not tested yet.
 
 ## Building
 
