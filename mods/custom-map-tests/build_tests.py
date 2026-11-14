@@ -1359,7 +1359,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1402,6 +1402,12 @@ def test_b40(game, out, glb, show_all=False, bounds=None, label="B40"):
                  f"{dict(hm['BoundingBoxMin'])}..{dict(hm['BoundingBoxMax'])} (the map spans x -85..86, y 58..128, z -77..50)."]
     if show_all:
         notes = [f"{label}: only change from B40: a block for every collision box ({len(shown)}), not just those above the floor."]
+    if banc_set:                                              # B43 on: B41 plus GameBancParam values
+        bp = game.byml(DEKU_BANC)
+        for k, v in banc_set.items():
+            notes.append(f"{label}: only change from B41: {DEKU_BANC} {k} {bp.get(k)!r} -> {v!r}")
+            bp[k] = v
+        files[DEKU_BANC] = (bp, 0)
     write_mod(out, files, game, notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
                f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
@@ -1412,6 +1418,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, label="B40"):
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B43 - B41 with baked light off", glb, show_all=True,
+                 banc_set={"IsEnableBakeLight": False}, label="B43")
         test_b40(game, out / "KaeGae Map Test B42 - B40 with wider scene bounds", glb,
                  bounds=((-95.0, 40.0, -85.0), (95.0, 135.0, 100.0)), label="B42")
         test_b40(game, out / "KaeGae Map Test B41 - B40 with every box drawn", glb, show_all=True, label="B41")

@@ -373,7 +373,15 @@ left of the entrance's middle), most likely inside the entrance's left wall. Can
 `DungeonRoomArea` (25, no links), the `LocationArea` (origin, scale 100), or a check in code (`main` has
 `ReturnToSafePos`, `InvalidateRestartPos`, `OutOfRange`).
 
-Result of B41: not tested yet.
+Result of B41 (13 Nov 2026): **works**: blocks now show everywhere there's collision, reaching far from the spawn;
+collision fine, frame rate fine with 9,397 placed blocks. The Deku Tree's own level and its out-of-bounds respawn are
+still there. Outside the Deku Tree's rooms it's very dark, which makes the map hard to see.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B43. B41 with baked light off | Only `GameBancParam` `IsEnableBakeLight` true -> false (same file size) | Out-of-bounds map lit: the darkness is the baked light (probes only cover the real rooms). Everything dark or black: the scene needs its bake, try the environment next (`EnvSetName` / `RenderingMode` from Kokiri Forest, or the room env in `DungeonRoomEnvParam`) |
+
+Result of B43: not tested yet.
 
 ## Building
 
