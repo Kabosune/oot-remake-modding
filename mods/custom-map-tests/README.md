@@ -570,7 +570,14 @@ Instead: keep the flag model and put the posts where nobody looks.
 |---|---|---|
 | B60. B58 with the flag hosts under the map | Only the hosts: each placed at the middle of its own part of the map, 6 m below the part's lowest block (all at y 52, the map's bottom is y 58), its boxes shifted to match so the collision stays exactly where it was | Posts out of sight, map solid everywhere: hidden hosts. Parts of the map not solid: a host's reach or radius (`CalcRadius` 100) |
 
-Result of B60: not tested yet.
+Result of B60 (13 Nov 2026): **works: the posts are out of sight and the map is solid everywhere.** So hosts can stand
+anywhere, as long as their boxes are placed relative to them; spread under the map, each sits close to the part it
+carries. **The cleanup is done: the Minecraft map stands in the Deku Tree's place with nothing of the old level left.**
+
+Noticed: noclipping downward **into** the map's solid blocks, the game froze once at x 75.25, y 81.78, z 14.74 (inside
+the blocks, screen dark). Most likely the noclip mod pushing Link into solid boxes; not seen in normal play. Not looked
+into further (to tell: does it happen without noclip, or when noclipping into the vanilla Deku Tree's walls?). Also
+still there: the Deku Tree's dungeon map in the corner (B1 floor), from its `UI/CustomTex/Map/Dungeon` / `DungeonParam`.
 
 ## Building
 

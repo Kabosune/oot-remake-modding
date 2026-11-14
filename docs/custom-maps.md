@@ -144,7 +144,8 @@ box (B42, B51), `RenderingMode` / `EnvSetName` (B49: the lighting comes from the
 
 The map itself is 9,397 collision boxes on 14 copies of `Obj_Flag_A_01` under new names (B38), with one scaled 1 m
 stone block per box to see it (B41). The hosts need their real model: with `Dummy` the posts vanish but so does the
-collision (B59; the body binds to the model). B60 hides them under the map instead (being tested).
+collision (B59; the body binds to the model). Placing each host under the middle of its own part, 6 m below the
+map's lowest block, with its boxes placed relative to it, hides them and keeps everything solid (B60).
 
 ### Abyss (void out) and other limits
 
