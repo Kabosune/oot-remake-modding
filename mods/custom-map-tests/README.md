@@ -525,8 +525,10 @@ both formats (Gerudo Valley's are 2, the Deku Tree's 4), so the format isn't tie
 Result of B55 (13 Nov 2026): **the falling limit moved down**: clipping through the floor and falling, Link is sent
 back at **x -13.53, y 66.08, z 4.57** (black screen), where in B53 / B54 it was y 88–89 near the spawn. So the height
 map set that floor; what's left is the normal "fell off the level" respawn, below the map's bottom. The flag hosts still
-show (expected). The horizontal limit wasn't re-checked in B55 (the screenshot sent was B54's, x 8.84, y 88.0,
-z 24.11). Result of B56: not tested yet. Result of B57: not tested yet.
+show (expected). Walking as far as possible behind the spawn, Link stops at **x 2.03, y 96.00,
+z 40.50**: 30.36 m from `OptimizeChangeBancUnits`' Kokiri Forest point (0.03, 101.12, 10.64), whose `LoadRadius` is 30
+(that entry also has `IsUseFailSafe`). The B53 freeze (x 6.00, y 95.40, z 35.74) was in the same area. So B56 tests
+both. Result of B56: not tested yet. Result of B57: not tested yet.
 
 ## Building
 
