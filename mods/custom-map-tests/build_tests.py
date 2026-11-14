@@ -1501,6 +1501,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 GAMEBANCINFO = "RSDB/GameBancInfo.Product.111.rstbl.byml.zs"
 STARTPOS = "AoC1/Banc/BancBasedResource/StartPos.byml.zs"      # every scene's start positions, by scene name
+BANC_KEYED = [f"{pre}/BancBasedResource/{name}.byml.zs"     # per-scene data by scene name, in the base game and
+              for pre in ("Banc", "AoC1/Banc")                # its AoC1 copy (which has the _MQ scenes too)
+              for name in ("StartPos", "LocationArea", "MapParam", "NoEscapeRangeArea", "GmdReset")]
 DEKU = "InsideTheDekuTree"
 DEKU_SCENE_FILES = (                                           # looked up by the scene's name: copied to the new one
     ["Bake/Light/InsideTheDekuTree.bklight.zs"]
@@ -1515,7 +1518,7 @@ DEKU_SCENE_FILES = (                                           # looked up by th
 def new_scene(game, files, scene):
     """Turn the Deku Tree build in `files` into a new scene `scene`: every Deku Tree file in it moves to the new name
     (the leftover-foliage files are dropped: a new scene simply has none), the Deku Tree's other per-scene files
-    (bake, rooms, culling, navmesh) are copied under the new name, a GameBancInfo row and StartPos.byml entry are added,
+    (bake, rooms, culling, navmesh) are copied under the new name, a GameBancInfo row and an entry in every per-scene `BancBasedResource` file are added,
     and Kokiri Forest's Deku Tree door is pointed at the new scene's "Entrance" (generic arrival event, as the
     Kokiri Forest → Hyrule Field door uses). The real Deku Tree's files aren't touched."""
     for rel in list(files):
@@ -1535,9 +1538,11 @@ def new_scene(game, files, scene):
     row["__RowId"], row["BancMain"] = scene, bp["Banc"]["Main"]
     rows = sorted([r for r in rows if r["__RowId"] != scene] + [row], key=lambda r: r["__RowId"])
     files[GAMEBANCINFO] = (rows, None)
-    sp = game.byml(STARTPOS)
-    sp[scene] = copy.deepcopy(sp[DEKU])
-    files[STARTPOS] = (sp, byml.frame_dict_id(game.r / STARTPOS))
+    for rel in BANC_KEYED:                            # every file keyed by scene name that has a Deku Tree entry
+        t = game.byml(rel)
+        if DEKU in t:
+            t[scene] = copy.deepcopy(t[DEKU])
+            files[rel] = (t, byml.frame_dict_id(game.r / rel))
     ko = game.byml(KOKIRI)
     door = next(a for a in ko["Actors"] if a["Gyaml"] == "FieldAndDungeonEntranceEventRequestActor"
                 and a.get("Dynamic", {}).get("NextBancParamNameChild") == DEKU)
@@ -1549,20 +1554,20 @@ def new_scene(game, files, scene):
     d.pop("InitEventFlag", None)
     files[KOKIRI] = (ko, byml.frame_dict_id(game.r / KOKIRI))
     return (f"{scene}: a new scene with all of the above (the Deku Tree's files renamed, {len(DEKU_SCENE_FILES) + len(probes)} "
-            f"more per-scene files copied), a GameBancInfo row, a StartPos.byml entry, and Kokiri Forest's Deku Tree door "
+            f"more per-scene files copied), a GameBancInfo row, entries in {sum(1 for r in BANC_KEYED if r in files)} BancBasedResource files, and Kokiri Forest's Deku Tree door "
             f"pointed at {scene} / Entrance. The real Deku Tree is untouched.")
 
 
 def main_1b(game, out, glb=None):
     if glb:
-        test_b40(game, out / "KaeGae Map Test S1 - the map as its own scene", glb, show_all=True,
+        test_b40(game, out / "KaeGae Map Test S2 - S1 with every per-scene entry", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
                            "OptimizeChangeBancUnits": None,
                            "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
-                 scene="KaeGae_Minecraft", label="S1")
+                 scene="KaeGae_Minecraft", label="S2")
         for lab, name, extra, more in (
                 ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
                  small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),

@@ -606,7 +606,28 @@ an existing scene) and a plain renamed copy of the Deku Tree.
 |---|---|---|
 | S1. The map as its own scene | All of the above; the real Deku Tree's files untouched | Entering the Deku Tree from Kokiri Forest lands on the map, same as B60: new scenes work. Black screen / crash / back in Kokiri: a missing piece (then test A and a renamed Deku Tree as controls) |
 
-Result of S1: not tested yet.
+Result of S1 (13 Nov ~20:20 PT): **froze while loading** the new scene. The emulator log (`fritchii\log\eden_log.txt`)
+shows a crash, not a hang: a read through an empty pointer in `main` at `0x112b3f4` (called from the logic node at slot
+`0xe8` of vtable `0x4ba4b70`, `0x112b3a0`; the node is made by `0xdefb50`, registered under hash `0xd04a2892`). The function
+reads a 0x290-byte global manager (`*0x4e919d0`, built at `0xf96640`; a 256-character name at +0x40 and a ref-counted
+object at +0x38 that is empty here) and calls through +0x38 → +0x150 without checking. The CPU registers still held
+the text `KaeGae_Minecraft`: something looked the new name up and found nothing. Other callers check +0x38 for empty
+first (e.g. `0x9eec60`).
+
+What a new scene still lacked: `AoC1/Banc/BancBasedResource/` is only one of **two** sets of per-scene files keyed by
+scene name. The base game has its own `Banc/BancBasedResource/` (the `AoC1` set adds the Master Quest `_MQ` scenes),
+and S1 added only a StartPos entry, only to the `AoC1` set. Both sets have `StartPos`, `LocationArea` (an entry for
+every scene: 80 / 93), `MapParam`, `NoEscapeRangeArea`, `GmdReset` (plus the empty `AlternativeAnchor` and
+`StaticGameDataArea`). The baked-scene files name their textures (`RBake_Scene_InsideTheDekuTree_G_*`) inside the
+file, so those need no copies.
+
+## Every per-scene entry (S2, 13 Nov 2026)
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S2. S1 with every per-scene entry | S1 + a `KaeGae_Minecraft` entry (a copy of the Deku Tree's) in all five scene-keyed `BancBasedResource` files, in both the base and the `AoC1` set (`BANC_KEYED` in the builder) | Loads: new scenes work, the recipe is complete. Still crashes at the same spot (`0x112b3f4` in the log): the empty object comes from somewhere else |
+
+Result of S2: not tested yet.
 
 ## Building
 
