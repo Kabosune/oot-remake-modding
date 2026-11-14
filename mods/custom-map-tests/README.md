@@ -453,7 +453,25 @@ scenes: the outdoor mode) and `EnvSetName` `Master_Field` (time-of-day palettes 
 Result of B49 (13 Nov 2026): **no change**: lighting exactly as B48, nothing broken, the map the same, vines and some
 bushes still there. Checked: the installed files match the build (`RenderingMode` 1713552710, `EnvSetName`
 `Master_Field` in place) and nothing is switched off in Fritchii. So neither value picks the lighting here; the
-Deku Tree's own palette (by scene name, or its `Location`) most likely does. Result of B50: not tested yet.
+Deku Tree's own palette (by scene name, or its `Location`) most likely does. Result of B50 (13 Nov 2026): **works**: way brighter, much better lighting. KaboWabo wants it to look more like
+Hyrule Field next. The vines and bushes are still there, and the out-of-bounds limit is still strict: Link can't go
+far horizontally at all.
+
+The palette a scene uses comes from its `WorldParam` (`GameBancParam` `WorldMgrName` -> `WorldMgr/WorldParam/...`):
+the Deku Tree's has `DefaultEnvPalette` = its own palette (parent `Dungeon`: `WorldType` 121762225). Hyrule Field's
+(`HyruleField_Child`, parent `MainField`) has time-of-day palette tables (`MainField_Bluesky_*`, `MainField_Cloudy`),
+a sun and moon, and cloud shadows. That's why B49 (`RenderingMode`, `EnvSetName`) changed nothing.
+
+With the Deku Tree's own level gone, the `HeightMapParam` bounding box (x -90..50, y 40..124, z -25..100) is the next
+suspect for the horizontal limit (B42 couldn't show it while the Deku Tree's placement was still there); the map
+reaches past it to the right (x 86) and ahead (z -77).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B51. B50 with wider scene bounds | Only `GameBancParam`: `HeightMapParam` box -> x -95..95, y 0..135, z -85..100 | Link can walk the whole map: that box is the limit (and maybe the vertical one) |
+| B52. B51 with Hyrule Field's world settings | Only `GameBancParam`: `WorldMgrName` -> `HyruleField_Child`'s `WorldParam` | Lit like Hyrule Field (sun, sky, time of day). If dark or odd: add the outdoor `RenderingMode` too |
+
+Result of B51: not tested yet. Result of B52: not tested yet.
 
 ## Building
 

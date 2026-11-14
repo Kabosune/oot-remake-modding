@@ -1419,7 +1419,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if show_all:
         notes = [f"{label}: only change from B40: a block for every collision box ({len(shown)}), not just those above the floor."]
     if banc_set:                                              # B43 on: B41 plus GameBancParam values
-        bp = game.byml(DEKU_BANC)
+        bp = files[DEKU_BANC][0] if DEKU_BANC in files else game.byml(DEKU_BANC)   # B51 on: keep the bounds change
         for k, v in banc_set.items():
             notes.append(f"{label}: {DEKU_BANC} {k} {bp.get(k)!r} -> {'(removed)' if v is None else repr(v)}")
             if v is None:                                     # B48: drop the line (FoliageScene)
@@ -1454,6 +1454,14 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
+        test_b40(game, out / "KaeGae Map Test B52 - B51 with Hyrule Field's world settings", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 palette_set={"AmbientIntensity": 3.0, "HemiLightIntensity": 3.0}, empty=True, no_compound=True, label="B52")
+        test_b40(game, out / "KaeGae Map Test B51 - B50 with wider scene bounds", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None},
+                 palette_set={"AmbientIntensity": 3.0, "HemiLightIntensity": 3.0}, empty=True, no_compound=True, label="B51")
         test_b40(game, out / "KaeGae Map Test B49 - B48 with Hyrule Field's lighting", glb, show_all=True,
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "RenderingMode": byml.U32(1713552710),
                            "EnvSetName": "Master_Field"},
