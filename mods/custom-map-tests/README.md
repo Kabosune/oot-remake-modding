@@ -541,7 +541,15 @@ old level; source param `IsUseMutableLayer: true`, no `PresenceSetting`). The ga
 | B58. B57 with tiny volume stats | Only `InsideTheDekuTree.bpvsts.zs`: replaced by `DeathMountainTrail_Adult_X0_Z0`'s (342 bytes) | Link walks past z 40: the volume stats were the limit. Worse (respawn everywhere) or crash: they define where Link may be, and need writing for the map |
 
 Result of B57 (13 Nov 2026): **works: the ferns are gone, no foliage left at all.** No freeze near the entrance
-(around z 35) in B56 / B57 either (it froze there once in B53, with the Kokiri Forest preload still on). Result of B58: not tested yet.
+(around z 35) in B56 / B57 either (it froze there once in B53, with the Kokiri Forest preload still on). Result of B58 (13 Nov 2026): **works: the map is fully walkable.** Link walks past z 40 and anywhere around the map.
+So **the scene's Havok volume stats (`.bpvsts`) were the last limit** (the game's own name for falling out is "abyss":
+`FallIntoAbyss`, `ExecuteEventPlayerAbyss`, back to the `RestartPos` / `SafePos`). The only respawn left is the normal
+abyss far below the map (seen at x 1.49, y -44.24, z 15.56), which this map doesn't need to care about.
+
+**So a clean slate for a custom map in an existing scene is:** the placement emptied to its spawn points (C), the
+game's empty static compound (B46), no `FoliageScene` line plus near-empty `LowTree` / `Ornament` foliage files
+(B48, B54, B57), no `HeightMapParam` (B55), no `OptimizeChangeBancUnits` (B56), tiny volume stats (B58), and for the
+looks Hyrule Field's `WorldParam` (B52).
 
 ## Building
 
