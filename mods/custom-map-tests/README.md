@@ -509,7 +509,20 @@ over (foliage).
 | B55. B54 without the height map | Only `GameBancParam`: `HeightMapParam` removed | No respawn going down: the height map was the limit |
 | B56. B55 without the preload list | Only `GameBancParam`: `OptimizeChangeBancUnits` removed | No freeze near the entrance: the Kokiri Forest preload was it (leaving the scene may then load slower) |
 
-Result of B54: not tested yet. Result of B55: not tested yet. Result of B56: not tested yet.
+Result of B54 (13 Nov 2026): **half**: the climbable vines are gone (so they were the Ornament foliage); ferns are
+still there (`LowTree`, format 2, 34 `ResShootBranch` pieces). The out-of-bounds respawn again at x 8.84, **y 88.0**,
+z 24.11 (same height as in B53, as expected: B54 didn't touch it). **The "log pillars" seen in the screenshots are the
+14 flag hosts** (`KaeGae_MapHost_00`..`13`, copies of `Obj_Flag_A_01`) standing in a row at the entrance, poles and
+cloth showing, now in mid-air with the floor gone.
+
+No empty format-2 foliage file exists (smallest: Gerudo Valley's Ornament, 22 entries). But Ornament files come in
+both formats (Gerudo Valley's are 2, the Deku Tree's 4), so the format isn't tied to the kind of foliage.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B57. B56 without the LowTree foliage | Only `InsideTheDekuTree.LowTree.flnt.zs`: replaced by the same 56-byte format-4 file as B54 | Ferns gone: no Deku Tree foliage left |
+
+Result of B55: not tested yet. Result of B56: not tested yet. Result of B57: not tested yet.
 
 ## Building
 

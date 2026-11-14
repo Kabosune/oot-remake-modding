@@ -49,6 +49,7 @@ DEKU_COMPOUND = "Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Ni
 EMPTY_COMPOUND = "Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs"   # one of the game's
 # 16 byte-identical empty static compounds (53,264 bytes unpacked, every body section empty)
 DEKU_AABB = "Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml"   # B53 on: the out-of-bounds box?
+DEKU_LOWTREE = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.LowTree.flnt.zs"   # B57 on (format 2)
 DEKU_ORNAMENT = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.Ornament.flnt.zs"   # B54 on
 EMPTY_FOLIAGE = "Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs"   # 56 bytes unpacked,
 # the same format number (4) as Ornament; one entry
@@ -1381,7 +1382,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1445,6 +1446,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if no_ornament:                                           # B54: the Ornament foliage replaced by a near-empty file
         files[DEKU_ORNAMENT] = (game.raw(EMPTY_FOLIAGE), 1)
         notes.append(f"{label}: {DEKU_ORNAMENT} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
+    if no_lowtree:                                            # B57: LowTree (format 2) gets the same format-4 file;
+        files[DEKU_LOWTREE] = (game.raw(EMPTY_FOLIAGE), 1)       # Ornament files come in both formats
+        notes.append(f"{label}: {DEKU_LOWTREE} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
     if no_compound:                                           # B47: B45 plus B46's empty static compound
         files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
         notes.append(f"{label}: only change from B45: {DEKU_COMPOUND} replaced by the game's empty compound ({EMPTY_COMPOUND}).")
@@ -1473,6 +1477,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 def main_1b(game, out, glb=None):
     if glb:
         for lab, name, extra, more in (
+                ("B57", "B56 without the LowTree foliage", dict(no_ornament=True, no_lowtree=True),
+                 {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B56", "B55 without the preload list", dict(no_ornament=True),
                  {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B55", "B54 without the height map", dict(no_ornament=True), {"HeightMapParam": None}),
