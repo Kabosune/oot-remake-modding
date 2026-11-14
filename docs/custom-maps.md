@@ -143,7 +143,8 @@ box (B42, B51), `RenderingMode` / `EnvSetName` (B49: the lighting comes from the
 `IsEnableBakeLight` and the scene's own palette (B43, B44, B50: brighter, but superseded by B52).
 
 The map itself is 9,397 collision boxes on 14 copies of `Obj_Flag_A_01` under new names (B38), with one scaled 1 m
-stone block per box to see it (B41), and the hosts' model swapped for `Dummy` (B59, being tested).
+stone block per box to see it (B41). The hosts need their real model: with `Dummy` the posts vanish but so does the
+collision (B59; the body binds to the model). B60 hides them under the map instead (being tested).
 
 ### Abyss (void out) and other limits
 

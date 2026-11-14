@@ -559,7 +559,18 @@ Hiding the 14 flag hosts (their poles and cloth stand in a row at the entrance):
 |---|---|---|
 | B59. B58 with hidden flag hosts | Only the 14 host packs: each ActorParam's `ModelInfoRef` -> `?Component/ModelInfo/Dummy.engine__component__ModelInfo.bgyml` | Flags gone and the map still solid: hosts need no visible model. Collision gone or hosts missing: the body needs the model's skeleton |
 
-Result of B59: not tested yet.
+Result of B59 (13 Nov 2026): **posts gone, but so is the collision**: the map shows, Link falls through it. So the
+host's body needs its real model: the flag's body controller binds to the model (`BoneBindModePosition` /
+`BoneBindModeRotation`), and with `Dummy` no body is built. (Air walls use `Component/ModelInfo/None`, empty names, but
+newly placed air walls never got collision in round 1, so that's no way out.)
+
+Instead: keep the flag model and put the posts where nobody looks.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B60. B58 with the flag hosts under the map | Only the hosts: each placed at the middle of its own part of the map, 6 m below the part's lowest block (all at y 52, the map's bottom is y 58), its boxes shifted to match so the collision stays exactly where it was | Posts out of sight, map solid everywhere: hidden hosts. Parts of the map not solid: a host's reach or radius (`CalcRadius` 100) |
+
+Result of B60: not tested yet.
 
 ## Building
 

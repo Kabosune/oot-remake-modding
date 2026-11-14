@@ -1388,7 +1388,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1403,10 +1403,17 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     files, entries, extra, every = {}, {}, {}, []
     for i, (name, ch) in enumerate(zip(names, chunks)):
         dx = i - (len(chunks) - 1) / 2
-        st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
         boxes = [(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in ch[4]]
         every += boxes
-        pack, e = flag_copy(game, name, shift(boxes, -dx), model=host_model)
+        if host_under:                                         # B60: the host under the middle of its own part
+            lo_all, hi_all = np.min([b[0] for b in boxes], 0), np.max([b[1] for b in boxes], 0)
+            rel = ((lo_all[0] + hi_all[0]) / 2, lo_all[1] - 6.0, (lo_all[2] + hi_all[2]) / 2)   # from the chest spot
+            st["Actors"].append(placed(name, (sx + rel[0], sy + rel[1], sz - 3 + rel[2])))
+            mine = [(tuple(np.subtract(lo, rel)), tuple(np.subtract(hi, rel))) for lo, hi in boxes]
+        else:
+            st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
+            mine = shift(boxes, -dx)
+        pack, e = flag_copy(game, name, mine, model=host_model)
         files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
         entries.update(e)
         extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
@@ -1455,6 +1462,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if no_lowtree:                                            # B57: LowTree (format 2) gets the same format-4 file;
         files[DEKU_LOWTREE] = (game.raw(EMPTY_FOLIAGE), 1)       # Ornament files come in both formats
         notes.append(f"{label}: {DEKU_LOWTREE} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
+    if host_under:
+        notes.append(f"{label}: each host moved to the middle of its own part, 6 m below the part's lowest block "
+                     "(its boxes shifted to match: the collision stays where it was)")
     if host_model:
         notes.append(f"{label}: the hosts' ModelInfoRef -> {host_model}")
     if small_vstats:                                          # B58: the scene's volume stats swapped for a tiny one
@@ -1488,6 +1498,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 def main_1b(game, out, glb=None):
     if glb:
         for lab, name, extra, more in (
+                ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
+                 small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B59", "B58 with hidden flag hosts", dict(no_ornament=True, no_lowtree=True, small_vstats=True,
                  host_model=DUMMY_MODEL), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B58", "B57 with tiny volume stats", dict(no_ornament=True, no_lowtree=True, small_vstats=True),
