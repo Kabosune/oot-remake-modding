@@ -366,7 +366,14 @@ Two follow-ups, each one change from B40:
 | B42. B40 with wider scene bounds | Only `InsideTheDekuTree.game__banc__GameBancParam.bgyml`: `HeightMapParam` bounding box to x -95..95, y 40..135, z -85..100 (same file size, so the size table is unchanged) | No respawn when walking out over the map: that box is the out-of-bounds limit. Still a respawn: something else (next guess: being outside every `DungeonRoomArea`). Crash or odd ground: the box also indexes the height map |
 | B41. B40 with every box drawn | A block for each of the 9,397 collision boxes, not just those above the floor (Dynamic file 1.45 MB, entry 230,472 -> 1,448,496) | No invisible ground left, and whether 9,397 placed blocks still load and run fine |
 
-Result of B42: not tested yet. Result of B41: not tested yet.
+Result of B42 (13 Nov 2026): **no change**: the Deku Tree looks and plays normally, but its own walls still stop
+Link, and past them (with a noclip mod) the game still sends Link back for going out of bounds. So the
+`HeightMapParam` box isn't the limit. The control block wasn't seen: it's 2 m left of the leftmost flag (about 9 m
+left of the entrance's middle), most likely inside the entrance's left wall. Candidates left: being outside every
+`DungeonRoomArea` (25, no links), the `LocationArea` (origin, scale 100), or a check in code (`main` has
+`ReturnToSafePos`, `InvalidateRestartPos`, `OutOfRange`).
+
+Result of B41: not tested yet.
 
 ## Building
 
