@@ -21,10 +21,8 @@ Mods are distributed as IPS32 patches that contain only new code. You need your 
 
 **Install [KaeGae Core](api/README.md) first** ([download `kaegae-core.zip`](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip)),
 in its own folder, before any of the mods below. Mouse Grab, Slopped Up Sloperina, Moon Jump, Speedometer and Drunk Mode run on it and
-do nothing without it. First Person and FPV Drone still work on their own today, but they are
-moving onto Core too, so it's simplest to always have it installed. On a real Switch 2, KaeGae
-Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2)): there,
-use First Person and FPV Drone on their own and leave Core out for now maybe.
+do nothing without it. Kaegae has its own mod menu and button mapping system. activate its menu by pressing + and -. On a real Switch 2, KaeGae
+Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake-modding/issues/2))
 
 | Mod | Download | What it does | Needs KaeGae Core | Status |
 |---|---|---|---|---|
