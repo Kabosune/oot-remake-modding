@@ -169,6 +169,29 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
+## Making a new scene (in progress, tests S1–S2, 13 Nov 2026)
+
+Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. Not working
+yet: both tries crash while the new scene loads.
+
+What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
+
+| Piece | Where | Note |
+|---|---|---|
+| Scene settings | `Banc/GameBancParam/X.game__banc__GameBancParam.bgyml` | `Banc.Main` → `Work/Banc/Scene/X/X.bcett.json`. Other lines point to files by path (`BaseLocation`, `DungeonParam`, `LocationalLightScenePlacement`, `WorldMgrName`) and can keep pointing at the old scene's |
+| Placement | `Banc/X/X_Static.bcett.byml.zs`, `_Dynamic` | |
+| Files looked up by the scene's name | `Bake/Light/X.bklight`, `Bake/Scene/X_G_i_j.bkres`, `Bake/Probe/Scene/X/*`, `Game/AdjacentRoomsInfo/X`, `Game/BakeSceneLayerConfig/X`, `Game/VolumeStatsAABB/X`, `PreComputedCulling/X/Boxes.bbox`, `Phive/NavMesh/X`, `Phive/StaticCompoundBody/X/X.bphsc`, `Phive/VolumeStats/X/X.bpvsts` + `X.phive__VolumeStatsSourceParam` | The `.bkres` files name their baked textures (`RBake_Scene_<old>_G_*`) inside, so the textures need no copies |
+| Scene list | RSDB `GameBancInfo` | One row per scene (`__RowId`, `BancMain`, `SoundSceneryName`), sorted by `__RowId` |
+| Per-scene data by scene name | `Banc/BancBasedResource/` **and** `AoC1/Banc/BancBasedResource/` | Two sets (the `AoC1` one adds the Master Quest `_MQ` scenes): `StartPos`, `LocationArea` (every scene has one), `MapParam`, `NoEscapeRangeArea`, `GmdReset` |
+| The door | e.g. Kokiri Forest's `FieldAndDungeonEntranceEventRequestActor` `FrontDekuTree` | `NextBancParamNameChild` / `Adult` → `X`, `NextStartPosName`, `NextEventName` |
+
+The crash (S1 and S2 alike, `eden_log.txt`): a logic node (`main` `0x112b3a0`, slot `0xe8` of vtable `0x4ba4b70`, made
+by `0xdefb50`, registered under hash `0xd04a2892`) reads a 0x290-byte global manager (`*0x4e919d0`, made at
+`0xf96640`: a 256-character name at +0x40, a ref-counted object at +0x38) and calls through +0x38 → +0x150 without
+checking. For the new scene +0x38 is empty. The CPU registers hold the text `X` at that point. Other callers of the
+manager check +0x38 first (e.g. `0x9eec60`); the getter that copies it is `0x9b7530`. The game's code has fixed
+scene-name lists only for dungeon UI / map enums, so that isn't it.
+
 ## Test map
 
 `test_map.glb` (KaboWabo's pick): "High quality minecraft world" by SOLDMARS on Sketchfab, CC-BY-4.0 (credit the

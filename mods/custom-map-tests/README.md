@@ -627,7 +627,12 @@ file, so those need no copies.
 |---|---|---|
 | S2. S1 with every per-scene entry | S1 + a `KaeGae_Minecraft` entry (a copy of the Deku Tree's) in all five scene-keyed `BancBasedResource` files, in both the base and the `AoC1` set (`BANC_KEYED` in the builder) | Loads: new scenes work, the recipe is complete. Still crashes at the same spot (`0x112b3f4` in the log): the empty object comes from somewhere else |
 
-Result of S2: not tested yet.
+Result of S2 (13 Nov ~20:35 PT): **crashed at the same spot** (`main` `0x112b3a0` / `0x112b3f4`, the same empty
++0x38, `KaeGae_Minecraft` in the same registers; `eden_log.txt.old.txt`, main loaded at `0x80422000` that run). So the
+per-scene `BancBasedResource` entries weren't what the game was missing (S2 keeps them: a new scene needs them anyway,
+or the start position is missing in the base set). Next leads: what fills the manager's +0x38 (and what the manager
+is); a plain renamed copy of the vanilla Deku Tree as a control (does any new scene name load?); test A, the door
+redirect to an existing scene (is the door edit fine?); the Deku Tree's own arrival event on the door.
 
 ## Building
 
