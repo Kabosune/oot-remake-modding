@@ -50,6 +50,7 @@ DEKU_COMPOUND = "Phive/StaticCompoundBody/InsideTheDekuTree/InsideTheDekuTree.Ni
 EMPTY_COMPOUND = "Phive/StaticCompoundBody/DreamWorld/MorphaStage_X0_Z0.Nin_Ounce_NVN2.bphsc.zs"   # one of the game's
 # 16 byte-identical empty static compounds (53,264 bytes unpacked, every body section empty)
 DEKU_AABB = "Game/VolumeStatsAABB/InsideTheDekuTree.game__VolumeStatsAABB.bgyml"   # B53 on: the out-of-bounds box?
+DUMMY_MODEL = "?Component/ModelInfo/Dummy.engine__component__ModelInfo.bgyml"   # B59: Obj_Default_A_00's default
 DEKU_VSTATS = "Phive/VolumeStats/InsideTheDekuTree/InsideTheDekuTree.bpvsts.zs"   # B58 on (1 MB unpacked)
 SMALL_VSTATS = "Phive/VolumeStats/DeathMountainTrail/DeathMountainTrail_Adult_X0_Z0.bpvsts.zs"   # 342 bytes unpacked
 DEKU_LOWTREE = "Foliage/Placement/Scene/InsideTheDekuTree/InsideTheDekuTree.LowTree.flnt.zs"   # B57 on (format 2)
@@ -1199,7 +1200,7 @@ def rows_with(rows, src, names, change=None):
     return rows
 
 
-def flag_copy(game, name, extra, presets=("Material_Wood_Thick",)):
+def flag_copy(game, name, extra, presets=("Material_Wood_Thick",), model=None):
     """A new actor `name`: Obj_Flag_A_01 (same model, body and controller) with an ActorParam, PhysicsParam,
     ControllerSetParam and shape of its own; the shape is the pole plus `extra` boxes. Returns (pack, entries) for
     the new pack's own files. The RSDB rows come from host_rows()."""
@@ -1216,6 +1217,8 @@ def flag_copy(game, name, extra, presets=("Material_Wood_Thick",)):
     out[ren[FLAG_SHAPE]] = shape_raw
     ap = byml.loads(files[f"Actor/{FLAG}.engine__actor__ActorParam.bgyml"])
     ap["Components"]["PhysicsRef"] = "?" + ren[f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml"]
+    if model:                                                  # B59: e.g. the parent's "Dummy" model (nothing shown)
+        ap["Components"]["ModelInfoRef"] = model
     out[ren[f"Actor/{FLAG}.engine__actor__ActorParam.bgyml"]] = byml.dumps(ap)
     ph = byml.loads(files[f"Component/Physics/{FLAG}.engine__component__PhysicsParam.bgyml"])
     ph["ControllerSetPath"] = gy(ren[f"Phive/ControllerSetParam/{FLAG}.phive__ControllerSetParam.bgyml"])
@@ -1385,7 +1388,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1403,7 +1406,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
         boxes = [(tuple(np.add(lo, off)), tuple(np.add(hi, off))) for lo, hi in ch[4]]
         every += boxes
-        pack, e = flag_copy(game, name, shift(boxes, -dx))
+        pack, e = flag_copy(game, name, shift(boxes, -dx), model=host_model)
         files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
         entries.update(e)
         extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
@@ -1452,6 +1455,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if no_lowtree:                                            # B57: LowTree (format 2) gets the same format-4 file;
         files[DEKU_LOWTREE] = (game.raw(EMPTY_FOLIAGE), 1)       # Ornament files come in both formats
         notes.append(f"{label}: {DEKU_LOWTREE} replaced by {EMPTY_FOLIAGE} (56 bytes, one entry)")
+    if host_model:
+        notes.append(f"{label}: the hosts' ModelInfoRef -> {host_model}")
     if small_vstats:                                          # B58: the scene's volume stats swapped for a tiny one
         files[DEKU_VSTATS] = (game.raw(SMALL_VSTATS), 1)
         notes.append(f"{label}: {DEKU_VSTATS} replaced by {SMALL_VSTATS} (342 bytes unpacked)")
@@ -1483,6 +1488,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 def main_1b(game, out, glb=None):
     if glb:
         for lab, name, extra, more in (
+                ("B59", "B58 with hidden flag hosts", dict(no_ornament=True, no_lowtree=True, small_vstats=True,
+                 host_model=DUMMY_MODEL), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B58", "B57 with tiny volume stats", dict(no_ornament=True, no_lowtree=True, small_vstats=True),
                  {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
                 ("B57", "B56 without the LowTree foliage", dict(no_ornament=True, no_lowtree=True),

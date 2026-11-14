@@ -551,6 +551,16 @@ game's empty static compound (B46), no `FoliageScene` line plus near-empty `LowT
 (B48, B54, B57), no `HeightMapParam` (B55), no `OptimizeChangeBancUnits` (B56), tiny volume stats (B58), and for the
 looks Hyrule Field's `WorldParam` (B52).
 
+Hiding the 14 flag hosts (their poles and cloth stand in a row at the entrance): `Obj_Flag_A_01`'s ActorParam points
+`ModelInfoRef` at its own model (`Obj_Flag_A` / `Obj_Flag_A_01`); its parent `Obj_Default_A_00` uses
+`Component/ModelInfo/Dummy` (what model-less actors use).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B59. B58 with hidden flag hosts | Only the 14 host packs: each ActorParam's `ModelInfoRef` -> `?Component/ModelInfo/Dummy.engine__component__ModelInfo.bgyml` | Flags gone and the map still solid: hosts need no visible model. Collision gone or hosts missing: the body needs the model's skeleton |
+
+Result of B59: not tested yet.
+
 ## Building
 
 ```
