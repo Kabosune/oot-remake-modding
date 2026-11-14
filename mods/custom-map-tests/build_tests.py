@@ -1472,11 +1472,15 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 
 def main_1b(game, out, glb=None):
     if glb:
-        for lab, name, extra in (("B54", "B53 without the Ornament foliage", dict(no_ornament=True)),
-                                 ("B53", "B52 with a wider VolumeStatsAABB", {})):
+        for lab, name, extra, more in (
+                ("B56", "B55 without the preload list", dict(no_ornament=True),
+                 {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
+                ("B55", "B54 without the height map", dict(no_ornament=True), {"HeightMapParam": None}),
+                ("B54", "B53 without the Ornament foliage", dict(no_ornament=True), {}),
+                ("B53", "B52 with a wider VolumeStatsAABB", {}, {})):
             test_b40(game, out / f"KaeGae Map Test {lab} - {name}", glb, show_all=True,
                      bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
-                     banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                     banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml", **more},
                      palette_set={"AmbientIntensity": 3.0, "HemiLightIntensity": 3.0}, empty=True, no_compound=True,
                      aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), label=lab, **extra)
         test_b40(game, out / "KaeGae Map Test B52 - B51 with Hyrule Field's world settings", glb, show_all=True,

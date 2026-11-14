@@ -493,7 +493,23 @@ Result of B52 (13 Nov 2026): **works: the lighting looks way better and like Hyr
 `EnvPalette.pack`: BeforeSunrise 3:20, Sunrise 5:00, ... each blended over 20–30 game minutes), the sun and moon moving
 with the clock (`IsSolarMotion`; child Hyrule Field: sunrise 4:00, sunset 19:40), and a first-visit table with a fixed
 sun angle while `HyruleField_ChangeENV` holds. The Deku Tree's `GameBancParam` has `IsEnableTimerCounting: false`
-(dungeons stop the clock; Hyrule Field has no such line), so on the map the time likely stays where it was on entry. Result of B53: not tested yet. Result of B54: not tested yet.
+(dungeons stop the clock; Hyrule Field has no such line), so on the map the time likely stays where it was on entry. Result of B53 (13 Nov 2026): **out-of-bounds unchanged**, read with Slopped Up Sloperina's watches: the respawn
+triggers at **x 6.45, y 89.0, z 22.39**, only ~8 m from the spawn (0.2, 101, 14.7) but 12 m below its floor. So it's
+not a box around the map but a floor under the Deku Tree's old ground: the scene's height map (`HeightMapParam`,
+`MultiLayeredMapHeight`, `TerrainArc/InsideTheDekuTree_B01` `.hght`) is the prime suspect. 27 of the game's 80 scenes
+(the boss stages) have no `HeightMapParam`. **The game also froze** at x 6.00, y 95.40, z 35.74 (behind the spawn, toward
+the entrance). `OptimizeChangeBancUnits` preloads Kokiri Forest when Link is within 30 m (`LoadRadius`) of (0, 101,
+10.6) by the entrance; with the map's memory on top (14 hosts at heap + 2 MiB, a 1.45 MB placement) that preload is the
+prime suspect. Only 2 of 80 scenes have no `OptimizeChangeBancUnits` (`SageRoom`, `Demo_ShootingLocation_Tapestry_ED`).
+Seen in the screenshots: Hyrule Field's night sky and lighting, the map lit and solid, and log pillars with leaves left
+over (foliage).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| B55. B54 without the height map | Only `GameBancParam`: `HeightMapParam` removed | No respawn going down: the height map was the limit |
+| B56. B55 without the preload list | Only `GameBancParam`: `OptimizeChangeBancUnits` removed | No freeze near the entrance: the Kokiri Forest preload was it (leaving the scene may then load slower) |
+
+Result of B54: not tested yet. Result of B55: not tested yet. Result of B56: not tested yet.
 
 ## Building
 
