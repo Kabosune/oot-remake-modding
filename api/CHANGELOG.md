@@ -11,7 +11,7 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
-## Core 0.8.3: Instant + (14 November 2026)
+## Core 0.8.3: Instant + (14 November 2026; works in the game, 14 November, Fritchii)
 
 Core only, nothing new for mods (API still 0.8).
 
@@ -20,7 +20,7 @@ Core only, nothing new for mods (API still 0.8).
   window, so the game's pause menu opens at once. The Mods menu then opens with - held first, then
   + (or both together). See [MODS-MENU.md](MODS-MENU.md#instant--core-083).
 
-## Core 0.8.2: the game's pause menu closes again (14 November 2026)
+## Core 0.8.2: the game's pause menu closes again (14 November 2026; works in the game, 14 November, Fritchii)
 
 Core only, nothing new for mods (API still 0.8).
 
