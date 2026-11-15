@@ -202,7 +202,12 @@ void kp_menu_input(KaeInput *seen, KaeInput *real) {
         seen->buttons = 0;
         seen->lx = seen->ly = seen->rx = seen->ry = 0;
     } else {
-        seen->buttons = (seen->buttons & ~hide) | press;
+        // The menu decides from the last frame's reads, so a - or + that went down since then is
+        // news to it: hold it back here too. Otherwise its first frame reaches the game, the menu
+        // then holds it back (the game sees it let go) and lets it through or plays it back
+        // later: the game sees two presses, and the pause menu closes and opens again.
+        uint64_t fresh = real->buttons & KAE_OPEN_CHORD & ~menu.prev;
+        seen->buttons = (seen->buttons & ~(hide | fresh)) | press;
         injected = old_mods_keys() & ~real->buttons;
         seen->buttons |= injected;
         real->buttons |= injected;

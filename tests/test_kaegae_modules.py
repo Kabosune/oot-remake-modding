@@ -190,7 +190,7 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.8.1 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect("kaegae: Core 0.8.2 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
@@ -326,6 +326,24 @@ def main():
         assert frames(1, 2) & 1                                              # and the game has its buttons back
         print("the Mods menu: ok (opens on - and +, hides input from the game, switches a mod off)")
 
+        # a lone + (the game's own pause menu) reaches the game as one press, never two: its
+        # first frame used to slip through before the menu held it back, then came again
+        def game_presses(sequence, button=PLUS):
+            held, presses = 0, 0
+            for buttons in sequence:
+                now = frames(buttons) & button
+                presses += bool(now and not held)
+                held = now
+            return presses
+        frames(0, 3)
+        assert game_presses([PLUS] * 8 + [0] * 4) == 1, "a held + reached the game twice"
+        assert game_presses([PLUS] * 2 + [0] * 4) == 1, "a tapped + reached the game twice"
+        assert game_presses([MINUS] * 8 + [0] * 4, MINUS) == 1, "a held - reached the game twice"
+        assert game_presses([MINUS | PLUS] * 3 + [0] * 3, MINUS | PLUS) == 0, "the chord reached the game"
+        frames(MINUS | PLUS, 3)
+        frames(0, 3)
+        print("a lone + or -: ok (one press for the game, the chord's first frame hidden too)")
+
         # settings kept between runs: the menu's close wrote the file on the (fake) SD card
         def sd_file(g):
             n = g.sdk_int("sdk_file_len")
@@ -404,7 +422,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.8.1: unknown game build, doing nothing",
+        g.expect("Core 0.8.2: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -451,7 +469,7 @@ def main():
         g.game("game_boot")
         for _ in range(3):
             g.frame(actor=0x40000000)
-        g.expect("Core 0.8.1 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        g.expect("Core 0.8.2 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
         assert not g.logged(" is off"), g.logged(" is off")
         print("mods built for API 0.5 on Core 0.8: ok (the released Slopped Up Sloperina and Mouse Grab start)")
 

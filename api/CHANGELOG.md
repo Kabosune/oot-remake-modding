@@ -11,6 +11,17 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.8.2: the game's pause menu closes again (14 November 2026)
+
+Core only, nothing new for mods (API still 0.8).
+
+- **A lone + (or -) reached the game twice**, so the game's own menu (+) closed and opened again
+  straight away. The Mods menu steps once a frame from the *last* frame's reads, so the first
+  frame of a new + went to the game before the menu knew of it; the menu then held + back for its
+  chord window (the game saw it let go) and let it through or played it back afterwards: a second
+  press. Core now also holds back a - or + that is new since the menu's last step. The first frame
+  of the Minus + Plus chord no longer reaches the game either.
+
 ## Core 0.8.1: the field of view works (12 November 2026; works in the game, 14 November, Fritchii)
 
 Core only, nothing new for mods (API still 0.8).
