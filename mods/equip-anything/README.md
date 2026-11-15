@@ -4,7 +4,7 @@ Child and adult Link can pick every item and piece of equipment in the pause men
 the Master Sword, the Hylian or Mirror Shield, the Fairy Bow, the Hookshot, the tunics and boots;
 adult Link with the Kokiri Sword, the Slingshot, the masks, and so on.
 
-**Status, 14 November 2026: version 0.1.1, built, not tried in the game yet** (0.1.0 crashed at
+**Status, 14 November 2026: 0.1.1 works (every item equips for both ages). 0.2.0 (unequip test) not tried yet.** (0.1.0 crashed at
 boot: see below). Game 1.1.1. A quick
 mod: what the game does with an item that was never meant for that age (models, animations, holding
 it) is untested and may look wrong or crash.
@@ -25,7 +25,11 @@ object of a three-item array missing, apparently because the memory ran out, and
 `[[romfs-patch]] kind = "size-table"` line in its `mod.toml`; `kaegae build` writes the changed
 table. No code: KaeGae Core isn't needed, and the mod works next to any Core mod.
 
-Not in 0.1.0: taking off the sword or shield. The table has no setting for that (masks and boots
+**0.2.0 (test):** every equipment button with no `SpecialDeal` (swords, shields, tunics, Stone of
+Agony) gets `SpecialDeal: Mask`, the setting that lets a mask come off when it's picked again.
+Whether the game's mask code does the same for those slots is what the test shows.
+
+Before 0.2.0: taking off the sword or shield. The table has no setting for that (masks and boots
 come off because their rows are a `SpecialDeal: Mask` / `Boot` button); it needs code, likely a
 Core mod.
 
