@@ -26,7 +26,7 @@ object of a three-item array missing, apparently because the memory ran out, and
 table. No code: KaeGae Core isn't needed, and the mod works next to any Core mod.
 
 **0.2.0 (test):** every equipment button with no `SpecialDeal` (swords, shields, tunics, Stone of
-Agony) gets `SpecialDeal: Mask`, the setting that lets a mask come off when it's picked again.
+Agony) gets `SpecialDeal: Mask`, the setting that lets a mask come off when it is picked again: it did nothing (14 Nov). **0.2.1 (test)** sets `IsChangeActorEquipState` (on the bow and ocarina buttons in the game) on those buttons instead.
 Whether the game's mask code does the same for those slots is what the test shows.
 
 Before 0.2.0: taking off the sword or shield. The table has no setting for that (masks and boots

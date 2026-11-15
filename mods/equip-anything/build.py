@@ -47,11 +47,11 @@ def unlock(root):
                     if actor.get(flag) is not True:
                         actor[flag] = True
                         changed += 1
-    # 0.2.0 test: masks come off when picked again because their button is SpecialDeal: Mask.
-    # Give the other equipment buttons (swords, shields, tunics) without a SpecialDeal the same.
+    # 0.2.1 test (0.2.0's SpecialDeal: Mask did nothing): the bow and ocarina buttons have
+    # IsChangeActorEquipState; try it on the other equipment buttons (swords, shields, tunics).
     for button in root.get("EquipmentArray") or []:
         if isinstance(button, dict) and "SpecialDeal" not in button:
-            button["SpecialDeal"] = "Mask"
+            button["IsChangeActorEquipState"] = True
             changed += 1
     return changed
 
