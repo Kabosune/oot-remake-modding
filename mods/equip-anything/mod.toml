@@ -1,0 +1,13 @@
+# Equip Anything's manifest: a romfs-only KaeGae package (no code, no Core needed).
+manifest = 1
+
+id          = "kabosune.equip-anything"
+name        = "Equip Anything"
+version     = "0.1.0"
+authors     = ["KaboWabo/Kabosune"]
+license     = "MIT"
+homepage    = "https://github.com/Kabosune/oot-remake-modding"
+description = "Child and adult Link can equip every item and piece of equipment in the pause menu."
+
+[game]
+title = "0400486024DEC000"
