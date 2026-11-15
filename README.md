@@ -3,7 +3,7 @@
 Research notes, an address map and patch tooling for **The Legend of Zelda: Ocarina of Time** on
 Nintendo Switch 2 (the 2026 remake), plus mods built with them.
 
-Everything here targets one build of the game:
+Everything here targets one build of the game (though I'm planning on and going to test for 1.0 support/compatibility):
 
 | | |
 |---|---|
