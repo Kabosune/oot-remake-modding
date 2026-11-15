@@ -3,7 +3,7 @@ manifest = 1
 
 id          = "kabosune.equip-anything"
 name        = "Equip Anything"
-version     = "0.1.0"
+version     = "0.1.1"
 authors     = ["KaboWabo/Kabosune"]
 license     = "MIT"
 homepage    = "https://github.com/Kabosune/oot-remake-modding"
@@ -11,3 +11,10 @@ description = "Child and adult Link can equip every item and piece of equipment 
 
 [game]
 title = "0400486024DEC000"
+
+# The menu table grows by 424 bytes; the game builds the menu's objects in the memory this entry
+# sets aside, so it needs more room (0.1.0 without it crashed at boot). 46,824 + 424 + 2,048 spare.
+[[romfs-patch]]
+kind     = "size-table"
+path     = "UI/Pouch/PouchTable/PouchTable.game__ui__PouchTable.bgyml"
+at-least = 49296

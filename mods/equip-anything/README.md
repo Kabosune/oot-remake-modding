@@ -4,7 +4,8 @@ Child and adult Link can pick every item and piece of equipment in the pause men
 the Master Sword, the Hylian or Mirror Shield, the Fairy Bow, the Hookshot, the tunics and boots;
 adult Link with the Kokiri Sword, the Slingshot, the masks, and so on.
 
-**Status, 14 November 2026: version 0.1.0, built, not tried in the game yet.** Game 1.1.1. A quick
+**Status, 14 November 2026: version 0.1.1, built, not tried in the game yet** (0.1.0 crashed at
+boot: see below). Game 1.1.1. A quick
 mod: what the game does with an item that was never meant for that age (models, animations, holding
 it) is untested and may look wrong or crash.
 
@@ -15,9 +16,14 @@ The pause menu reads which age can use each item from one table,
 and `IsUsableAdult`. This mod sets both on every row the menu shows (59 flags on 1.1.1). The rows
 the menu never shows (`NoDisplayArray`: Deku Seeds, Normal Boots, ...) are left alone.
 
-The changed file is 424 bytes bigger; the game's size table already sets aside 46,824 bytes for
-it, so the size table isn't changed. No code: KaeGae Core isn't needed, and the mod works next to
-any Core mod.
+The changed file is 424 bytes bigger. Its resource size table entry (46,824 bytes) covers more than
+the file: the game builds the menu's objects in that same memory. 0.1.0 left the entry as it was,
+and the game crashed at boot (about 31 s in, before the title screen): its BYML reader in `main`
+(`0x1903e0`, a reflection loader that fills an array of objects from a BYML array) found the third
+object of a three-item array missing, apparently because the memory ran out, and called into it.
+0.1.1 asks for the entry to be raised to 49,296 (the growth plus 2,048 spare) with a
+`[[romfs-patch]] kind = "size-table"` line in its `mod.toml`; `kaegae build` writes the changed
+table. No code: KaeGae Core isn't needed, and the mod works next to any Core mod.
 
 Not in 0.1.0: taking off the sword or shield. The table has no setting for that (masks and boots
 come off because their rows are a `SpecialDeal: Mask` / `Boot` button); it needs code, likely a
@@ -32,7 +38,15 @@ python3 mods/equip-anything/build.py <dump>/romfs/UI/Pouch/PouchTable/PouchTable
 ```
 
 Then copy the `Equip Anything` folder into the emulator's `load/0400486024DEC000/` folder (or
-`python3 tools/kaegae.py install "Equip Anything"`).
+`python3 tools/kaegae.py install "Equip Anything"`), and build the size table:
+
+```
+python3 tools/kaegae.py build --game-table <dump>/romfs/System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs
+```
+
+That writes a `KaeGae Built Files` folder next to it. Without it the game crashes at boot. Instead,
+`build.py ... --game-table <that file>` puts the changed table inside the mod's own folder, but then
+it overwrites any other mod's table.
 
 ## Credits
 
