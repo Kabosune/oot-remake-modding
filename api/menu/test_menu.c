@@ -81,6 +81,19 @@ int main(int argc, char **argv)
     /* --- Plus then Minus too late: both go to the game, no menu */
     for (int i = 0; i < KAE_CHORD_WINDOW + 1; i++) step(KAE_PLUS);
     CHECK(step(KAE_PLUS | KAE_MINUS) == (KAE_PLUS | KAE_MINUS) && !m.open); step(0); step(0); step(0);
+    /* --- instant +: a lone + goes to the game on its first frame and while held, never twice */
+    m.instant_plus = 1;
+    CHECK(step(KAE_PLUS) == KAE_PLUS); CHECK(step(KAE_PLUS) == KAE_PLUS);
+    CHECK(step(KAE_PLUS | KAE_MINUS) == KAE_PLUS && !m.open);   /* - while + is the game's: no menu */
+    step(0); step(0); step(0); step(0); step(0);
+    CHECK(step(KAE_PLUS) == KAE_PLUS); CHECK(step(0) == 0); CHECK(step(0) == 0);   /* a tap: one press, no replay */
+    /* --- instant +: - held first, then +, still opens the menu; the game sees neither */
+    CHECK(step(KAE_MINUS) == 0); CHECK(step(KAE_MINUS | KAE_PLUS) == 0 && m.open);
+    step(0); step(0); CHECK(step(KAE_MINUS | KAE_PLUS) == 0 && !m.open); step(0); step(0);
+    /* --- instant +: - and + on the same frame open it too */
+    CHECK(step(KAE_MINUS | KAE_PLUS) == 0); CHECK(step(KAE_MINUS | KAE_PLUS) == 0 && m.open);
+    step(0); step(0); step(KAE_MINUS | KAE_PLUS); step(0); step(0); CHECK(!m.open);
+    m.instant_plus = 0;
     /* --- Minus, then Plus two frames later: opens, the game sees neither, even on release */
     CHECK(step(KAE_MINUS) == 0); CHECK(step(KAE_MINUS) == 0);
     CHECK(step(KAE_MINUS | KAE_PLUS) == 0 && m.open);

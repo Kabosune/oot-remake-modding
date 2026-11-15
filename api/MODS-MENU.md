@@ -100,6 +100,15 @@ the first key pressed; Y takes the key away (no binding has a key by default); B
 gives up. Two enabled actions on one key are shown in orange. The About tab has Core's own
 **Keyboard** switch: off, Core never touches the keyboard and the column is hidden.
 
+## Instant + (Core 0.8.3)
+
+A lone - or + is normally held back for a few frames (`KAE_CHORD_WINDOW`, 4) in case the other
+button follows, then let through or played back, so the game's own pause menu opens a little late.
+Core's **Instant +** switch on the About tab (off by default, saved as `Instant + = 1` under
+`[kaegae.core]`) gives + straight to the game when - isn't held. The Mods menu then opens only by
+holding - first and then pressing + (or both on the same frame); pressing - while the game already
+has + does nothing. A lone - is still held back as before.
+
 ![A page with its Keyboard column](menu/screenshot-keys.png)
 
 ## Rules for mods

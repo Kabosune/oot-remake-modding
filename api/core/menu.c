@@ -43,7 +43,10 @@ static void keyboard_changed(KaeItem *item, void *user) {
 static KaeItem core_items[] = {
     { KAE_TOGGLE, "Keyboard", "Mods' keys (the Keyboard column). Off: Core never reads the keyboard.",
       1, 1, 0, 0, 0, 0, 0, 0, keyboard_changed, 0 },
+    { KAE_TOGGLE, "Instant +", "On: + reaches the game at once. Open this menu by holding - first, then +.",
+      0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
+#define INSTANT_PLUS (core_items[1].value != 0)
 static KaePage core_page = { "kaegae.core", "KaeGae Core", KP_STR(KAE_API_MAJOR) "." KP_STR(KAE_API_MINOR) "." KP_STR(KAE_CORE_PATCH), 0, 1,
                              core_items, sizeof core_items / sizeof *core_items, 0 };
 
@@ -156,6 +159,7 @@ void kp_menu_frame(void) {
     if (!menu.open || !kp_keyboard_read(menu.keys))   // only the open menu reads keys (to capture them)
         for (int i = 0; i < 4; i++)
             menu.keys[i] = 0;
+    menu.instant_plus = INSTANT_PLUS;
     KaePad real = { seen_buttons, 0, 0, 0, 0 }, game;
     seen_buttons = 0;
     bool was_open = menu.open;
@@ -207,6 +211,9 @@ void kp_menu_input(KaeInput *seen, KaeInput *real) {
         // then holds it back (the game sees it let go) and lets it through or plays it back
         // later: the game sees two presses, and the pause menu closes and opens again.
         uint64_t fresh = real->buttons & KAE_OPEN_CHORD & ~menu.prev;
+        // Instant +: a new + with no - held (now or at the menu's last step) isn't held back at all.
+        if (INSTANT_PLUS && !((real->buttons | menu.prev) & KAE_MINUS))
+            fresh &= ~(uint64_t)KAE_PLUS;
         seen->buttons = (seen->buttons & ~(hide | fresh)) | press;
         injected = old_mods_keys() & ~real->buttons;
         seen->buttons |= injected;

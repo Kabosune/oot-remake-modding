@@ -280,6 +280,7 @@ void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
 
     if (m->swallow) {                       /* after opening or closing: nothing until all buttons are up */
         game->buttons = 0;
+        m->plus_free = 0;
         if (!(real->buttons & 0xffff)) m->swallow = 0;
         m->pending = 0;
     } else if (m->open) {
@@ -296,13 +297,18 @@ void kae_menu_input(KaeMenu *m, const KaePad *real, KaePad *game)
         }
         if (m->swallow) game->buttons = 0;
     } else {
+        /* instant +: a + that went down with no - held is the game's, straight away and while held */
+        if (m->instant_plus && (press & KAE_PLUS) && !(down & KAE_MINUS)) m->plus_free = 1;
+        if (!m->instant_plus || !(real->buttons & KAE_PLUS)) m->plus_free = 0;
+        uint64_t held_back = KAE_OPEN_CHORD;
+        if (m->plus_free) { chord &= ~(uint64_t)KAE_PLUS; held_back &= ~(uint64_t)KAE_PLUS; }
         if (m->replay_frames) { game->buttons |= m->replay; m->replay_frames--; }
         if (chord == KAE_OPEN_CHORD && m->pending && m->pending_frames <= KAE_CHORD_WINDOW) {
             m->open = 1; m->swallow = 1; m->pending = 0; m->depth = 0; m->capture = 0;
             game->buttons = 0;
         } else if (chord) {
             if (!m->pending) { m->pending = chord; m->pending_frames = 0; }
-            if (++m->pending_frames <= KAE_CHORD_WINDOW) game->buttons &= ~(uint64_t)KAE_OPEN_CHORD;
+            if (++m->pending_frames <= KAE_CHORD_WINDOW) game->buttons &= ~held_back;
         } else {
             /* a tap shorter than the window never reached the game: play it back now */
             if (m->pending && m->pending_frames <= KAE_CHORD_WINDOW) { m->replay = m->pending; m->replay_frames = 2; game->buttons |= m->replay; m->replay_frames--; }

@@ -46,6 +46,9 @@ typedef struct {
     uint64_t keys_prev[4];
     /* Core's own settings, shown on the About tab */
     KaeItem *core_items; int ncore;
+    /* Instant + (0.8.3): set by the caller. A + pressed while - isn't held goes to the game at once
+       (no chord window); the menu then opens only with - held first, then +. */
+    int instant_plus, plus_free;
 } KaeMenu;
 
 void kae_menu_add(KaeMenu *m, KaePage *page);
