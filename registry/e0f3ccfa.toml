@@ -56,6 +56,13 @@ hooks  = ["0x4C506C",                      # view (runs after First Person's)
           "0x2C215E0",                     # first instruction of the movement update
           "0x3C427FC", "0x3C4280C", "0x3C4281C", "0x3C4282C", "0x3C4283C"]   # br x17 of the five GetNpadStates stubs
 
+[[claim]]
+owner  = "kabosune.equip-anything-unequip"
+name   = "Equip Anything (unequip)"
+code   = ["0x3C461D0..0x3C46200",          # the stub: is it equipped? (the last 48 bytes of .text padding)
+          "0x177D208..0x177D220"]          # the unequip call: padding slot 128
+hooks  = ["0xA7ACD4"]                      # second instruction of the pause menu's equip function
+
 # ---- claims read from mods that don't follow the standard ----
 # `standard = false`: nobody asked for these; they are recorded so the checker knows about them.
 # `builtin` names emulators that apply the patch themselves, with no mod folder.

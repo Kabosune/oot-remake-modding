@@ -4,7 +4,7 @@ Child and adult Link can pick every item and piece of equipment in the pause men
 the Master Sword, the Hylian or Mirror Shield, the Fairy Bow, the Hookshot, the tunics and boots;
 adult Link with the Kokiri Sword, the Slingshot, the masks, and so on.
 
-**Status, 14 November 2026: 0.1.1 works (every item equips for both ages). 0.2.0 (unequip test) not tried yet.** (0.1.0 crashed at
+**Status, 17 November 2026: 0.1.1 works (every item equips for both ages). 0.3.0 (taking things off) not tried yet.** (0.1.0 crashed at
 boot: see below). Game 1.1.1. A quick
 mod: what the game does with an item that was never meant for that age (models, animations, holding
 it) is untested and may look wrong or crash.
@@ -25,13 +25,25 @@ object of a three-item array missing, apparently because the memory ran out, and
 `[[romfs-patch]] kind = "size-table"` line in its `mod.toml`; `kaegae build` writes the changed
 table. No code: KaeGae Core isn't needed, and the mod works next to any Core mod.
 
-**0.2.0 (test):** every equipment button with no `SpecialDeal` (swords, shields, tunics, Stone of
-Agony) gets `SpecialDeal: Mask`, the setting that lets a mask come off when it is picked again: it did nothing (14 Nov). **0.2.1 (test)** sets `IsChangeActorEquipState` (on the bow and ocarina buttons in the game) on those buttons instead.
-Whether the game's mask code does the same for those slots is what the test shows.
+**Taking things off (0.3.0, test): the `unequip/` folder**, a second mod folder, `Equip Anything
+(unequip)`: a small patch to main (game 1.1.1; no Core needed). The table has no setting for it:
+0.2.0 tried `SpecialDeal: Mask` on the sword / shield / tunic buttons and 0.2.1 tried
+`IsChangeActorEquipState`; neither did anything (14 Nov), so 0.3.0's table is 0.1.1's again.
 
-Before 0.2.0: taking off the sword or shield. The table has no setting for that (masks and boots
-come off because their rows are a `SpecialDeal: Mask` / `Boot` button); it needs code, likely a
-Core mod.
+What the game does: the equipped items are GameData strings, `PlayerStatus.EquipWeapon`,
+`EquipShield`, `EquipArmor`, `EquipBoot`, `EquipHeadArmor` (String64, the item's actor name; empty
+= nothing equipped; struct and member hashes are MurmurHash3 of the names). The pause menu's
+equip function is `0xA7ACD0 (menu, name, mode, flag)`; `0xA71080 (menu, name)` says whether an item
+is equipped; `0x33A6A40 (menu, name, flag)` is the menu's own unequip: it finds the item's category
+and writes the game's empty string into that slot. The menu object is the global at `0x4E78E28`.
+
+The patch: the equip function's second instruction (`0xA7ACD4`) jumps to a stub in the last 48
+bytes of `.text` padding that asks `0xA71080`; when the item is already equipped it calls
+`0x33A6A40` from padding slot 128 and returns, otherwise it carries on equipping. Source:
+`unequip/unequip.S`, built by `unequip/build_ips.py`; its claim is in `registry/e0f3ccfa.toml`.
+Not known yet: whether the menu calls the equip function at all for an item that's already
+equipped, and whether the game calls it outside the menu (if Link loses his sword when a save
+loads, that's why).
 
 ## Building
 
