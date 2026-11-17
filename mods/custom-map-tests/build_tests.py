@@ -21,6 +21,8 @@
     Foliage/Placement/Scene/LostWood/LostWood_Child.LostWood_Child.Undergrowth8.flnt.zs (B54 on)
     Phive/VolumeStats/DeathMountainTrail/DeathMountainTrail_Adult_X0_Z0.bpvsts.zs (B58 on)
     RSDB/ActorInfo.Product.111.rstbl.byml.zs
+    Pack/Actor/Land_SacredForest_Prop_A_06.pack.zs, Model/Land_SacredForest_Prop_A.Land_SacredForest_Prop_A_06.bfres.zs,
+    Tex/Stone_SacredForest_Prop_A_06_Alb.bntx.zs (S25 on, with --looks: the textures from make_looks.py)
 
 Needs: pip install zstandard trimesh scipy numpy
 """
@@ -1403,15 +1405,16 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, keep_gyaml=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, keep_gyaml=None, blocks=None, assets=None, radius=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
     rng.seed("B38")                                          # B38's placement hashes for the flags
-    solid, _ = fill_and_merge(voxels(glb, 70.0))
+    solid, mn = fill_and_merge(voxels(glb, 70.0))
     cx, cz, top = spawn_column(solid)
     off = np.subtract((0.0, 0.0, -24.0), (cx + 0.5, top, cz + 0.5))
     chunks = map_chunks(solid)
+    every_grid = [b for ch in chunks for b in ch[4]]          # S25 on: the same boxes in grid cells
     names = [f"KaeGae_MapHost_{i:02d}" for i in range(len(chunks))]
     st, dy = emptied_deku(game) if empty else (game.byml(DEKU_S), game.byml(DEKU_D))   # B45: test C's emptied scene
     if empty and keep_gyaml:                                  # S20: some of the level's actors kept
@@ -1443,11 +1446,13 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     rng.seed("B40")
     shown = every if show_all else [b for b in every if b[1][1] > 0.01]   # B40: boxes whose top is above the floor
     at = (sx, sy, sz - 3)
-    if only != "hosts":                                       # S11: no blocks
+    notes, look_notes, look_like = [], [], {}
+    if blocks:                                                # S25 on: Minecraft-textured blocks (looks())
+        look_notes, look_like = looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, every_grid, (cx, cz), radius, label)
+    elif only != "hosts":                                     # S11: no blocks
         dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
         dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
     files.update({DEKU_S: (st, 3), DEKU_D: (dy, 3)})
-    notes = []
     if bounds:                                                # B42: the scene's HeightMapParam bounding box
         bp = game.byml(DEKU_BANC)
         hm = bp["HeightMapParam"]
@@ -1518,12 +1523,141 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     if scene:                                                 # S1 on: all of it as a new scene of its own
         note, like = new_scene(game, files, scene, **(scene_opts or {}))
         notes.append(note)
-    write_mod(out, files, game, notes +
+    write_mod(out, files, game, notes + look_notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
                f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
                "unscaled 1 m block 2 m left of the row of flags as a control. Blocks in the Dynamic placement file, as in B39."],
-              extra=extra, entries=entries, like=like)
+              extra=extra, entries=entries, like={**(like or {}), **look_like})
     return len(shown)
+
+
+# ---------------------------------------------------------------- S25 on: the looks (Minecraft block textures)
+
+CUBE_PACK = f"Pack/Actor/{CUBE}.pack.zs"
+CUBE_MODEL = "Model/Land_SacredForest_Prop_A.Land_SacredForest_Prop_A_06.bfres.zs"
+CUBE_ALB = "Tex/Stone_SacredForest_Prop_A_06_Alb.bntx.zs"
+
+
+def mc_actor_name(i):
+    return f"KaeGae_MC_{i:02d}"
+
+
+def mc_block_actor(game, i, e, assets):
+    """Block actor `i` of the looks (a copy of the stone block CUBE): its pack (every file renamed, refs to match; the
+    ModelInfo's ModelProjectName = the copy's), its .bfres (made by the texture step: the stone's with the model's
+    file name and the Alb texture name patched in place, same lengths) and its Alb .bntx (the stone's with a new
+    same-length name and, except for index 0, the control, new ASTC 8x5 pixels). Returns (files, entries, like)."""
+    name = mc_actor_name(i)
+    sarc = zstool.Sarc(game.raw(CUBE_PACK))
+    src = {str(n): sarc.read(n) for n in sarc.names()}
+    ren = {n: n.replace(CUBE, name) for n in src}
+    gy = lambda p: "Work/" + p[:-len(".bgyml")] + ".gyml"          # noqa: E731
+    out = {ren[n]: b for n, b in src.items()}
+    k = lambda part: next(n for n in src if n.startswith(part))     # noqa: E731
+    ap = byml.loads(src[k("Actor/")])
+    ap["Components"]["ModelInfoRef"] = "?" + ren[k("Component/ModelInfo/")]
+    ap["Components"]["PhysicsRef"] = "?" + ren[k("Component/Physics/")]
+    out[ren[k("Actor/")]] = byml.dumps(ap)
+    mi = byml.loads(src[k("Component/ModelInfo/")])
+    mi["ModelProjectName"] = e["project"]
+    out[ren[k("Component/ModelInfo/")]] = byml.dumps(mi)
+    ph = byml.loads(src[k("Component/Physics/")])
+    ph["ControllerSetPath"] = gy(ren[k("Phive/ControllerSetParam/")])
+    out[ren[k("Component/Physics/")]] = byml.dumps(ph)
+    cs = byml.loads(src[k("Phive/ControllerSetParam/")])
+    cs["ShapeNamePathAry"][0]["FilePath"] = gy(ren[k("Phive/ShapeParam/")])
+    out[ren[k("Phive/ControllerSetParam/")]] = byml.dumps(cs)
+    entries = {ren[n]: rstb_entry(game, n) + max(len(out[ren[n]]) - len(b), 0) + 1024 for n, b in src.items()}
+    pack = f"Pack/Actor/{name}.pack.zs"
+    model = f"Model/{e['project']}.Land_SacredForest_Prop_A_06.bfres.zs"
+    tex = f"Tex/{e['alb']}.bntx.zs"
+    a = Path(assets)
+    files = {pack: (zsmod.sarc_pack(out, like=game.raw(CUBE_PACK)), byml.frame_dict_id(game.r / CUBE_PACK)),
+             model: ((a / f"{e['project']}.Land_SacredForest_Prop_A_06.bfres").read_bytes(), byml.frame_dict_id(game.r / CUBE_MODEL)),
+             tex: ((a / f"{e['alb']}.bntx").read_bytes(), byml.frame_dict_id(game.r / CUBE_ALB))}
+    return files, entries, {pack: CUBE_PACK, model: CUBE_MODEL, tex: CUBE_ALB}
+
+
+def looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, boxes, spawn, radius, label):
+    """The map's visible blocks for the looks tests, into `dy` (the Dynamic placement). blocks:
+    "control": B40's blocks (one per merged collision box) all as block 0, the renamed stone with its own pixels;
+    "merged": the same blocks, each as the block of its box's most common Minecraft material (textures stretch);
+    "voxels": one 1 m block per visible voxel (a solid cell with an open side; below the map counts as closed),
+    each as its material's block; `radius` (cells, horizontally from the spawn column) keeps only the nearer ones.
+    Every test also gets a floating palette: the original stone, then blocks 0, 1, 2, ... in rows of 10."""
+    import json
+    table = json.loads((Path(assets) / "materials.json").read_text())
+    z = np.load(Path(assets) / "materials.npz")
+    grid = z["grid"]
+    assert tuple(z["mn"]) == tuple(mn) and grid.shape == solid.shape, "materials.npz doesn't match this map build"
+    stone = next(e["index"] for e in table if e["material"] == "Stone")
+    placed_blocks = []                                           # (lo, hi) in metres from `at`, block index
+    if blocks in ("control", "merged"):
+        for lo, hi in boxes:
+            if blocks == "control":
+                i = 0
+            else:
+                m = grid[lo[0]:hi[0], lo[1]:hi[1], lo[2]:hi[2]]
+                m = m[m > 0]
+                i = int(np.bincount(m).argmax()) if m.size else stone
+            placed_blocks.append((tuple(np.add(lo, off)), tuple(np.add(hi, off)), i))
+    else:
+        pad = np.pad(solid, 1, constant_values=False)
+        pad[:, 0, :] = True                                      # below the map: never seen
+        opened = np.zeros_like(solid)
+        for ax in range(3):
+            for sgn in (1, -1):
+                opened |= ~np.roll(pad, sgn, ax)[1:-1, 1:-1, 1:-1]
+        vis = solid & opened
+        if radius:
+            xs, zs = np.meshgrid(np.arange(solid.shape[0]), np.arange(solid.shape[2]), indexing="ij")
+            near = (xs - spawn[0]) ** 2 + (zs - spawn[1]) ** 2 <= radius ** 2
+            vis &= near[:, None, :]
+        for c in zip(*np.nonzero(vis)):
+            i = int(grid[c]) or stone
+            lo = tuple(np.add(c, off))
+            placed_blocks.append((lo, tuple(np.add(lo, 1.0)), i))
+    # palette: 10 per row, 1.5 m apart, 3 m above the highest ground under it, in front of the entrance (from `at`);
+    # the control test's palette is only the original stone and block 0 side by side
+    pal = [(None, -1)] + [(e, e["index"]) for e in (table[:1] if blocks == "control" else table)]
+    used = sorted({i for _, _, i in placed_blocks} | {i for _, i in pal if i >= 0})
+    spots = [(-7.0 + 1.5 * (k % 10), -6.0 - 1.5 * (k // 10)) for k in range(len(pal))]
+    gx = [int(np.floor(x - off[0])) for x, _ in spots]
+    gz = [int(np.floor(zz - off[2])) for _, zz in spots]
+    tops = [int(np.nonzero(solid[x, :, zz])[0].max()) + 1 if 0 <= x < solid.shape[0] and 0 <= zz < solid.shape[2]
+            and solid[x, :, zz].any() else 0 for x, zz in zip(gx, gz)]
+    y = max(tops) + off[1] + 3.0
+    for (x, zz), (_, i) in zip(spots, pal):
+        lo = (x - 0.5, y, zz - 0.5)
+        placed_blocks.append((lo, (x + 0.5, y + 1.0, zz + 0.5), i))
+    rows_names = []
+    look_like = {}
+    for i in used:
+        e = table[i]
+        f, en, lk = mc_block_actor(game, i, e, assets)
+        files.update(f)
+        entries.update(en)
+        look_like.update(lk)
+        rows_names.append(mc_actor_name(i))
+    def model(r, names=iter(table[i]["project"] for i in used)):
+        r["ModelProjectName"] = next(names)
+    ai = files[ACTORINFO][0] if ACTORINFO in files else game.byml(ACTORINFO)
+    gai = files[GAMEACTORINFO][0] if GAMEACTORINFO in files else game.byml(GAMEACTORINFO)
+    files[ACTORINFO] = (rows_with(ai, CUBE, rows_names, model), None)
+    files[GAMEACTORINFO] = (rows_with(gai, CUBE, rows_names), None)
+    for lo, hi, i in placed_blocks:
+        a = cube_actor(lo, hi, at)
+        a["Gyaml"] = CUBE if i < 0 else mc_actor_name(i)
+        dy["Actors"].append(a)
+    from collections import Counter
+    c = Counter(i for _, _, i in placed_blocks)
+    return ([f"{label}: looks '{blocks}'" + (f", radius {radius} cells" if radius else "") +
+             f": {len(placed_blocks)} blocks ({len(placed_blocks) - len(pal)} map + {len(pal)} palette), "
+             f"{len(used)} block actors {mc_actor_name(used[0])}..{mc_actor_name(used[-1])}, copies of {CUBE}",
+             f"{label}: palette (floating, rows of 10 from x -7 m, 3 m above the ground, from the spawn row's middle): "
+             "the original stone, then " + ", ".join(f"{e['index']} {e['material']}" for e, i in pal[1:]),
+             f"{label}: blocks per actor: " + ", ".join(f"{('stone' if i < 0 else i)}: {n}" for i, n in sorted(c.items()))],
+            look_like)
 
 
 # ---------------------------------------------------------------- S1 on: the map as a scene of its own
@@ -1864,14 +1998,38 @@ def main_1b(game, out, glb=None):
     test_c(game, out / "KaeGae Map Test D - Deku Tree emptied, terrain kept", True)
 
 
+S22_OPTS = dict(show_all=True, bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)), banc_set=S6_BANC, empty=True,
+                no_compound=True, aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                scene="KaeGae_Minecraft",
+                keep_gyaml={"DestinationAnchor", "MapIconEntranceAnchor", "FieldAndDungeonEntranceEventRequestActor"})
+LOOKS_TESTS = [("S25", "control, the renamed stone with its own pixels", dict(blocks="control")),
+               ("S26", "Minecraft textures on the merged blocks", dict(blocks="merged")),
+               ("S27", "one textured block per visible Minecraft block", dict(blocks="voxels")),
+               ("S28", "S27 within 60 m of the map's spawn column", dict(blocks="voxels", radius=60))]
+
+
+def main_looks(game, out, glb, assets, only=None):
+    """S25-S28: the looks, on S22 (the map as scene KaeGae_Minecraft). `assets`: the texture step's output (one
+    .bntx and one .bfres per block, materials.json, materials.npz; see docs/custom-maps.md "Looks")."""
+    for label, what, opts in LOOKS_TESTS:
+        if only and label not in only:
+            continue
+        test_b40(game, out / f"KaeGae Map Test {label} - {what}", glb, assets=assets, label=label, **S22_OPTS, **opts)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--romfs", required=True)
     ap.add_argument("--glb", required=True)
     ap.add_argument("--out", required=True)
     ap.add_argument("--round", default="1b", choices=["1", "1b"])
+    ap.add_argument("--looks", metavar="ASSETS", help="build only S25-S28 (the looks), with the texture step's output")
     a = ap.parse_args()
     game, out = Game(a.romfs), Path(a.out)
+    if a.looks:
+        main_looks(game, out, a.glb, a.looks)
+        print("built the looks tests")
+        return
     if a.round == "1b":
         main_1b(game, out, a.glb)
         print("built round 1b")

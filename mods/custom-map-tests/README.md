@@ -827,6 +827,34 @@ behind the Deku Tree door, with control and UI; the real Deku Tree untouched. Th
 
 Not tried / not needed: S7, S12, S14, S16, S20, S21, S23, S24 (all in `load\.kaegae-staging\map-tests\round1b\`).
 
+## The looks: Minecraft block textures (S25–S28, 17 Nov 2026)
+
+All four are S22 (the map as scene `KaeGae_Minecraft`, same hosts and collision) with only the visible blocks changed.
+Every visible block is now a copy of the stone block `Land_SacredForest_Prop_A_06` under a new actor name
+`KaeGae_MC_00` .. `_44`: its pack (all five files renamed, refs to match), RSDB `ActorInfo` / `GameActorInfo` rows (the
+stone's, with `ModelProjectName` = the copy's), a `.bfres` copy with its file name and Alb texture name patched in place
+(`KaeGae_Minecraft_Blk_<nnn>.Land_SacredForest_Prop_A_06.bfres`), and its own Alb `.bntx`
+(`KaeGae_Minecraft_Block_<nnnnn>_Alb`, same length as `Stone_SacredForest_Prop_A_06_Alb`; the texture dictionary
+stays valid since only the radix bit of the last character counts and that's `b` in both). Block 0 is the **control**:
+the stone's own pixels, only the names changed. Blocks 1–44 are the map's 44 materials, most used first (Stone,
+Grass_Block, Dirt, Acacia_Leaves, ...). Nrm / Rgh stay the stone's. Textures: `make_looks.py` (how: its docstring and
+`docs/custom-maps.md` "Looks"). Each test also has a floating **palette** in front of the entrance, 3 m above the
+ground: the original stone first, then blocks 0, 1, 2, ... in rows of 10 (S25: only the stone and block 0).
+
+| Test | Blocks | Count | Tells us |
+|---|---|---|---|
+| S25. control, the renamed stone with its own pixels | B40's blocks (one per merged collision box), all block 0 | 9,397 | Looks like S22 (stone): renamed copies work, the texture names are right. Plain grey / missing blocks: a copy problem, not the pixels |
+| S26. Minecraft textures on the merged blocks | the same 9,397 boxes, each its most common material's block | 9,397 | New pixels work (stretched over each merged box) |
+| S27. one textured block per visible Minecraft block | one 1 m block per visible cell (a solid cell with an open side; under the map counts as closed) | 65,812 | The real Minecraft look; whether the game takes ~7 times B41's block count |
+| S28. S27 within 60 m of the map's spawn column | S27's blocks within 60 cells (horizontally) of the spawn column | 25,425 | A middle step for the block count, if S27 fails |
+
+What to check in each: does it load (Link can move, the pause menu opens, the HUD shows), how the blocks look (the
+palette's blocks next to the original stone), frame rate / pop-in, and in the emulator log anything new. The stone
+actor's `ActorInfo` row has `CalcRadius` 20, `DisplayRadius` 80, `LoadRadius` 180 and `UsePreActorRenderer`, so far
+blocks are most likely drawn without being full actors; that's what S27 / S28 test.
+
+Installed: S25 (`load\0400486024DEC000\`); S26–S28 in `load\.kaegae-staging\map-tests\round1b\`, S22 moved there too.
+
 ## Building
 
 ```
@@ -837,6 +865,15 @@ python3 mods/custom-map-tests/build_tests.py --romfs <folder> --glb <map.glb> --
 size table, `Banc/KokiriForest/KokiriForest_Child_Static.bcett.byml.zs`, both `Banc/InsideTheDekuTree/` placement
 files, `Pack/Actor/Land_Deku_TreeRoot_B_01.pack.zs`, `Pack/Actor/Obj_TBox_A_02.pack.zs`, `Pack/Actor/Obj_TBox_A_01.pack.zs`
 and `RSDB/ActorInfo.Product.111.rstbl.byml.zs`. Needs `pip install zstandard trimesh scipy numpy`.
+
+The looks tests (S25–S28) also need `Pack/Actor/Land_SacredForest_Prop_A_06.pack.zs`,
+`Model/Land_SacredForest_Prop_A.Land_SacredForest_Prop_A_06.bfres.zs` and `Tex/Stone_SacredForest_Prop_A_06_Alb.bntx.zs`
+in `--romfs`, and the textures made first (ARM's `astcenc`, built from https://github.com/ARM-software/astc-encoder):
+
+```
+python3 mods/custom-map-tests/make_looks.py --glb <map.glb> --bfres <stone .bfres, unpacked> --alb <stone Alb .bntx, unpacked> --astcenc <astcenc> --out <assets>
+python3 mods/custom-map-tests/build_tests.py --romfs <folder> --glb <map.glb> --out <dir> --looks <assets>
+```
 
 Test map used: "High quality minecraft world" by SOLDMARS (Sketchfab), CC-BY-4.0. It isn't included here.
 

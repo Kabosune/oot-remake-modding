@@ -285,12 +285,34 @@ string table: `Stone_SacredForest_Prop_A_06_Alb`, `_Nrm`, `_Rgh` (plus the share
 | `_Rgh` | `0x1D01` BC4 | 512 x 512, 10 mips | 16 |
 
 The textures are a **UV atlas** (islands with padded edges), not one picture per cube face, so a Minecraft tile has to
-go where each face's UVs point. Next steps: read the cube's UVs from the `.bfres`; per material, a copy of the Alb
-`.bntx` with a **same-length** name (32 characters) and new pixels in the same format and size (ASTC 8x5 needs ARM's
-`astcenc`; build it in the cloud workspace), swizzled back with `tools/bntx.py`'s `swizzle()`; a copy of the `.bfres`
-with the Alb name patched in place; a copy of the actor. Open question: the visible blocks are now one scaled block per
-**merged** collision box, which would stretch a texture over several blocks; a real Minecraft look needs one block per
-visible voxel face (or per voxel), so the block count goes up (B41 had 9,397 blocks and ran fine).
+go where each face's UVs point.
+
+**The cube (read 17 Nov):** one mesh, 318 vertices, 234 triangles: a bevelled 1 m block, not 24 corners. Vertex buffer
+stride 24: `_p0` half x4 at +0, `_n0` / `_t0` 10:10:10:2 at +8 / +12, `_u0` unorm16 x2 at +16, `bake` unorm16 x2 at
++20 (FVTX at file 0x1B0, vertex count u32 at +0x50). Buffer data starts at 0x4000 (the `_RLT`'s second section): 702
+u16 indices, then the vertices at 0x4600. UV `v` grows with height on the sides (v = 0 is the texture's first row).
+Several islands per face; top and bottom islands overlap in places.
+
+**How each block's albedo is made** (`mods/custom-map-tests/make_looks.py`, 17 Nov): every texel inside each cube
+triangle's UVs is mapped back to its spot on the cube face and filled from that face's Minecraft tile (nearest texel,
+so the pixel look stays). A face's tile comes from the `.glb`'s own UVs: per material and face (top, bottom, each side)
+the most common map from the spot in the cell to the atlas. Top beats sides beats bottom where islands share texels;
+empty texels take the nearest painted one; cut-out texels (leaves) get the tile's average colour, darkened. Then 10
+mips (box filter), ARM's `astcenc -cs ... 8x5 -thorough`, swizzled with `tools/bntx.py` (every mip of the stone's own
+Alb deswizzles and swizzles back byte for byte). A material can hold several block types' tiles (e.g.
+`Block_of_Amethyst`'s top shows another tile): only the most common one per face is used.
+
+**Per block (`build_tests.py` `looks()`):** a copy of the stone's Alb `.bntx` named `KaeGae_Minecraft_Block_<nnnnn>_Alb`
+(same 32 characters; the one-entry texture dictionary only depends on the last character, `b` in both); a copy of the
+`.bfres` with its file name (`<ModelProjectName>.<FmdbName>`, one string) and the Alb name patched in place, as
+`Model/KaeGae_Minecraft_Blk_<nnn>.Land_SacredForest_Prop_A_06.bfres` (same 24-character project name length, same
+`FmdbName`); an actor `KaeGae_MC_<nn>` (the stone's pack, all five files renamed; RSDB `ActorInfo` / `GameActorInfo` rows,
+whose `ModelProjectName` is the copy's); size table entries at least the originals'. Block 0 is the control (the
+stone's own pixels). 44 materials end up on visible cells.
+
+**Block count:** the map has 65,812 visible cells (solid, with an open side; under the map counts as closed) against
+9,397 merged boxes. One block per visible cell is the real Minecraft look. Tests S25–S28 (17 Nov, test log): S25 the
+control, S26 the textures on the merged boxes, S27 every visible cell, S28 those within 60 m (25,425).
 
 ## Placement and size table notes
 
