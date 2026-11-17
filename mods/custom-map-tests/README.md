@@ -752,6 +752,19 @@ its clean slate both work under a new name: the stall comes from **the map's own
 | S11. S10 with the map's hosts | S6 without the 9,397 stone blocks (the 14 `KaeGae_MapHost_*` flags, their packs and RSDB rows): invisible but solid | Stuck: the hosts |
 | S12. S10 with the map's blocks | S6 without the hosts (no host packs, no `ActorInfo` / `GameActorInfo` copies): visible, not solid | Stuck: the blocks |
 
+**What "stuck loading" really was (KaboWabo, 17 Nov ~11:24–11:29 PT):** the scenes *do* load. With noclip Link moves
+around in S10 and S11 (and probably in S3–S8 too), but **the game's UI never appears**: the pause menu works but isn't
+drawn, no HUD. That's what looked like an endless load. The log shows nothing either way (Core finds Link once per
+run). S11 looked the same as S10 (dark, empty: its hosts are invisible collision). So the test criterion is now "does
+the game's UI show". S4 / S9 (full Deku Tree placement under the new name) loaded "fine"; S10 (plus the clean slate) is
+the first without UI; B60 (the clean slate under the Deku Tree's name) had its HUD (the Deku Tree's dungeon map in the
+corner). So one clean-slate part breaks the UI only under a new name. Split (`test_scene_step(clean={...})`):
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S13. S9 with the emptied placement | Only the placement emptied to its spawn points (groups cleared) | No UI: something in the level's placement is needed under a new name |
+| S14. S9 with the rest of the clean slate | The empty compound, tiny volume stats, widened AABB, no foliage files | No UI: one of these |
+
 ## Building
 
 ```

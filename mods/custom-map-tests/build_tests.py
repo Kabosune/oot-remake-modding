@@ -1627,6 +1627,7 @@ S6_BANC = {"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": N
 
 
 def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy"):
+    # clean: True (all of it) or a set of parts: "placement", "compound", "vstats", "aabb", "foliage" (S13, S14)
     """S9, S10: halfway steps from S4 (the vanilla Deku Tree as a new scene, loads) to S6 (the map, stalls), without
     the map. banc_set: S6's scene settings changes. clean: also S6's clean slate (placement emptied to its spawn points,
     the empty compound, tiny volume stats, the widened AABB, no foliage files)."""
@@ -1639,25 +1640,29 @@ def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_
         else:
             bp[k] = v
     files[DEKU_BANC] = (bp, 0)
-    if clean:
+    parts = {"placement", "compound", "vstats", "aabb", "foliage"} if clean is True else set(clean or ())
+    if "placement" in parts:
         st, dy = emptied_deku(game)
         files[DEKU_S], files[DEKU_D] = (st, 3), (dy, 3)
-        files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
-        files[DEKU_VSTATS] = (game.raw(SMALL_VSTATS), 1)
-        box = game.byml(DEKU_AABB)
+    else:
+        for rel in [DEKU_S, DEKU_D]:
+            files[rel] = (game.byml(rel), 3)
+    files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND if "compound" in parts else DEKU_COMPOUND), 1)
+    files[DEKU_VSTATS] = (game.raw(SMALL_VSTATS if "vstats" in parts else DEKU_VSTATS), 1)
+    box = game.byml(DEKU_AABB)
+    if "aabb" in parts:
         for k, v in zip("XYZ", (-95.0, 0.0, -90.0)):
             box["Min"][k] = v
         for k, v in zip("XYZ", (95.0, 150.0, 100.0)):
             box["Max"][k] = v
-        files[DEKU_AABB] = (box, 0)
-        notes.append(f"{label}: S6's clean slate: placement emptied to its spawn points, {EMPTY_COMPOUND}, {SMALL_VSTATS}, "
-                     "widened VolumeStatsAABB, no foliage files")
-    else:
-        for rel in [DEKU_S, DEKU_D, DEKU_AABB]:
-            files[rel] = (game.byml(rel), byml.frame_dict_id(game.r / rel) if rel.endswith(".zs") else 0)
-        for rel in [DEKU_COMPOUND, DEKU_VSTATS, DEKU_LOWTREE, DEKU_ORNAMENT] + DEKU_FOLIAGE:
+    files[DEKU_AABB] = (box, 0)
+    if "foliage" not in parts:
+        for rel in [DEKU_LOWTREE, DEKU_ORNAMENT] + DEKU_FOLIAGE:
             files[rel] = (game.raw(rel), byml.frame_dict_id(game.r / rel))
-    note, like = new_scene(game, files, scene, keep_foliage=not clean)
+    if parts:
+        notes.append(f"{label}: S6's clean slate parts: {', '.join(sorted(parts))} (placement = emptied to its spawn "
+                     f"points, compound = {EMPTY_COMPOUND}, vstats = {SMALL_VSTATS}, aabb = widened, foliage = no files)")
+    note, like = new_scene(game, files, scene, keep_foliage="foliage" not in parts)
     write_mod(out, files, game, notes + [note], like=like)
 
 
@@ -1666,6 +1671,10 @@ def main_1b(game, out, glb=None):
         test_s4(game, out / "KaeGae Map Test S4 - control, the vanilla Deku Tree as a new scene")
         test_scene_step(game, out / "KaeGae Map Test S9 - S4 with S6's scene settings", "S9", banc_set=S6_BANC)
         test_scene_step(game, out / "KaeGae Map Test S10 - S9 with S6's clean slate", "S10", banc_set=S6_BANC, clean=True)
+        test_scene_step(game, out / "KaeGae Map Test S13 - S9 with the emptied placement", "S13", banc_set=S6_BANC,
+                        clean={"placement"})
+        test_scene_step(game, out / "KaeGae Map Test S14 - S9 with the rest of the clean slate", "S14", banc_set=S6_BANC,
+                        clean={"compound", "vstats", "aabb", "foliage"})
         test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
