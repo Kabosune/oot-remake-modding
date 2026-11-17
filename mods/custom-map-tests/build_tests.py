@@ -1626,7 +1626,16 @@ S6_BANC = {"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": N
            "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"}
 
 
-def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy"):
+SYSTEM_ACTOR_HINTS = ("Area", "Anchor", "EventRequestActor", "EventProxyRequestActor", "SupplyItemResetSystemActor",
+                      "GroundControlActor", "SoundPortal", "SoundLocator", "ShowToCameraPoint", "CheckReflectedInCameraActor",
+                      "AirWall")   # S15 / S16: not level geometry, enemies, objects or plants
+
+
+def is_system_actor(gyaml):
+    return gyaml == "StartPos" or any(h in gyaml for h in SYSTEM_ACTOR_HINTS) and not gyaml.startswith(("Land_", "Enemy_", "Obj_"))
+
+
+def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy", keep=None):
     # clean: True (all of it) or a set of parts: "placement", "compound", "vstats", "aabb", "foliage" (S13, S14)
     """S9, S10: halfway steps from S4 (the vanilla Deku Tree as a new scene, loads) to S6 (the map, stalls), without
     the map. banc_set: S6's scene settings changes. clean: also S6's clean slate (placement emptied to its spawn points,
@@ -1643,6 +1652,12 @@ def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_
     parts = {"placement", "compound", "vstats", "aabb", "foliage"} if clean is True else set(clean or ())
     if "placement" in parts:
         st, dy = emptied_deku(game)
+        if keep:                                          # S15 / S16: put some of the level's actors back
+            full_s, full_d = game.byml(DEKU_S), game.byml(DEKU_D)
+            st["Actors"] = [a for a in full_s["Actors"] if a["Gyaml"] == "StartPos" or keep(a["Gyaml"])]
+            dy["Actors"] = [a for a in full_d["Actors"] if a["Gyaml"] == "StartPos" or keep(a["Gyaml"])]
+            notes.append(f"{label}: kept {len(st['Actors'])} static / {len(dy['Actors'])} dynamic actors of the level "
+                         f"(groups still cleared): {sorted(set(a['Gyaml'] for a in st['Actors'] + dy['Actors']))}")
         files[DEKU_S], files[DEKU_D] = (st, 3), (dy, 3)
     else:
         for rel in [DEKU_S, DEKU_D]:
@@ -1675,6 +1690,10 @@ def main_1b(game, out, glb=None):
                         clean={"placement"})
         test_scene_step(game, out / "KaeGae Map Test S14 - S9 with the rest of the clean slate", "S14", banc_set=S6_BANC,
                         clean={"compound", "vstats", "aabb", "foliage"})
+        test_scene_step(game, out / "KaeGae Map Test S15 - S13 with the system actors back", "S15", banc_set=S6_BANC,
+                        clean={"placement"}, keep=is_system_actor)
+        test_scene_step(game, out / "KaeGae Map Test S16 - S13 with the level actors back", "S16", banc_set=S6_BANC,
+                        clean={"placement"}, keep=lambda g: not is_system_actor(g))
         test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,

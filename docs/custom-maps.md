@@ -169,7 +169,7 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S14, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S16, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
 crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
@@ -218,7 +218,10 @@ the map. **S9 (S6's scene settings) and S10 (plus the clean slate) load**, so it
 only) / S12 (blocks only) split them. **But the scenes do load**: with noclip Link moves around in S10 / S11 (and likely S3–S8); what's
 missing is **the game's UI** (the pause menu works but isn't drawn, no HUD), which looked like an endless load. S4 / S9
 (full placement under the new name) are fine, S10 (plus the clean slate) has no UI, B60 (clean slate under the Deku
-Tree's name) had its HUD. S13 (emptied placement only) / S14 (the rest of the clean slate) split that.
+Tree's name) had its HUD. S13 (emptied placement only) / S14 (the rest of the clean slate) split that. Without UI
+Link can't be controlled either, so the door's arrival event most likely never ends. **S13 (only the emptied placement)
+has the problem**: some actor of the Deku Tree's placement lets the arrival finish under a new name. S15 (system actors
+back) / S16 (level actors back) split that.
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

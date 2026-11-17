@@ -765,6 +765,17 @@ corner). So one clean-slate part breaks the UI only under a new name. Split (`te
 | S13. S9 with the emptied placement | Only the placement emptied to its spawn points (groups cleared) | No UI: something in the level's placement is needed under a new name |
 | S14. S9 with the rest of the clean slate | The empty compound, tiny volume stats, widened AABB, no foliage files | No UI: one of these |
 
+More from KaboWabo (~11:33 PT): in every test without the UI, **Link can't be controlled either** (only moved by noclip).
+Hidden UI plus no control is what the game does during a scene-change event, so the door's arrival event most likely
+never finishes. **S13 result (~11:36 PT): no control, no UI.** So it's in the emptied placement: something in the Deku
+Tree's placement lets the arrival finish under a new name (under the Deku Tree's own name, B60's emptied placement was
+fine). The placement's 475 static actors are 103 types; split by kind (`test_scene_step(keep=)`, groups still cleared):
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S15. S13 with the system actors back | 303 static / 96 dynamic actors: areas, anchors, event requests (`EventRequestActor`, `EventProxyRequestActor`), the exit door (`FieldAndDungeonEntranceEventRequestActor`), `ChangeBancBeforehandAnchor`, `AbilityChangeAreaForSceneChange`, dungeon room / location areas, air walls, ... (`is_system_actor()`) | Works: one of these (then split them) |
+| S16. S13 with the level actors back | The other 174 static / 1,523 dynamic: geometry, terrain chunks, enemies, objects, plants, effects | Works: one of these |
+
 ## Building
 
 ```
