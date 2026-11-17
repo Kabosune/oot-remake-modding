@@ -742,6 +742,16 @@ removes, or that a setting makes the game look for). Not found by reading: 41 of
 | S9. S4 with S6's scene settings | Only the scene settings: `IsEnableBakeLight` off, no `FoliageScene`, `HeightMapParam`, `OptimizeChangeBancUnits`, Hyrule Field's `WorldParam` (`S6_BANC`) | Stuck: one of these lines (then split them) |
 | S10. S9 with S6's clean slate | Plus the placement emptied to its spawn points, the empty compound, tiny volume stats, the widened AABB, no foliage files | Stuck: one of these (S9 loads). Loads: the map's own actors in a new scene |
 
+Results (17 Nov ~11:10–11:15 PT): **S9 loads** (very dark: baked light off with the full Deku Tree level still there) and
+**S10 loads** (Link falls forever, as expected with the empty compound and no map; noclip works). So S6's settings and
+its clean slate both work under a new name: the stall comes from **the map's own actors**. Split them
+(`test_b40(only="hosts" / "blocks")`):
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S11. S10 with the map's hosts | S6 without the 9,397 stone blocks (the 14 `KaeGae_MapHost_*` flags, their packs and RSDB rows): invisible but solid | Stuck: the hosts |
+| S12. S10 with the map's blocks | S6 without the hosts (no host packs, no `ActorInfo` / `GameActorInfo` copies): visible, not solid | Stuck: the blocks |
+
 ## Building
 
 ```

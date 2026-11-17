@@ -169,7 +169,7 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S10, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S12, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
 crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
@@ -214,7 +214,8 @@ stalled too.** Every file path `main` builds from a scene name is covered, but `
 in as enum lists, and the new scene's settings still point at the Deku Tree's `DungeonParam`; S8 removes that line
 (30 of the game's 80 scenes have none). **S8 stalled too, but S4 (the vanilla Deku Tree under a new name) loads**: new scene names
 work, so the stall comes from the map build's changes together with a new name. S9 / S10 bisect that from S4, without
-the map.
+the map. **S9 (S6's scene settings) and S10 (plus the clean slate) load**, so it's the map's own actors; S11 (hosts
+only) / S12 (blocks only) split them.
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

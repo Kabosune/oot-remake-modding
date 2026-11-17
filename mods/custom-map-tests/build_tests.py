@@ -1403,7 +1403,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1428,16 +1428,21 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         else:
             st["Actors"].append(placed(name, (sx + dx, sy, sz - 3)))
             mine = shift(boxes, -dx)
+        if only == "blocks":                                   # S12: no hosts
+            st["Actors"].pop()
+            continue
         pack, e = flag_copy(game, name, mine, model=host_model)
         files[f"Pack/Actor/{name}.pack.zs"] = (pack, 4)
         entries.update(e)
         extra[f"Pack/Actor/{name}.pack.zs"] = 512 * 1024
-    files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
+    if only != "blocks":
+        files.update(host_rows(game, names, FLAG_HEAP + 2 * 1024 * 1024))
     rng.seed("B40")
     shown = every if show_all else [b for b in every if b[1][1] > 0.01]   # B40: boxes whose top is above the floor
     at = (sx, sy, sz - 3)
-    dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
-    dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
+    if only != "hosts":                                       # S11: no blocks
+        dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
+        dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
     files.update({DEKU_S: (st, 3), DEKU_D: (dy, 3)})
     notes = []
     if bounds:                                                # B42: the scene's HeightMapParam bounding box
@@ -1502,6 +1507,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         inner[DEKU_PALETTE] = byml.dumps(pal)
         entries[DEKU_PALETTE] = len(inner[DEKU_PALETTE]) + 512
         files[ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / ENV_PACK))
+    if only:
+        notes.append(f"{label}: only the map's {only} (S11 / S12 bisect)")
     like = None
     if scene:                                                 # S1 on: all of it as a new scene of its own
         note, like = new_scene(game, files, scene, **(scene_opts or {}))
