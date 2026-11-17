@@ -776,6 +776,20 @@ fine). The placement's 475 static actors are 103 types; split by kind (`test_sce
 | S15. S13 with the system actors back | 303 static / 96 dynamic actors: areas, anchors, event requests (`EventRequestActor`, `EventProxyRequestActor`), the exit door (`FieldAndDungeonEntranceEventRequestActor`), `ChangeBancBeforehandAnchor`, `AbilityChangeAreaForSceneChange`, dungeon room / location areas, air walls, ... (`is_system_actor()`) | Works: one of these (then split them) |
 | S16. S13 with the level actors back | The other 174 static / 1,523 dynamic: geometry, terrain chunks, enemies, objects, plants, effects | Works: one of these |
 
+**S15 result (17 Nov ~11:43 PT): works** ("level loads and i can control link"). So one of the system actors is what the
+arrival needs under a new name. Near the entrance spawn (`Entrance`, 0.2 / 101 / 14.7): `DungeonRoomIdAnchor` (1.8 m),
+`DungeonRoomArea` (2 m), `MapIconEntranceAnchor` (2.9 m), `DestinationAnchor` `HorsePos` and **`ChangeBancBeforehandAnchor`**
+(4.1 m; its name 先読みの基準座標となるアンカー = "the anchor used as the reference point for preloading", `IsUseFailSafe: true`
+like the preload entries of `OptimizeChangeBancUnits`), `DestinationAnchor` `FieldDungeonEntranceGo` (9 m), the exit door
+`FieldAndDungeonEntranceEventRequestActor` `Entrance` (11 m).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S17. S13 with the preload anchor | Only `ChangeBancBeforehandAnchor` kept (1 static + 1 dynamic) | Works: a new scene needs it |
+| S18. S13 with the room actors | Only `DungeonRoomIdAnchor`, `DungeonRoomArea`, `DungeonRoomCenterAnchor` | Works: one of these |
+| S19. S13 with the entrance anchors and exit door | Only `DestinationAnchor`, `MapIconEntranceAnchor`, `FieldAndDungeonEntranceEventRequestActor` | Works: one of these |
+| S20. S6 with the preload anchor | The Minecraft map (S6) plus the Deku Tree's `ChangeBancBeforehandAnchor`s (`test_b40(keep_gyaml=)`) | Only if S17 works: the map behind the door |
+
 ## Building
 
 ```

@@ -1403,7 +1403,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, keep_gyaml=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1414,6 +1414,9 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     chunks = map_chunks(solid)
     names = [f"KaeGae_MapHost_{i:02d}" for i in range(len(chunks))]
     st, dy = emptied_deku(game) if empty else (game.byml(DEKU_S), game.byml(DEKU_D))   # B45: test C's emptied scene
+    if empty and keep_gyaml:                                  # S20: some of the level's actors kept
+        st["Actors"] += [a for a in game.byml(DEKU_S)["Actors"] if a["Gyaml"] in keep_gyaml]
+        dy["Actors"] += [a for a in game.byml(DEKU_D)["Actors"] if a["Gyaml"] in keep_gyaml]
     sx, sy, sz = SPAWN
     files, entries, extra, every = {}, {}, {}, []
     for i, (name, ch) in enumerate(zip(names, chunks)):
@@ -1509,6 +1512,8 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         files[ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / ENV_PACK))
     if only:
         notes.append(f"{label}: only the map's {only} (S11 / S12 bisect)")
+    if empty and keep_gyaml:
+        notes.append(f"{label}: kept from the Deku Tree's placement: {sorted(keep_gyaml)}")
     like = None
     if scene:                                                 # S1 on: all of it as a new scene of its own
         note, like = new_scene(game, files, scene, **(scene_opts or {}))
@@ -1635,6 +1640,12 @@ def is_system_actor(gyaml):
     return gyaml == "StartPos" or any(h in gyaml for h in SYSTEM_ACTOR_HINTS) and not gyaml.startswith(("Land_", "Enemy_", "Obj_"))
 
 
+S17_S19 = [("S17", "the preload anchor", {"ChangeBancBeforehandAnchor"}),
+           ("S18", "the room actors", {"DungeonRoomIdAnchor", "DungeonRoomArea", "DungeonRoomCenterAnchor"}),
+           ("S19", "the entrance anchors and exit door", {"DestinationAnchor", "MapIconEntranceAnchor",
+                                                        "FieldAndDungeonEntranceEventRequestActor"})]
+
+
 def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy", keep=None):
     # clean: True (all of it) or a set of parts: "placement", "compound", "vstats", "aabb", "foliage" (S13, S14)
     """S9, S10: halfway steps from S4 (the vanilla Deku Tree as a new scene, loads) to S6 (the map, stalls), without
@@ -1694,6 +1705,9 @@ def main_1b(game, out, glb=None):
                         clean={"placement"}, keep=is_system_actor)
         test_scene_step(game, out / "KaeGae Map Test S16 - S13 with the level actors back", "S16", banc_set=S6_BANC,
                         clean={"placement"}, keep=lambda g: not is_system_actor(g))
+        for lab, name, kinds in S17_S19:
+            test_scene_step(game, out / f"KaeGae Map Test {lab} - S13 with {name}", lab, banc_set=S6_BANC,
+                            clean={"placement"}, keep=lambda g, k=kinds: g in k)
         test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
