@@ -36,6 +36,30 @@ was made (17 November 2026), and how to add to it.
   1.0.0's 185,994); whether the files the data mods change differ between the versions isn't
   known. Fritchii's built-in patches (Dynamic FPS, Max Resolution) exist for 1.1.1 only.
 
+## What 1.1.1 adds for Zelda Notes (checked 17 November 2026)
+
+- **Code:** Nintendo's online game-service library (`NintendoSDK_NPLN`, with its Google API part
+  and `libcurl`; `nn.npln.auth.v1.Auth.ValidateToken`, `nn.npln.leaderboard.v1.LeaderboardService/BatchRegisterScores`),
+  `nn::nifm::SubmitNetworkRequestAndWait`, SSL. None of it is in 1.0.0's `main`.
+- **romfs:** `Sequence/ZeldaNotes.110.module.ainb` (the setup screen: it reads and sets the save
+  field `OptionData.ZeldaNoteState`, connects to the network and shows the app guide),
+  `UI/Layout2Archive/ZeldaNotes...`, navigation marker models and textures. The field
+  `OptionData.ZeldaNoteState` already exists in 1.0.0's save list.
+- **Save data:** 2,438 new fields in `GameDataList` (882 Bool, 1,029 Bool64bitKey, 260 Int, 254 Struct,
+  6 Binary, ...). In a save played on 1.1.1, `progress.sav` (per slot) holds 1,104 of them
+  (850 Bool, 252 Int, 2 UInt; names not known), and **`option.sav` (one per user, next to the
+  slots) holds two new rolling logs**, written even with Zelda Notes never set up
+  (`OptionData.ZeldaNoteState` = `NotSet`) and offline:
+  - a 24,576-byte log of 1,024 events, 24 bytes each: time, type, two name hashes, two values
+    (the names in `main`: `SPExHistoryTimeSecs`, `...Types`, `...NameHashes1/2`, `...ValueInt1/2`);
+  - a 16,384-byte log of 1,024 positions, 16 bytes each: time, a packed position, a scene hash,
+    a floor / room code (`SPExPositionTimeSecs`, `...PosCodes`, `...SceneHashes`, `...FloorRoomCodes`).
+  The times are real-world seconds since 1 January 2026 (UTC): in the save checked, the newest
+  entry is the second `option.sav` was written. Four smaller new binary fields (512 / 1,024 bytes)
+  were empty. Binary fields are stored as `[u32 size][bytes]` at the offset their table entry gives.
+- So the data the app shows is gathered and kept by the game itself, in the save; the network part
+  only sends it once Zelda Notes is set up.
+
 ## Getting a plain 1.0.0 `main`
 
 Switch 2 dumps hold `main` ZBIC-compressed. The simplest way to a plain copy is the emulator:
