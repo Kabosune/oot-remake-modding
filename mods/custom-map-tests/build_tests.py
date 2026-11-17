@@ -1405,7 +1405,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, keep_gyaml=None, blocks=None, assets=None, radius=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, only=None, keep_gyaml=None, blocks=None, assets=None, radius=None, split=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1448,7 +1448,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
     at = (sx, sy, sz - 3)
     notes, look_notes, look_like = [], [], {}
     if blocks:                                                # S25 on: Minecraft-textured blocks (looks())
-        look_notes, look_like = looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, every_grid, (cx, cz), radius, label)
+        look_notes, look_like = looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, every_grid, (cx, cz), radius, label, split)
     elif only != "hosts":                                     # S11: no blocks
         dy["Actors"] += [cube_actor(lo, hi, at) for lo, hi in shown]
         dy["Actors"].append(cube_actor((-9.5, 0.0, -0.5), (-8.5, 1.0, 0.5), at))    # the control block, left of the row
@@ -1538,47 +1538,58 @@ CUBE_MODEL = "Model/Land_SacredForest_Prop_A.Land_SacredForest_Prop_A_06.bfres.z
 CUBE_ALB = "Tex/Stone_SacredForest_Prop_A_06_Alb.bntx.zs"
 
 
-def mc_actor_name(i):
-    return f"KaeGae_MC_{i:02d}"
+def mc_actor_name(i, k=0):
+    return f"KaeGae_MC_{i:02d}" + (f"_{k}" if k else "")
 
 
-def mc_block_actor(game, i, e, assets):
+def mc_project(e, k=0):
+    """Block i's ModelProjectName; copy k > 0 (S29: big blocks split over several actors) gets its own one, same
+    length: KaeGae_Minecraft_Blk_001 -> KaeGae_Minecraft_Bk1_001."""
+    return e["project"] if not k else e["project"].replace("_Blk_", f"_Bk{k}_")
+
+
+def mc_block_actor(game, i, e, assets, k=0):
     """Block actor `i` of the looks (a copy of the stone block CUBE): its pack (every file renamed, refs to match; the
     ModelInfo's ModelProjectName = the copy's), its .bfres (made by the texture step: the stone's with the model's
     file name and the Alb texture name patched in place, same lengths) and its Alb .bntx (the stone's with a new
     same-length name and, except for index 0, the control, new ASTC 8x5 pixels). Returns (files, entries, like)."""
-    name = mc_actor_name(i)
+    name = mc_actor_name(i, k)
     sarc = zstool.Sarc(game.raw(CUBE_PACK))
     src = {str(n): sarc.read(n) for n in sarc.names()}
     ren = {n: n.replace(CUBE, name) for n in src}
     gy = lambda p: "Work/" + p[:-len(".bgyml")] + ".gyml"          # noqa: E731
     out = {ren[n]: b for n, b in src.items()}
-    k = lambda part: next(n for n in src if n.startswith(part))     # noqa: E731
-    ap = byml.loads(src[k("Actor/")])
-    ap["Components"]["ModelInfoRef"] = "?" + ren[k("Component/ModelInfo/")]
-    ap["Components"]["PhysicsRef"] = "?" + ren[k("Component/Physics/")]
-    out[ren[k("Actor/")]] = byml.dumps(ap)
-    mi = byml.loads(src[k("Component/ModelInfo/")])
-    mi["ModelProjectName"] = e["project"]
-    out[ren[k("Component/ModelInfo/")]] = byml.dumps(mi)
-    ph = byml.loads(src[k("Component/Physics/")])
-    ph["ControllerSetPath"] = gy(ren[k("Phive/ControllerSetParam/")])
-    out[ren[k("Component/Physics/")]] = byml.dumps(ph)
-    cs = byml.loads(src[k("Phive/ControllerSetParam/")])
-    cs["ShapeNamePathAry"][0]["FilePath"] = gy(ren[k("Phive/ShapeParam/")])
-    out[ren[k("Phive/ControllerSetParam/")]] = byml.dumps(cs)
+    fn = lambda part: next(n for n in src if n.startswith(part))    # noqa: E731
+    ap = byml.loads(src[fn("Actor/")])
+    ap["Components"]["ModelInfoRef"] = "?" + ren[fn("Component/ModelInfo/")]
+    ap["Components"]["PhysicsRef"] = "?" + ren[fn("Component/Physics/")]
+    out[ren[fn("Actor/")]] = byml.dumps(ap)
+    mi = byml.loads(src[fn("Component/ModelInfo/")])
+    mi["ModelProjectName"] = mc_project(e, k)
+    out[ren[fn("Component/ModelInfo/")]] = byml.dumps(mi)
+    ph = byml.loads(src[fn("Component/Physics/")])
+    ph["ControllerSetPath"] = gy(ren[fn("Phive/ControllerSetParam/")])
+    out[ren[fn("Component/Physics/")]] = byml.dumps(ph)
+    cs = byml.loads(src[fn("Phive/ControllerSetParam/")])
+    cs["ShapeNamePathAry"][0]["FilePath"] = gy(ren[fn("Phive/ShapeParam/")])
+    out[ren[fn("Phive/ControllerSetParam/")]] = byml.dumps(cs)
     entries = {ren[n]: rstb_entry(game, n) + max(len(out[ren[n]]) - len(b), 0) + 1024 for n, b in src.items()}
     pack = f"Pack/Actor/{name}.pack.zs"
-    model = f"Model/{e['project']}.Land_SacredForest_Prop_A_06.bfres.zs"
+    model = f"Model/{mc_project(e, k)}.Land_SacredForest_Prop_A_06.bfres.zs"
     tex = f"Tex/{e['alb']}.bntx.zs"
     a = Path(assets)
+    mdl = (a / f"{e['project']}.Land_SacredForest_Prop_A_06.bfres").read_bytes()
+    if k:                                                        # its own file name inside, same texture
+        old_name = f"{e['project']}.Land_SacredForest_Prop_A_06".encode()
+        assert mdl.count(old_name) == 1
+        mdl = mdl.replace(old_name, f"{mc_project(e, k)}.Land_SacredForest_Prop_A_06".encode())
     files = {pack: (zsmod.sarc_pack(out, like=game.raw(CUBE_PACK)), byml.frame_dict_id(game.r / CUBE_PACK)),
-             model: ((a / f"{e['project']}.Land_SacredForest_Prop_A_06.bfres").read_bytes(), byml.frame_dict_id(game.r / CUBE_MODEL)),
+             model: (mdl, byml.frame_dict_id(game.r / CUBE_MODEL)),
              tex: ((a / f"{e['alb']}.bntx").read_bytes(), byml.frame_dict_id(game.r / CUBE_ALB))}
     return files, entries, {pack: CUBE_PACK, model: CUBE_MODEL, tex: CUBE_ALB}
 
 
-def looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, boxes, spawn, radius, label):
+def looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, boxes, spawn, radius, label, split=None):
     """The map's visible blocks for the looks tests, into `dy` (the Dynamic placement). blocks:
     "control": B40's blocks (one per merged collision box) all as block 0, the renamed stone with its own pixels;
     "merged": the same blocks, each as the block of its box's most common Minecraft material (textures stretch);
@@ -1630,33 +1641,46 @@ def looks(game, files, entries, dy, blocks, assets, solid, mn, off, at, boxes, s
     for (x, zz), (_, i) in zip(spots, pal):
         lo = (x - 0.5, y, zz - 0.5)
         placed_blocks.append((lo, (x + 0.5, y + 1.0, zz + 0.5), i))
-    rows_names = []
+    # S29: no actor gets more than `split` blocks: block i's k-th `split` blocks (in placement order, so x-major
+    # slabs of the map) go to copy k (its own actor and model file name, the same texture)
+    seen, placed_k = {}, []
+    for lo, hi, i in placed_blocks:
+        n = seen.get(i, 0)
+        seen[i] = n + 1
+        placed_k.append((lo, hi, i, n // split if split and i >= 0 else 0))
+    copies = sorted({(i, k) for _, _, i, k in placed_k if i >= 0} | {(i, 0) for i in used})
+    rows_names, projects = [], []
     look_like = {}
-    for i in used:
+    for i, k in copies:
         e = table[i]
-        f, en, lk = mc_block_actor(game, i, e, assets)
+        f, en, lk = mc_block_actor(game, i, e, assets, k)
         files.update(f)
         entries.update(en)
         look_like.update(lk)
-        rows_names.append(mc_actor_name(i))
-    def model(r, names=iter(table[i]["project"] for i in used)):
+        rows_names.append(mc_actor_name(i, k))
+        projects.append(mc_project(e, k))
+    def model(r, names=iter(projects)):
         r["ModelProjectName"] = next(names)
     ai = files[ACTORINFO][0] if ACTORINFO in files else game.byml(ACTORINFO)
     gai = files[GAMEACTORINFO][0] if GAMEACTORINFO in files else game.byml(GAMEACTORINFO)
     files[ACTORINFO] = (rows_with(ai, CUBE, rows_names, model), None)
     files[GAMEACTORINFO] = (rows_with(gai, CUBE, rows_names), None)
-    for lo, hi, i in placed_blocks:
+    for lo, hi, i, k in placed_k:
         a = cube_actor(lo, hi, at)
-        a["Gyaml"] = CUBE if i < 0 else mc_actor_name(i)
+        a["Gyaml"] = CUBE if i < 0 else mc_actor_name(i, k)
         dy["Actors"].append(a)
     from collections import Counter
     c = Counter(i for _, _, i in placed_blocks)
+    if split:
+        ck = Counter((i, k) for _, _, i, k in placed_k if i >= 0)
+        extra = [f"{mc_actor_name(i, k)}: {n}" for (i, k), n in sorted(ck.items()) if max(kk for ii, kk in ck if ii == i) > 0]
     return ([f"{label}: looks '{blocks}'" + (f", radius {radius} cells" if radius else "") +
              f": {len(placed_blocks)} blocks ({len(placed_blocks) - len(pal)} map + {len(pal)} palette), "
              f"{len(used)} block actors {mc_actor_name(used[0])}..{mc_actor_name(used[-1])}, copies of {CUBE}",
              f"{label}: palette (floating, rows of 10 from x -7 m, 3 m above the ground, from the spawn row's middle): "
              "the original stone, then " + ", ".join(f"{e['index']} {e['material']}" for e, i in pal[1:]),
-             f"{label}: blocks per actor: " + ", ".join(f"{('stone' if i < 0 else i)}: {n}" for i, n in sorted(c.items()))],
+             f"{label}: blocks per actor: " + ", ".join(f"{('stone' if i < 0 else i)}: {n}" for i, n in sorted(c.items()))]
+            + ([f"{label}: no actor over {split} blocks; the split ones: " + ", ".join(extra)] if split else []),
             look_like)
 
 
@@ -2005,7 +2029,8 @@ S22_OPTS = dict(show_all=True, bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)
 LOOKS_TESTS = [("S25", "control, the renamed stone with its own pixels", dict(blocks="control")),
                ("S26", "Minecraft textures on the merged blocks", dict(blocks="merged")),
                ("S27", "one textured block per visible Minecraft block", dict(blocks="voxels")),
-               ("S28", "S27 within 60 m of the map's spawn column", dict(blocks="voxels", radius=60))]
+               ("S28", "S27 within 60 m of the map's spawn column", dict(blocks="voxels", radius=60)),
+               ("S29", "S27 with no block actor over 8000 blocks", dict(blocks="voxels", split=8000))]
 
 
 def main_looks(game, out, glb, assets, only=None):

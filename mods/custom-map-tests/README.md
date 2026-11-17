@@ -871,6 +871,20 @@ all 10 mips, the 44 copies). Next: **S27** (installed ~15:30 PT; S26 moved to `r
 none of these. Outdoor scenes also have `EnableLODSetting`, `VrsType`, `StaticCompoundMode`, `VolumeStatsMode`,
 `TerrainSceneName`, `IsPlayerCameraWideMode`, which the Deku Tree lacks.
 
+**S27 result (17 Nov ~15:37 PT): loads, looks right, but not every block is drawn** ("it looks great with the blocks,
+but not all blocks are rendering, though they do have collision"; screenshot: full 1 m blocks with the right textures,
+grass on top; here and there a block is missing near Link, sky showing through, at x -30.9, y 93, z 0.5). The
+collision comes from the 14 hosts, so it's whole. The log has nothing about actors (only the usual emulator stubs).
+S25 drew all 9,398 copies of one block; S27 has 33,666 `KaeGae_MC_01` (Stone) and 18,703 `KaeGae_MC_02` (Grass_Block).
+Most likely a limit per actor (or per model) somewhere between those, or a limit per area of the map.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S29. S27 with no block actor over 8000 blocks | Only the actor names: Stone's blocks go to `KaeGae_MC_01`, `_01_1` .. `_01_4` and Grass_Block's to `_02`, `_02_1`, `_02_2` in x-major slabs of 8,000; each copy has its own actor and model file name (`KaeGae_Minecraft_Bk<k>_<nnn>`), the same texture. Same 65,866 blocks, same places | Every block drawn: a per-actor / per-model limit (over 9,398, under 18,703). Still holes: a limit per area or in total; then S28 |
+| S28 (built before) | S27's blocks within 60 m of the spawn: as dense near the spawn as S27, but under 9,300 per actor | Only if S29 still has holes: holes in the same places = a limit per area; none = a total limit |
+
+Installed: S29 (`load\0400486024DEC000\`); S27 moved to `round1b\`.
+
 ## Building
 
 ```
