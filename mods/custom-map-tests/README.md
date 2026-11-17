@@ -859,6 +859,18 @@ Installed: S25 (`load\0400486024DEC000\`); S26–S28 in `load\.kaegae-staging\ma
 and block 0 look the same. So a renamed copy of the block (new actor, `.bfres` file name and Alb name patched, the
 `.bntx` renamed) works. Next: **S26** (installed ~13:15 PT; S25 moved to `round1b\`).
 
+**S26 result (17 Nov, reported ~15:29 PT): works** ("the map works great"): the Minecraft textures show on the merged
+blocks (stretched, as expected); the log of that run has no crash. So the new pixels work (ASTC 8x5 encode, swizzle of
+all 10 mips, the 44 copies). Next: **S27** (installed ~15:30 PT; S26 moved to `round1b\`).
+
+**Shadows, for later tests:** the scenes' `GameBancParam` has a `SceneShadowSetting`. Hyrule Field (child):
+`IsEnableScreenSpaceShadow: true`, `IsIncludeFarActorToShadow: true`, `ShadowSoftnessRatio` 0.15, cloud shadow fade
+50 m. Kokiri Forest (child): static depth shadows (`IsEnableStaticDepthShadow`, `IsEnableStaticLocalDepthShadow`,
+`IsEnableFadeStaticDepthShadow`) in a manual box (`ManualStaticDepthShadowAABBMax` 140 / 160 / 70 ...,
+`IsEnableAutoCalcSDShadowAABB: false`). The Deku Tree: only `UseJitteringAndBlurAtLDS: true`, so the map scene has
+none of these. Outdoor scenes also have `EnableLODSetting`, `VrsType`, `StaticCompoundMode`, `VolumeStatsMode`,
+`TerrainSceneName`, `IsPlayerCameraWideMode`, which the Deku Tree lacks.
+
 ## Building
 
 ```
