@@ -8,7 +8,7 @@ from the controller's pitch.
 
 Still in progress. This folder holds the findings and the builds.
 
-**0.4.0 (17 November 2026, not tested in the game yet): game versions 1.0.0 and 1.1.1.** Every game
+**0.4.0 (17 November 2026; works in Fritchii on 1.0.0 and 1.1.1 with KaeGae Core 0.8.5): game versions 1.0.0 and 1.1.1.** Every game
 function, global and vtable it uses now comes from KaeGae Core by name ([`module/symbols.c`](module/symbols.c)),
 so the same file runs on both versions. 0.3.0 used 1.1.1's own addresses and crashed on 1.0.0 when
 switched on. Needs KaeGae Core 0.8.5 or newer (the first Core with these names); on an older Core it

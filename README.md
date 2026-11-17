@@ -5,7 +5,7 @@ Nintendo Switch 2 (the 2026 remake), plus mods built with them.
 
 Everything here was made on game version 1.1.1. **Mods built on KaeGae Core also run on 1.0.0**
 (from Core 0.8.4: Core carries the addresses for both, the mods stay the same). The standalone
-patches (the 1.x downloads), Mouse Grab 0.3.0 and the romfs mods are 1.1.1 only for now; see
+patches (the 1.x downloads) and the romfs mods are 1.1.1 only for now; see
 [game versions](docs/game-versions.md).
 
 | | 1.1.1 | 1.0.0 |
@@ -31,7 +31,7 @@ Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake
 |---|---|---|---|---|
 | [First Person](mods/first-person/README.md) | [first-person.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Settings page: FOV, eye height and forward, look speed, show Link, rebindable toggle. | Yes (Core 0.8) | 2.0.1 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core is on [its page](mods/first-person/README.md) |
 | [FPV Drone](mods/fpv-drone/README.md) | [fpv-drone.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. Every button rebindable (and keys); FOV, speeds, rates, tilt, thrust on its settings page. | Yes (Core 0.8) | 2.0.0 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core is on [its page](mods/fpv-drone/README.md) |
-| [Mouse Grab](mods/mouse-grab/README.md) | [mouse-grab.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/mouse-grab.zip) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes | 0.3.0 works in Fritchii (KaeGae Core 0.5.2, 11 Nov) |
+| [Mouse Grab](mods/mouse-grab/README.md) | [mouse-grab.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/mouse-grab.zip) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes (Core 0.8.5) | 0.4.0 works in Fritchii on 1.0.0 and 1.1.1 (KaeGae Core 0.8.5, 17 Nov) |
 | [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.4.0 works in Fritchii (KaeGae Core 0.7, 12 Nov): shortcuts rebindable on Core's page, with keyboard keys. Needs Core 0.7 |
 
 ### Extra mods

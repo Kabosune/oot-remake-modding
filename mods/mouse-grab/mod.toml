@@ -10,6 +10,7 @@ homepage = "https://github.com/Kabosune/oot-remake-modding"
 
 [game]
 title = "0400486024DEC000"
+tested = ["1.0.0", "1.1.1"]      # 0.4.0, Fritchii v5.8.4, 17 November 2026
 
 [core]
 api     = "0.8"

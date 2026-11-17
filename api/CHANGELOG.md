@@ -11,9 +11,14 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
-## Core 0.8.5: names for Mouse Grab, and guard rails for every game version (17 November 2026; not tested in the game yet)
+## Core 0.8.5: names for Mouse Grab, and guard rails for every game version (17 November 2026; works in the game, 17 November, Fritchii, 1.0.0 and 1.1.1)
 
 Core only, nothing new for mods' API (still 0.8).
+
+In the game (Fritchii v5.8.4, 17 November): on both 1.0.0 and 1.1.1, Core 0.8.5 loads, Mouse Grab
+0.4.0 finds all its names and works (KaboWabo: "all mods work, even the mouse grab"), and
+Slopped Up Sloperina, First Person and FPV Drone start. Release zips: `kaegae-core.zip` 0.8.5,
+`mouse-grab.zip` 0.4.0.
 
 - **Eleven more names in both symbol packs**, the game calls Mouse Grab used to make by 1.1.1
   offset: `RagdollFind`, the four `RagdollDownPrep*` steps of the ragdoll-down node,
