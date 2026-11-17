@@ -1030,6 +1030,8 @@ def suite():
         g.expect("equip anything: took off Equip_Shield (0)")
         assert not g.p.unresolved, g.p.unresolved
         print("Equip Anything: ok (items opened to the ages their button lacks, the Kokiri Tunic's pair left alone, an item picked again taken off)")
+        # Adventure Log: reads the game's play log (1.1.1 only) through main's recorder pointer
+        check_adventure_log(fakes, tmp)
 
         # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
         # update fills the registers, passes Core's hook point and stores them: they must come back.
@@ -1146,6 +1148,73 @@ def suite():
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
+
+
+def murmur3(text, seed=0):
+    key, h, n = text.encode(), seed, len(text.encode())
+    rot = lambda x, r: ((x << r) | (x >> (32 - r))) & 0xFFFFFFFF      # noqa: E731
+    for i in range(0, n // 4 * 4, 4):
+        k = rot(int.from_bytes(key[i:i + 4], "little") * 0xCC9E2D51 & 0xFFFFFFFF, 15) * 0x1B873593 & 0xFFFFFFFF
+        h = (rot(h ^ k, 13) * 5 + 0xE6546B64) & 0xFFFFFFFF
+    if n % 4:
+        h ^= rot(int.from_bytes(key[n // 4 * 4:], "little") * 0xCC9E2D51 & 0xFFFFFFFF, 15) * 0x1B873593 & 0xFFFFFFFF
+    h ^= n
+    h ^= h >> 16
+    h = h * 0x85EBCA6B & 0xFFFFFFFF
+    h ^= h >> 13
+    h = h * 0xC2B2AE35 & 0xFFFFFFFF
+    return h ^ (h >> 16)
+
+
+def check_adventure_log(fakes, tmp):
+    """Adventure Log next to Core: on 1.1.1 it follows the recorder main points to (entries of 24
+    bytes, next slot and count at +0x6000) and logs and shows new entries by name; on 1.0.0 it
+    does nothing."""
+    import zlib
+    g = Game(fakes, kaemod.build([kaemod.Mod(REPO / "mods" / "adventure-log")], False, tmp / "adventure-log"))
+    g.game("game_boot")
+    if PACK is not PACKS["1.1.1"]:
+        g.frame()
+        g.expect("only 1.1.1 does): doing nothing")
+        print("Adventure Log: ok (does nothing on a game without the play log)")
+        return
+    g.expect("adventure log 0.1.0 on game 1.1.1")
+    g.frame()                                       # no recorder yet: waits
+    assert not g.logged("recorder is at")
+    REC = 0x43000000
+    g.p.uc.mem_map(REC, 0x7000)
+    entry = lambda t, kind, a=0, b=0, v1=0, v2=0: struct.pack("<IIIIii", t, kind, a, b, v1, v2)  # noqa: E731
+    stalchild, link = zlib.crc32(b"Enemy_Stalchild"), zlib.crc32(b"Player_Child")
+    g.p.write(REC, entry(100, 3, link, stalchild, 2, 2) + entry(101, 37, stalchild))
+    g.p.write(REC + 0x6000, struct.pack("<II", 2, 2))
+    g.p.write(MAIN_BASE + 0x4E6B718, struct.pack("<Q", REC))
+    g.frame()
+    g.expect("recorder is at", "the game's log has 2 entries, next slot 2")
+    assert not g.logged("kind 3 ")                  # what was there already isn't new
+    # one new entry: an area change, the scene names are MurmurHash3
+    g.p.write(REC + 2 * 24, entry(102, 25, murmur3("HyruleField_Child"), murmur3("Market_Child"), 7, 8))
+    g.p.write(REC + 0x6000, struct.pack("<II", 3, 3))
+    g.frame()
+    g.expect("t=102 kind 25 (area change) HyruleField_Child Market_Child 7 8")
+    # wrapping around the end of the 1,024 slots
+    g.p.write(REC + 1023 * 24, entry(103, 11, zlib.crc32(b"Obj_Rupee_Green")))
+    g.p.write(REC + 0, entry(104, 99, 0x12345678))
+    g.p.write(REC + 0x6000, struct.pack("<II", 1023, 1024))
+    g.frame()
+    g.expect("1020 entries at once")                # a jump of ~1,000: read back from a save, not counted
+    g.p.write(REC + 0x6000, struct.pack("<II", 1, 1024))
+    g.frame()
+    g.expect("t=103 kind 11 (picked up) Obj_Rupee_Green -", "t=104 kind 99 (?) 12345678 -")
+    plate = [r for r in g.rects() if r[4] == 0x101820]
+    x, y, w, h, _ = plate[0]                         # the rectangles' origin is the lower left
+    assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 74 * 8 + 16, plate
+    # a broken log (count over 1,024) is left alone
+    g.p.write(REC + 0x6000, struct.pack("<II", 5, 5000))
+    g.frame()
+    g.expect("the log looks wrong")
+    assert not g.p.unresolved, g.p.unresolved
+    print("Adventure Log: ok (follows the game's log through main's pointer, names entries, wraps, "
+          "skips a read-back, leaves a broken log alone)")
 
 
 def main():

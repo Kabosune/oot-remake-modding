@@ -1,0 +1,19 @@
+# Adventure Log's manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+manifest = 1
+
+id       = "kabosune.adventure-log"
+name     = "Adventure Log"
+version  = "0.1.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+# 1.1.1 only: 1.0.0 has no play log. Reads the recorder by its 1.1.1 address (kae_game_base) until
+# Core's pack has a name for it.
+
+[core]
+api     = "0.8"
+sources = ["adventure_log.c", "names.c"]
+events  = ["frame", "draw"]
