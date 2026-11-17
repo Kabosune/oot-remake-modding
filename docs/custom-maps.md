@@ -169,10 +169,10 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S2, 13 Nov 2026)
+## Making a new scene (in progress, tests S1–S4, 13–17 Nov 2026)
 
-Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. Not working
-yet: both tries crash while the new scene loads.
+Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
+crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below) and S3 tests the fix.
 
 What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
 
@@ -191,6 +191,20 @@ by `0xdefb50`, registered under hash `0xd04a2892`) reads a 0x290-byte global man
 checking. For the new scene +0x38 is empty. The CPU registers hold the text `X` at that point. Other callers of the
 manager check +0x38 first (e.g. `0x9eec60`); the getter that copies it is `0x9b7530`. The game's code has fixed
 scene-name lists only for dungeon UI / map enums, so that isn't it.
+
+**Cause (found 17 Nov from `main` and the size table; S3 tests it): the new scene's files had too small size table
+entries.** The manager is the Banc (scene) manager; +0x38 holds the current scene's loaded settings, filled only by
+`0xcb0aa0` (from the scene sequence node `0xcb08b0`), which looks the settings up among the already loaded resources
+and stores an empty handle if they aren't there. They weren't, because S1 / S2 gave every renamed or copied file an entry
+of its size + 512, and the game needs as much room as for the originals: the Deku Tree's `GameBancParam` has 10,784 for
+a 3,076-byte file (every scene's is at least 6,424 over its size), the small `Game/*` `.bgyml` files about 5,200–6,800,
+the `.bkres` and probe files 2–2.5 times their size. 40 files were short. **Rule: a new file made from a game file gets
+at least that file's entry** (`write_mod(..., like=)` in the builder). Details and the table:
+[mods/custom-map-tests](../mods/custom-map-tests/README.md), "The size table was the problem".
+
+Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
+layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically
+first counts (`KaeGae Built Files` sorts before `KaeGae Map Test ...`).
 
 ## Test map
 

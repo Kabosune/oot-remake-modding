@@ -634,6 +634,51 @@ or the start position is missing in the base set). Next leads: what fills the ma
 is); a plain renamed copy of the vanilla Deku Tree as a control (does any new scene name load?); test A, the door
 redirect to an existing scene (is the door edit fine?); the Deku Tree's own arrival event on the door.
 
+## The size table was the problem (S3, S4, 17 Nov 2026)
+
+Found without a test round, from `main` and the size table:
+
+- The 0x290-byte manager at `*0x4e919d0` is the **Banc (scene) manager**: its vtable `0x4c5da18` slot `0xc8`
+  (`0xf967d0`) returns the text `Banc`. Its +0x38 is the **current scene's loaded settings** (a ref-counted handle,
+  count at +0x164) and +0x40 the 256-character path they were looked up by.
+- The only code that writes +0x38 is `0xcb0aa0`, called only from `0xcb08b0`: slot `0xe8` (the run function, same
+  slot as the crashing node) of a scene sequence node (vtable `0x4bb3300`, made by `0xe1a450`, registered under hash
+  `0x2e589ab2` at `0x1069c80`). The node takes a path (or, if empty, its owner's `GameBancParam` property, `0xcb0980`),
+  `0xcb0aa0` looks it up among the **already loaded** resources (`0xa57350` on the registry `*0x4e7f7c8`; the key drops a
+  leading `Work/` and the extension, `0x6172e0` / `0x3dbc80`) and stores the result in +0x38, **empty if not found**,
+  without checking. The node at `0x112b3a0` then reads +0x38 → +0x150 and crashes.
+- So the new scene's settings weren't loaded. Why: S1 / S2 gave every file the new scene got under its own name a
+  **size table entry of its size + 512**, while the game needs much more for most of them (for a `.bgyml` the entry is
+  the file plus the object read from it, as found for ShapeParams in B11). B60, which works, shipped the same 1,984-byte
+  scene settings file under the Deku Tree's name with the Deku Tree's entry, 10,784; S2 gave it 2,496. Every one of
+  the game's 80 `GameBancParam` entries is at least 6,424 bytes over its file size. **40 of S2's files were short**:
+
+| File (new scene) | S2 gave | The Deku Tree original's entry |
+|---|---|---|
+| `Banc/GameBancParam/<scene>.game__banc__GameBancParam.bgyml` | 2,496 | 10,784 |
+| `Game/AdjacentRoomsInfo`, `Game/BakeSceneLayerConfig`, `Game/VolumeStatsAABB`, the volume stats source param (`.bgyml`) | 608–968 | 5,208–6,840 |
+| `Bake/Scene/<scene>_G_*.bkres` (4) | size + 512 | about 2.1 x the size (51,960–525,592) |
+| `Bake/Probe/Scene/<scene>/resident.bkprcb` and the `X*_Y*_Z*` probes | size + 512 | up to 2.5 x the size |
+| `PreComputedCulling/<scene>/Boxes.bbox` | 16,008 | 29,912 |
+| The empty static compound | 53,776 | 55,952 (MorphaStage's own) / 3,991,536 (the Deku Tree's, which B60 used) |
+
+Builder: `write_mod(..., like=)` and `Rstb.get()`; `new_scene()` returns which Deku Tree file each new file was made
+from, and every new file gets at least that file's entry (as B60 had). `scene_path()` names foliage files right
+(`<scene>.<foliage scene>.<kind>`: only the first part is the scene).
+
+Also found while installing (17 Nov): **Fritchii most likely uses the first mod folder by name that has a file** (how
+the yuzu family layers mod romfs folders; not tested here), so of several
+switched-on mods shipping the whole size table, only the alphabetically first counts. `KaeGae Built Files` (written by
+`kaegae build` on 15 Nov for Equip Anything) sorts before `KaeGae Map Test ...`, so it would have hidden S3's table. S3's
+and S4's tables include its one raise (`UI/Pouch/PouchTable/PouchTable.game__ui__PouchTable.bgyml` 49,296), and it was
+moved to `load\.kaegae-staging\KaeGae Built Files (moved out for map test S3)` for the test. S1 and S2 (13 Nov) were
+before that folder existed.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S3. S2 with full size table entries | Only the size table: every new-scene file gets at least its Deku Tree original's entry (all other files byte-identical to S2) | Loads and shows the map as in B60: new scenes work, the recipe is complete. Same crash: the empty +0x38 has another cause too (then S4) |
+| S4. Control: the vanilla Deku Tree as a new scene `KaeGae_DekuCopy` | The unchanged Deku Tree (settings, placement, compound, volume stats, foliage) under a new name with S3's way of copying and sizing, the same door change. Only installed if S3 fails | Loads as the normal Deku Tree: new names work and S3's problem is in the map build. Crashes: new scene names need something more |
+
 ## Building
 
 ```

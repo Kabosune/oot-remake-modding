@@ -96,6 +96,14 @@ class Rstb:
         struct.pack_into("<I", self.t, at, new)
         return old, new
 
+    def get(self, romfs_path):
+        """The entry the table has for romfs_path (with or without .zs), or 0."""
+        p = romfs_path[:-3] if romfs_path.endswith(".zs") else romfs_path
+        h = zlib.crc32(p.encode())
+        if h in self.added:
+            return self.added[h]
+        return struct.unpack_from("<I", self.t, self.at[h])[0] if h in self.at else 0
+
     def save(self, path):
         import zstandard
         t = self.t
@@ -137,10 +145,12 @@ def shape_entry(raw):
     return 5862 + len(raw) + sum(cost[k] * len(v) for k, v in parts.items()) + 8 * presets + 12 * vertices
 
 
-def write_mod(out, files, game, notes, extra=None, entries=None):
+def write_mod(out, files, game, notes, extra=None, entries=None, like=None):
     """files: {romfs path: (object or bytes, dict id)} -> out/romfs/..., with a fitted size table.
     extra: {romfs path: bytes of room on top of the file's size} (default 512).
-    entries: {path of a file inside a pack: size table entry it needs} (raised, never lowered)."""
+    entries: {path of a file inside a pack: size table entry it needs} (raised, never lowered).
+    like: {romfs path of a new file: path of the game file it was made from}: the new file gets at least the
+    original's entry (S3: a scene's renamed files need the room the game gives the originals, not size + 512)."""
     rstb = Rstb(game.r / RSTB)
     for rel, size in (entries or {}).items():
         old, new = rstb.need(rel, size, 0)
@@ -148,7 +158,12 @@ def write_mod(out, files, game, notes, extra=None, entries=None):
     for rel, (obj, did) in files.items():
         raw = obj if isinstance(obj, bytes) else byml.dumps(obj)
         old, new = rstb.need(rel, len(raw), (extra or {}).get(rel, 512))
-        notes.append(f"{rel}: {len(raw)} bytes, size table {old} -> {new}")
+        src = (like or {}).get(rel)
+        if src and rstb.get(src):
+            new = rstb.need(rel, rstb.get(src), 0)[1]
+            notes.append(f"{rel}: {len(raw)} bytes, size table {old} -> {new} (at least {src.split('/')[-1]}'s)")
+        else:
+            notes.append(f"{rel}: {len(raw)} bytes, size table {old} -> {new}")
         dst = out / "romfs" / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_bytes(zsmod.zs(raw, did, game.dicts) if rel.endswith(".zs") else raw)
@@ -1487,13 +1502,15 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         inner[DEKU_PALETTE] = byml.dumps(pal)
         entries[DEKU_PALETTE] = len(inner[DEKU_PALETTE]) + 512
         files[ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / ENV_PACK))
+    like = None
     if scene:                                                 # S1 on: all of it as a new scene of its own
-        notes.append(new_scene(game, files, scene))
+        note, like = new_scene(game, files, scene)
+        notes.append(note)
     write_mod(out, files, game, notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
                f"({CUBE}, 1 m, scaled to each collision box whose top is above the floor) so the whole map shows, and one",
                "unscaled 1 m block 2 m left of the row of flags as a control. Blocks in the Dynamic placement file, as in B39."],
-              extra=extra, entries=entries)
+              extra=extra, entries=entries, like=like)
     return len(shown)
 
 
@@ -1515,17 +1532,29 @@ DEKU_SCENE_FILES = (                                           # looked up by th
        "Phive/VolumeStats/InsideTheDekuTree/InsideTheDekuTree.phive__VolumeStatsSourceParam.bgyml"])
 
 
-def new_scene(game, files, scene):
+def scene_path(rel, scene):
+    """A Deku Tree path under the new scene's name. Foliage placement files are named <scene>.<foliage scene>.<kind>
+    (GohmaStage uses InsideTheDekuTree's): only the folder and the first part are the scene."""
+    if rel.startswith("Foliage/Placement/Scene/"):
+        head, name = rel.rsplit("/", 1)
+        first, rest = name.split(".", 1)
+        return head.replace(DEKU, scene) + "/" + first.replace(DEKU, scene) + "." + rest
+    return rel.replace(DEKU, scene)
+
+
+def new_scene(game, files, scene, keep_foliage=False):
     """Turn the Deku Tree build in `files` into a new scene `scene`: every Deku Tree file in it moves to the new name
     (the leftover-foliage files are dropped: a new scene simply has none), the Deku Tree's other per-scene files
     (bake, rooms, culling, navmesh) are copied under the new name, a GameBancInfo row and an entry in every per-scene `BancBasedResource` file are added,
     and Kokiri Forest's Deku Tree door is pointed at the new scene's "Entrance" (generic arrival event, as the
     Kokiri Forest → Hyrule Field door uses). The real Deku Tree's files aren't touched."""
+    like = {}                                     # S3: every new file gets at least its original's size table entry
     for rel in list(files):
-        if DEKU in rel:
+        if DEKU in rel and not rel.startswith("Pack/Actor/"):
             obj = files.pop(rel)
-            if rel not in (DEKU_ORNAMENT, DEKU_LOWTREE):
-                files[rel.replace(DEKU, scene)] = obj
+            if keep_foliage or rel not in (DEKU_ORNAMENT, DEKU_LOWTREE):
+                files[scene_path(rel, scene)] = obj
+                like[scene_path(rel, scene)] = rel
     bp = files[DEKU_BANC.replace(DEKU, scene)][0]
     bp["Banc"]["Main"] = f"Work/Banc/Scene/{scene}/{scene}.bcett.json"
     probes = sorted(str(p.relative_to(game.r)) for p in (game.r / "Bake/Probe/Scene" / DEKU).iterdir())
@@ -1533,6 +1562,7 @@ def new_scene(game, files, scene):
         raw = game.raw(rel) if rel.endswith(".zs") else (game.r / rel).read_bytes()
         did = byml.frame_dict_id(game.r / rel) if rel.endswith(".zs") else 0
         files[rel.replace(DEKU, scene)] = (raw, did)
+        like[rel.replace(DEKU, scene)] = rel
     rows = game.byml(GAMEBANCINFO)
     row = copy.deepcopy(next(r for r in rows if r["__RowId"] == DEKU))
     row["__RowId"], row["BancMain"] = scene, bp["Banc"]["Main"]
@@ -1555,19 +1585,37 @@ def new_scene(game, files, scene):
     files[KOKIRI] = (ko, byml.frame_dict_id(game.r / KOKIRI))
     return (f"{scene}: a new scene with all of the above (the Deku Tree's files renamed, {len(DEKU_SCENE_FILES) + len(probes)} "
             f"more per-scene files copied), a GameBancInfo row, entries in {sum(1 for r in BANC_KEYED if r in files)} BancBasedResource files, and Kokiri Forest's Deku Tree door "
-            f"pointed at {scene} / Entrance. The real Deku Tree is untouched.")
+            f"pointed at {scene} / Entrance. The real Deku Tree is untouched. Every new file's size table entry is at least "
+            f"the Deku Tree original's (S3 on; S1 / S2 gave them size + 512, too little for the scene settings)."), like
+
+
+DEKU_FOLIAGE = [f"Foliage/Placement/Scene/{DEKU}/{DEKU}.{DEKU}.{k}.flnt.zs" for k in ("Moss", "Stone", "Turf", "Undergrowth4")]
+
+
+def test_s4(game, out, scene="KaeGae_DekuCopy"):
+    """Control for S3: the vanilla Deku Tree, unchanged, as a new scene `scene` (every file looked up by the scene's
+    name copied under the new name, with its original's size table entry), and the Kokiri Forest door pointed at it
+    as in S1-S3. Loads: any new scene name works and S3's problem is in the map build. Crashes: new names need more."""
+    files = {}
+    for rel in [DEKU_BANC, DEKU_S, DEKU_D, DEKU_COMPOUND, DEKU_VSTATS, DEKU_AABB, DEKU_LOWTREE, DEKU_ORNAMENT] + DEKU_FOLIAGE:
+        obj = game.byml(rel) if rel in (DEKU_BANC, DEKU_S, DEKU_D, DEKU_AABB) else game.raw(rel)
+        files[rel] = (obj, byml.frame_dict_id(game.r / rel) if rel.endswith(".zs") else 0)
+    note, like = new_scene(game, files, scene, keep_foliage=True)
+    write_mod(out, files, game, ["Test S4 (control): the vanilla Deku Tree, unchanged, copied as a new scene " + scene + ".", note],
+              like=like)
 
 
 def main_1b(game, out, glb=None):
     if glb:
-        test_b40(game, out / "KaeGae Map Test S2 - S1 with every per-scene entry", glb, show_all=True,
+        test_s4(game, out / "KaeGae Map Test S4 - control, the vanilla Deku Tree as a new scene")
+        test_b40(game, out / "KaeGae Map Test S3 - S2 with full size table entries", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
                            "OptimizeChangeBancUnits": None,
                            "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
-                 scene="KaeGae_Minecraft", label="S2")
+                 scene="KaeGae_Minecraft", label="S3")
         for lab, name, extra, more in (
                 ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
                  small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
