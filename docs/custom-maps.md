@@ -169,11 +169,11 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S5, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S7, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
 crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
-forever (the placement files' `FilePath`, below); S5 tests that fix.
+forever; S5 (the placement files' `FilePath` fixed) too; S6 / S7 test the door and the `DungeonParam` row (below).
 
 What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
 
@@ -206,7 +206,10 @@ at least that file's entry** (`write_mod(..., like=)` in the builder). Details a
 **S3 (17 Nov) got past the crash but never finished loading.** Both placement files still said `FilePath:
 Work/Banc/Scene/InsideTheDekuTree/InsideTheDekuTree.bcett.json`; in all 160 of the game's placement files `FilePath` is
 exactly the scene's `Banc.Main`, so **a new scene's placement files need `FilePath` set to its own `Banc.Main`**
-(`new_scene()` does it from S5 on; S5 tests it).
+(`new_scene()` does it from S5 on). **S5 still stalled after the door.** The other difference from B60: S1–S5 also
+changed the door's arrival event to Hyrule Field's generic `Dm_SY_BancChangeArrive` and dropped the Deku Tree's
+first-visit event; B60 left the door alone. S6 keeps the door's own event (only the destination changes); S7 adds a
+row for the new scene to RSDB `DungeonParam` (keyed by scene name); S4 is the vanilla Deku Tree under a new name.
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

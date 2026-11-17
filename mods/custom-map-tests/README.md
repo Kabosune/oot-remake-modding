@@ -693,6 +693,22 @@ S4 had the same mismatch and wasn't tried; it's rebuilt with the fix.
 |---|---|---|
 | S5. S3 with the placement's `FilePath` | Only `FilePath` in both placement files → the new scene's `Banc.Main` (`new_scene()` does it now) | Loads: new scenes work. Still stuck: something else names the old scene (then S4, rebuilt with the same fix) |
 
+Result of S5 (17 Nov ~10:29 PT): **still stuck loading after the Deku Tree door** (Kokiri Forest loads fine; no error in
+the log). So `FilePath` alone wasn't it (S5 keeps it: the game's own files all match). The other untested difference
+from B60 (which works): **the door**. B60 left the Kokiri Forest door alone; S1–S5 also gave it Hyrule Field's generic
+arrival event (`Dm_SY_BancChangeArrive`) and dropped the Deku Tree's `InitEventName` (`InsideTheDekuTree_Arrive`) /
+`InitEventFlag` (`HavePlayedEvent.Dm_Deku_0000`). The door's own values are `NextEventName`
+`Dm_SY_BancChangeArrive_InsideTheDekuTree_01`, `FirstEventName` `Dm_SY_BancChangeGo`, `NextStartPosName` `Entrance`.
+Also still missing for a new scene: a row in RSDB `DungeonParam` (24 rows, keyed by scene name, sorted; the Deku Tree's
+lists its rooms A–M). Not checked as causes: `Game/MapMenuInfo` (`BancName` lists, pause map) and the location names in
+`Mals` (text).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S6. S5 with the door's own arrival event | The door keeps all its Deku Tree values except `NextBancParamNameChild` / `Adult` (`new_scene(door_event="keep")`, the default now; `"generic"` was S1–S5) | Loads: the generic arrival event was what waited |
+| S7. S6 with a `DungeonParam` row | Plus a copy of the Deku Tree's RSDB `DungeonParam` row under `KaeGae_Minecraft` (`new_scene(dungeon_row=True)`). Only tried if S6 stalls | Loads: dungeon scenes need their row |
+| S4 (rebuilt) | The vanilla Deku Tree as `KaeGae_DekuCopy`, with S6's door. Only tried if S7 stalls too | Loads: the problem is in the map build on top of a new scene. Stalls: new scene names need something more |
+
 ## Building
 
 ```

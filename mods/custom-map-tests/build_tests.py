@@ -1403,7 +1403,7 @@ def test_b39(game, out, glb):
     return len(shown)
 
 
-def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, label="B40"):
+def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette_set=None, empty=False, no_compound=False, aabb=None, no_ornament=False, no_lowtree=False, small_vstats=False, host_model=None, host_under=False, scene=None, scene_opts=None, label="B40"):
     """B38 (the whole Minecraft map's collision on 14 flags) plus a stone block (CUBE) per collision box that reaches
     above the floor, scaled to the box, as B39 did for the cut; and B39's unscaled control block 2 m left of the
     flags. Only the visible blocks change from B38."""
@@ -1504,7 +1504,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
         files[ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / ENV_PACK))
     like = None
     if scene:                                                 # S1 on: all of it as a new scene of its own
-        note, like = new_scene(game, files, scene)
+        note, like = new_scene(game, files, scene, **(scene_opts or {}))
         notes.append(note)
     write_mod(out, files, game, notes +
               [f"Test B40: B38 (the whole Minecraft map's collision, {len(every)} boxes on {len(chunks)} flags) plus {len(shown)} stone blocks",
@@ -1517,6 +1517,7 @@ def test_b40(game, out, glb, show_all=False, bounds=None, banc_set=None, palette
 # ---------------------------------------------------------------- S1 on: the map as a scene of its own
 
 GAMEBANCINFO = "RSDB/GameBancInfo.Product.111.rstbl.byml.zs"
+DUNGEONPARAM_RSDB = "RSDB/DungeonParam.Product.111.rstbl.byml.zs"   # S7: one row per dungeon-like scene, by name
 STARTPOS = "AoC1/Banc/BancBasedResource/StartPos.byml.zs"      # every scene's start positions, by scene name
 BANC_KEYED = [f"{pre}/BancBasedResource/{name}.byml.zs"     # per-scene data by scene name, in the base game and
               for pre in ("Banc", "AoC1/Banc")                # its AoC1 copy (which has the _MQ scenes too)
@@ -1542,7 +1543,7 @@ def scene_path(rel, scene):
     return rel.replace(DEKU, scene)
 
 
-def new_scene(game, files, scene, keep_foliage=False):
+def new_scene(game, files, scene, keep_foliage=False, door_event="keep", dungeon_row=False):
     """Turn the Deku Tree build in `files` into a new scene `scene`: every Deku Tree file in it moves to the new name
     (the leftover-foliage files are dropped: a new scene simply has none), the Deku Tree's other per-scene files
     (bake, rooms, culling, navmesh) are copied under the new name, a GameBancInfo row and an entry in every per-scene `BancBasedResource` file are added,
@@ -1581,9 +1582,16 @@ def new_scene(game, files, scene, keep_foliage=False):
     d = door["Dynamic"]
     d["NextBancParamNameChild"] = d["NextBancParamNameAdult"] = scene
     d["NextStartPosName"] = "Entrance"
-    d["NextEventName"] = "Dm_SY_BancChangeArrive"
-    d.pop("InitEventName", None)
-    d.pop("InitEventFlag", None)
+    if door_event == "generic":                   # S1-S5: Hyrule Field's generic arrival, no first-visit event.
+        d["NextEventName"] = "Dm_SY_BancChangeArrive"   # S6 on keeps the Deku Tree's own (B60 never changed it)
+        d.pop("InitEventName", None)
+        d.pop("InitEventFlag", None)
+    if dungeon_row:                               # S7: RSDB DungeonParam rows are keyed by scene name
+        rows = game.byml(DUNGEONPARAM_RSDB)
+        row = copy.deepcopy(next(r for r in rows if r["__RowId"] == DEKU))
+        row["__RowId"] = scene
+        rows = sorted([r for r in rows if r["__RowId"] != scene] + [row], key=lambda r: r["__RowId"])
+        files[DUNGEONPARAM_RSDB] = (rows, None)
     files[KOKIRI] = (ko, byml.frame_dict_id(game.r / KOKIRI))
     return (f"{scene}: a new scene with all of the above (the Deku Tree's files renamed, {len(DEKU_SCENE_FILES) + len(probes)} "
             f"more per-scene files copied), a GameBancInfo row, entries in {sum(1 for r in BANC_KEYED if r in files)} BancBasedResource files, and Kokiri Forest's Deku Tree door "
@@ -1610,14 +1618,22 @@ def test_s4(game, out, scene="KaeGae_DekuCopy"):
 def main_1b(game, out, glb=None):
     if glb:
         test_s4(game, out / "KaeGae Map Test S4 - control, the vanilla Deku Tree as a new scene")
-        test_b40(game, out / "KaeGae Map Test S5 - S3 with the placement's FilePath", glb, show_all=True,
+        test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
                            "OptimizeChangeBancUnits": None,
                            "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
-                 scene="KaeGae_Minecraft", label="S5")
+                 scene="KaeGae_Minecraft", label="S6")
+        test_b40(game, out / "KaeGae Map Test S7 - S6 with a DungeonParam row", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
+                           "OptimizeChangeBancUnits": None,
+                           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
+                 aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                 scene="KaeGae_Minecraft", scene_opts={"dungeon_row": True}, label="S7")
         for lab, name, extra, more in (
                 ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
                  small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
