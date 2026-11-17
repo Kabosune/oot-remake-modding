@@ -1634,6 +1634,14 @@ def main_1b(game, out, glb=None):
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
                  scene="KaeGae_Minecraft", scene_opts={"dungeon_row": True}, label="S7")
+        test_b40(game, out / "KaeGae Map Test S8 - S6 without DungeonParam", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
+                           "OptimizeChangeBancUnits": None, "DungeonParam": None,
+                           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
+                 aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                 scene="KaeGae_Minecraft", label="S8")
         for lab, name, extra, more in (
                 ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
                  small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),

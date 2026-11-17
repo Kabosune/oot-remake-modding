@@ -709,6 +709,25 @@ lists its rooms A–M). Not checked as causes: `Game/MapMenuInfo` (`BancName` li
 | S7. S6 with a `DungeonParam` row | Plus a copy of the Deku Tree's RSDB `DungeonParam` row under `KaeGae_Minecraft` (`new_scene(dungeon_row=True)`). Only tried if S6 stalls | Loads: dungeon scenes need their row |
 | S4 (rebuilt) | The vanilla Deku Tree as `KaeGae_DekuCopy`, with S6's door. Only tried if S7 stalls too | Loads: the problem is in the map build on top of a new scene. Stalls: new scene names need something more |
 
+Result of S6 (17 Nov ~10:43 PT): **still stuck after the door** ("some of the game's functions still work": the game
+runs on). Log: `player: found Link` at 77 s in Kokiri Forest, then nothing until the shutdown; no error. So the door's
+event wasn't it either. S7 and S4 not tried yet.
+
+Checked without a test: every file path `main` builds from a scene name (the `%s` patterns among its strings:
+`Bake/Light/%s.bklight`, `Bake/Scene/%s_%%s_%%u_%%u.bkres`, `Bake/Probe/Scene/%s` + `X%u_Y%u_Z%u_%u.bkprb` /
+`meta.bkprmb` / `resident.bkprcb`, `Banc/BancBasedResource/%s%s%s.byml`, `Game/BakeSceneLayerConfig/%s`,
+`Phive/NavMesh/%s.%s.bphnm`, `Phive/StaticCompoundBody/%s/%s_X%d_Z%d.%s.bphsc` and `%s/%s.%s.bphsc`,
+`Phive/VolumeStats/%s/%s_X%d_Z%d`, `PreComputedCulling/%s/Boxes.bbox`, `Foliage/Placement/%s/%s.%s.flnt`, ...): the new
+scene has every one the Deku Tree has. (`Phive/StitchedNavMesh/` is Hyrule Field only; `Sound/Shape/` is per actor.)
+**But `main` has the dungeon scene names built in**, as enum name lists (e.g. `None, InsideTheDekuTree, DodongoCavern,
+InsideJabuJabuBelly, ForestTemple, ...` at `0x3eea746`, `0x3f0cef6`, `0x3f14ec9`; 33 of the 80 scene names appear as
+strings in `main`, all the dungeons among them), and the new scene's settings still say it is a dungeon (`DungeonParam`
+→ the Deku Tree's). 30 of the game's 80 scenes have no `DungeonParam` line (Hyrule Field among them).
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S8. S6 without `DungeonParam` | Only the scene settings: the `DungeonParam` line removed (a plain non-dungeon scene) | Loads: the dungeon code didn't know the new name |
+
 ## Building
 
 ```
