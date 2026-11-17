@@ -1724,6 +1724,30 @@ def main_1b(game, out, glb=None):
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
                  scene="KaeGae_Minecraft", scene_opts={"dungeon_row": True}, label="S7")
+        test_b40(game, out / "KaeGae Map Test S20 - S6 with the preload anchor", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
+                           "OptimizeChangeBancUnits": None,
+                           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
+                 aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                 scene="KaeGae_Minecraft", keep_gyaml={"ChangeBancBeforehandAnchor"}, label="S20")
+        test_b40(game, out / "KaeGae Map Test S21 - S6 with the room actors", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
+                           "OptimizeChangeBancUnits": None,
+                           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
+                 aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                 scene="KaeGae_Minecraft", keep_gyaml={"DungeonRoomIdAnchor", "DungeonRoomArea", "DungeonRoomCenterAnchor"}, label="S21")
+        test_b40(game, out / "KaeGae Map Test S22 - S6 with the entrance anchors and exit door", glb, show_all=True,
+                 bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
+                 banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
+                           "OptimizeChangeBancUnits": None,
+                           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
+                 empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
+                 aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
+                 scene="KaeGae_Minecraft", keep_gyaml={"DestinationAnchor", "MapIconEntranceAnchor", "FieldAndDungeonEntranceEventRequestActor"}, label="S22")
         test_b40(game, out / "KaeGae Map Test S8 - S6 without DungeonParam", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,

@@ -790,6 +790,14 @@ like the preload entries of `OptimizeChangeBancUnits`), `DestinationAnchor` `Fie
 | S19. S13 with the entrance anchors and exit door | Only `DestinationAnchor`, `MapIconEntranceAnchor`, `FieldAndDungeonEntranceEventRequestActor` | Works: one of these |
 | S20. S6 with the preload anchor | The Minecraft map (S6) plus the Deku Tree's `ChangeBancBeforehandAnchor`s (`test_b40(keep_gyaml=)`) | Only if S17 works: the map behind the door |
 
+**S17 result (17 Nov ~12:21 PT): stuck** (no control, no UI): not the preload anchor. Next: S18 (installed). S21 / S22
+are prebuilt so the map can be tried right after S18 or S19 works:
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S21. S6 with the room actors | The Minecraft map plus the Deku Tree's `DungeonRoomIdAnchor`, `DungeonRoomArea`, `DungeonRoomCenterAnchor` | If S18 works: the map behind the door |
+| S22. S6 with the entrance anchors and exit door | The map plus the Deku Tree's `DestinationAnchor`s, `MapIconEntranceAnchor`, `FieldAndDungeonEntranceEventRequestActor` | If S19 works: the map behind the door |
+
 ## Building
 
 ```
