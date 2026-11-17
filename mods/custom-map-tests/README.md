@@ -855,6 +855,10 @@ blocks are most likely drawn without being full actors; that's what S27 / S28 te
 
 Installed: S25 (`load\0400486024DEC000\`); S26–S28 in `load\.kaegae-staging\map-tests\round1b\`, S22 moved there too.
 
+**S25 result (17 Nov ~13:14 PT): works** ("yep, it works"): the map looks like S22 (stone), the palette's original stone
+and block 0 look the same. So a renamed copy of the block (new actor, `.bfres` file name and Alb name patched, the
+`.bntx` renamed) works. Next: **S26** (installed ~13:15 PT; S25 moved to `round1b\`).
+
 ## Building
 
 ```
