@@ -169,11 +169,39 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S24, 13–17 Nov 2026)
+## Making a new scene (works: test S22, 17 Nov 2026)
 
-Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
-crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
-forever; S5 (the placement files' `FilePath` fixed) and S6 (the door's own event) too; S8 too; **S4, the vanilla Deku Tree under a new name, loads** (below).
+The Minecraft map runs as a scene of its own, `KaeGae_Minecraft`, behind Kokiri Forest's Deku Tree door (S22, 17 Nov
+~12:38 PT: lands on the map with control and UI); the real Deku Tree stays untouched. Romfs only, no Core. Built by
+`new_scene()` and `test_b40(scene=..., keep_gyaml=...)` in `mods/custom-map-tests/build_tests.py`.
+
+**Recipe for a new scene `X` made from an existing scene (here the Deku Tree), what each piece is for:**
+
+1. **Every file looked up by the scene's name, copied under `X`** (the table below), and **each new file's size table
+   entry at least the original's** (`write_mod(like=)`). With "size + 512" the game couldn't hold the parsed scene
+   settings and crashed at `0x112b3a0` (S1, S2).
+2. **Both placement files' `FilePath` = the new `Banc.Main`** (`Work/Banc/Scene/X/X.bcett.json`); all 160 of the
+   game's do this.
+3. **A row for `X` in RSDB `GameBancInfo`, and an `X` entry in every `BancBasedResource` file of both sets** (`Banc/`
+   and `AoC1/Banc/`: `StartPos`, `LocationArea`, `MapParam`, `NoEscapeRangeArea`, `GmdReset`).
+4. **The entrance actors of the source scene's placement kept** (`DestinationAnchor`, `MapIconEntranceAnchor`, the
+   exit door `FieldAndDungeonEntranceEventRequestActor`). Without them the door's arrival never finishes: the scene
+   loads (noclip moves Link) but **Link gets no control and the UI never shows** (the pause menu works, undrawn), which
+   looks like an endless load (S3–S21). Which one of the three is needed isn't narrowed down; the arrival flow
+   (`Dm_SY_BancChangeArrive.bfevfl`) has warp-to-actor steps. The same emptied placement under the Deku Tree's *own*
+   name didn't need them (B60): not explained.
+5. **The door:** only `NextBancParamNameChild` / `Adult` → `X` (S22 keeps the door's own `NextEventName`
+   `Dm_SY_BancChangeArrive_InsideTheDekuTree_01` and its first-visit `InitEventName` / `InitEventFlag`).
+
+Not needed (each tried, no change): an RSDB `DungeonParam` row, removing the scene settings' `DungeonParam` line,
+Hyrule Field's generic arrival event, `ChangeBancBeforehandAnchor` (the preload anchor), the dungeon-room actors.
+Fritchii most likely uses the first switched-on mod folder by name that has a file, so a map mod's size table is hidden
+by any alphabetically earlier mod with one (e.g. `KaeGae Built Files`).
+
+How it was found, test by test: [mods/custom-map-tests](../mods/custom-map-tests/README.md) (S1–S24), "The size table
+was the problem" onwards. In short: S4 (the vanilla Deku Tree as a new scene) loads, so new names work; bisecting from
+S4 to the map (S9 settings, S10 clean slate, S13 emptied placement, S15 / S16 system vs level actors, S17–S19 single
+kinds) found point 4.
 
 What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
 

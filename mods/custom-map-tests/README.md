@@ -806,6 +806,27 @@ The arrival flow `Event/EventFlow/Dm_SY_BancChangeArrive.bfevfl` has steps like 
 under the Deku Tree's name didn't need them is still open.) **S22** (installed) = the Minecraft map with them. S23 /
 S24 (the rest of S15's system actors) were built but aren't needed.
 
+**S22 result (17 Nov ~12:38 PT): works.** ("Nice! it works.") The Minecraft map as its own scene `KaeGae_Minecraft`
+behind the Deku Tree door, with control and UI; the real Deku Tree untouched. The recipe is in `docs/custom-maps.md`,
+"Making a new scene". Summary of the new-scene tests:
+
+| Test | Result | Learned |
+|---|---|---|
+| S1, S2 | crash `0x112b3a0` | new files need their originals' size table entries |
+| S3 | no control / UI | (size entries fixed) |
+| S5 | no control / UI | placement `FilePath` = `Banc.Main` (kept) |
+| S6, S8 | no control / UI | not the door's event, not `DungeonParam` |
+| S4 | works | the vanilla Deku Tree as a new scene: new names work |
+| S9, S10 | work | S6's scene settings and clean slate are fine (no map) |
+| S11 | no control / UI | (the map's hosts; "stuck" was really "no control, no UI", seen with noclip) |
+| S13 | no control / UI | the emptied placement is the cause |
+| S15 / S16 | S15 works | a system actor of the placement |
+| S17, S18 | no control / UI | not the preload anchor, not the room actors |
+| S19 | works | the entrance anchors / exit door |
+| S22 | **works** | the map + the Deku Tree's `DestinationAnchor`s, `MapIconEntranceAnchor`, exit door |
+
+Not tried / not needed: S7, S12, S14, S16, S20, S21, S23, S24 (all in `load\.kaegae-staging\map-tests\round1b\`).
+
 ## Building
 
 ```
