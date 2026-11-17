@@ -28,7 +28,7 @@ import kaegae_font  # noqa: E402
 import kaegae_symbols  # noqa: E402
 
 PACKS = {pack["version"]: pack for pack in kaegae_symbols.load_packs()}
-PACK = PACKS["1.1.1"]      # the fake game is 1.1.1 unless a test says otherwise
+PACK = PACKS["1.1.1"]      # the fake game's version: main() runs every test once per version (sets this)
 CORE_VERSION = kaemod.core_version()
 MAIN_BASE, SDK_BASE, CORE_BASE, MOD_BASE = 0x8052F000, 0x70000000, 0x90000000, 0x91000000
 VIEW_LEAD = 0x168          # fake_main_view.S: from the start of view_update to its hook point site
@@ -72,9 +72,10 @@ def run(*cmd):
     subprocess.run([str(c) for c in cmd], check=True)
 
 
-def build_fakes(work, nnmain=None, pack=PACK):
+def build_fakes(work, nnmain=None, pack=None):
     """The fake main (with nnMain where the pack says, or elsewhere) and the two fake sdk modules,
     laid out as the pack's game build (its hook point sites, nnMain and MOD0 where the pack says)."""
+    pack = pack or PACK
     work.mkdir(parents=True, exist_ok=True)
     objs = []
     for src in (kaemod.CORE / "crt0.S", HERE / "fake_main.c", HERE / "fake_main_move.S", HERE / "fake_main_view.S"):
@@ -118,7 +119,8 @@ class Game:
     """A process with the fake game in it and the built modules loaded, linked and started."""
 
     def __init__(self, fakes, files, order="core-first", lazy=True, patched=True, sdk="sdk", with_core=True,
-                 other_hook=False, pack=PACK):
+                 other_hook=False, pack=None):
+        pack = pack or PACK
         main_elf, sdks = fakes
         p = self.p = emu.Process()
         self.main = p.load("main", MAIN_BASE, emu.elf_segments(main_elf), size=pack["detect"]["size"])
@@ -196,16 +198,18 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect(f"kaegae: Core {CORE_VERSION} loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect(f"kaegae: Core {CORE_VERSION} loaded, game {PACK['version']}, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
     base = MAIN_BASE
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 8 game 1.1.1 build {PACK['build']} base {base:#x}",
-             f"start: sym {base + 0x6B2530:#x} alias {base + 0x6B2530:#x} vtable {base + 0x4B25E18:#x} field 796 unknown 0x0 -1",
+    sym, vtable = base + PACK["function"]["CctChangePosition"]["offset"], base + PACK["vtable"]["Actor"]["offset"]
+    alias = sym if PACK["version"] == "1.1.1" else 0     # the probe asks for 1.1.1's alias, f_806d2530: aliases are per build
+    g.expect(f"kaegae [kaegae.test-probe]: start: api 8 game {PACK['version']} build {PACK['build']} base {base:#x}",
+             f"start: sym {sym:#x} alias {alias:#x} vtable {vtable:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             "kaegae [kaegae.hello]: hello from its own start. Core API 0.8, game 1.1.1",
-             "event.actor_move: yes", f"CctChangePosition at {base + 0x6B2530:#x}, Actor.position at +0x31c")
+             f"kaegae [kaegae.hello]: hello from its own start. Core API 0.8, game {PACK['version']}",
+             "event.actor_move: yes", f"CctChangePosition at {sym:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
     for _ in range(3):
@@ -255,7 +259,7 @@ def check_full_run(g, style_set=1):
 IPS = sorted(f"exefs/{build}.ips" for build in kaemod.hook_builds())
 
 
-def main():
+def suite():
     assert len(IPS) == 2, IPS
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -490,7 +494,8 @@ def main():
             g = Game(fakes, kaemod.build([kaemod.Mod(HELLO), grab], bundled, tmp / f"grab-{bundled}"))
             g.p.uc.mem_map(0x40000000, 0x10000)          # an actor that isn't Link: zeroed memory
             g.game("game_boot")
-            g.expect("kaegae [kabosune.mouse-grab]: mouse grab: build", "mod kabosune.mouse-grab 0.3.0 started",
+            g.expect(f"kaegae [kabosune.mouse-grab]: mouse grab {grab.manifest['version']} on game {PACK['version']} (KaeGae Core's names)",
+                     f"mod kabosune.mouse-grab {grab.manifest['version']} started",
                      "mod kaegae.hello 0.5.0 started")
             for _ in range(3):
                 g.frame(actor=0x40000000)
@@ -504,7 +509,8 @@ def main():
                     g.frame(actor=0x40000000)
             saved = sd_file(g)
             assert "[kabosune.mouse-grab]\n(on) = 1\nGyro depth speed = 100\n" in saved and "Debug log = 0\n" in saved, saved
-        print("Mouse Grab on Core, bundled and as its own module: ok (starts, draws its cursor, sees actors, has its settings page)")
+        print("Mouse Grab on Core, bundled and as its own module: ok (finds all its names, starts, draws its cursor, sees actors, "
+              "has its settings page)")
         # mods built for API 0.5 and released before 0.6, unchanged, on this Core (0.6 and later run them):
         # tests/kaegae/old-mods holds the zips as they were released
         old = {}
@@ -692,7 +698,7 @@ def main():
         slopped = kaemod.Mod(REPO / "mods" / "slopped-up-sloperina")
         g = Game(fakes, kaemod.build([slopped], False, tmp / "slopped"))
         g.game("game_boot")
-        g.expect(f"mod kabosune.slopped-up-sloperina {slopped.manifest['version']} started", "sloperinaGZ 0.0.4.2 on game 1.1.1")
+        g.expect(f"mod kabosune.slopped-up-sloperina {slopped.manifest['version']} started", f"sloperinaGZ 0.0.4.2 on game {PACK['version']}")
         A, R, RS_DOWN = 1 << 0, 1 << 7, 1 << 23
         BACKGROUND = 0x181820
 
@@ -702,7 +708,7 @@ def main():
             return g.states(0)[-1][0], [r for r in g.rects() if r[4] == BACKGROUND]
         for _ in range(3):
             slopped_frame(0)
-        g.expect("running on game 1.1.1 (on KaeGae Core")
+        g.expect(f"running on game {PACK['version']} (on KaeGae Core")
         assert slopped_frame(A)[0] & A                                               # menu closed: the game sees A
         slopped_frame(R | RS_DOWN)                                                   # gz's combination opens the menu
         seen, panels = slopped_frame(0)
@@ -716,7 +722,7 @@ def main():
         seen, panels = slopped_frame(A)
         assert seen & A and not [r for r in panels if r[0] == 1280 * 35 // 1000], panels
         assert not g.p.unresolved, g.p.unresolved
-        print(f"Slopped Up Sloperina: ok (starts on 1.1.1, opens and draws its menu through Core, hides the controller "
+        print(f"Slopped Up Sloperina: ok (starts on {PACK['version']}, opens and draws its menu through Core, hides the controller "
               f"from the game while it's open; {sdk_rect_total(g)} rectangles in its last frame)")
 
         # its shortcuts are bindings on Core's page (0.4.0): saved with their buttons, and with a key
@@ -929,6 +935,15 @@ def main():
     if "--log" in sys.argv:
         print("\nThe log of the last full run:\n  " + "\n  ".join(LAST_LOG))
     print("all module tests passed")
+
+
+def main():
+    """Every test once per game version: the fake game laid out as that version's build."""
+    global PACK
+    for version in ("1.1.1", "1.0.0"):
+        PACK = PACKS[version]
+        print(f"--- game version {version} ---")
+        suite()
 
 
 if __name__ == "__main__":

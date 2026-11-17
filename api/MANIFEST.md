@@ -63,6 +63,7 @@ is also the offset inside an IPS32 patch minus the `0x100`-byte NSO header. Rang
 | `license` | Missing is a warning: without it nobody knows whether they may share the mod |
 | `homepage`, `description` | Optional |
 | `[game] title` | The title ID, `0400486024DEC000` |
+| `[game] tested` | Optional: the game versions the author tried the mod on, `["1.1.1"]` or `["1.0.0", "1.1.1"]`. Information for players (the build copies it into the folder's `mod.toml` and `README.txt`); which versions a core mod *can* run on follows from Core's symbol packs, not from this |
 
 ### `[build.<build id>]`: what the mod does to main
 
@@ -100,7 +101,7 @@ only, which is how two copies of KaeGae Core are caught.
 | Key | Meaning |
 |---|---|
 | `api` | The Core API version the mod is built for, `"0.3"`. Before 1.0 it must equal Core's |
-| `sources`, `imports`, `symbols`, `events` | Read by the build (`tools/kaemod.py`): source files, system functions the mod imports itself, the symbols and events it uses |
+| `sources`, `imports`, `symbols`, `events` | Read by the build (`tools/kaemod.py`): source files, system functions the mod imports itself, the symbols (`"function:Name"`, `"global:Name"`, `"vtable:vtable.Name"`, `"field:Type.name"`) and events it uses. A symbol one game version's pack lacks is a warning (the mod won't run there, and its README.txt says so); one no pack has is an error |
 | `cflags` | Extra compiler flags for the mod's own sources, after Core's (e.g. `["-std=gnu11"]`) |
 
 A source folder's top level may also have `ship = ["LICENSE", ...]`: files of the mod's folder that the

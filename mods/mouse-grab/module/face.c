@@ -16,7 +16,7 @@
 #include "core.h"
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
-#define F_AS_PLAY 0x2022A0   // f_802222a0(request)
+// F_AS_PLAY = Core's AsPlay (f_802222a0 on 1.1.1)(request)
 #define PARTIAL_FACE  4
 #define PARTIAL_MOUTH 6
 

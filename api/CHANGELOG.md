@@ -11,6 +11,26 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.8.5: names for Mouse Grab, and guard rails for every game version (17 November 2026; not tested in the game yet)
+
+Core only, nothing new for mods' API (still 0.8).
+
+- **Eleven more names in both symbol packs**, the game calls Mouse Grab used to make by 1.1.1
+  offset: `RagdollFind`, the four `RagdollDownPrep*` steps of the ragdoll-down node,
+  `RagdollReaction` / `RagdollReactionIsActive` / `RagdollReactionEnd`, and the globals
+  `IdentityQuatPtr`, `RagdollDownNamesPtr`, `GameCameraPtr`. Their 1.0.0 addresses come from
+  `tools/port_pack.py` (rerun on the grown 1.1.1 pack, it agrees with every entry) except
+  `GameCameraPtr` (sloperinaGZ's 1.0.0 address). **Mouse Grab 0.4.0** asks for them, so it runs
+  on both versions; it needs this Core.
+- **The build warns about raw offsets.** A mod that calls `kae_game_base()` reads the game at
+  addresses of its own, which belong to one version: `tools/kaemod.py` says so, and the mod's
+  README.txt says it's tied to one version.
+- **`[game] tested`** in a mod's `mod.toml`: the game versions its author tried it on, copied into
+  the built folder's `mod.toml` and README.txt ([MANIFEST.md](MANIFEST.md)).
+- The module tests run every test once per game version (a fake 1.1.1 game, then a fake 1.0.0
+  one), and [README.md](README.md#running-on-every-game-version) has the rules for a mod that runs
+  on every version.
+
 ## Core 0.8.4: game version 1.0.0 (17 November 2026; works in the game, 17 November, Fritchii, 1.0.0 and 1.1.1)
 
 Core only, nothing new for mods (API still 0.8). The same mod folders run on both game versions.

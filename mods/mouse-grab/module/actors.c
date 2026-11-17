@@ -4,8 +4,7 @@
 #include "core.h"
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
-#define F_HOLDER       0x837620    // f_80857620(actor): [[[actor+0x270]+0x50]+0x20]+0x10, no null checks
-#define F_FIND_RAGDOLL 0x5F88C0    // f_806188c0(holder)
+// F_HOLDER = ActorHolder: [[[actor+0x270]+0x50]+0x20]+0x10, no null checks; F_FIND_RAGDOLL = RagdollFind
 #define MAX_ACTORS     512
 
 static void *seen[MAX_ACTORS];

@@ -7,6 +7,10 @@ Older version without Core (for a real Switch 2 for now):
 
 Press **R3** (click the right stick) to switch to Link's eyes. Press it again to switch back.
 
+> **Game versions:** 2.0 asks Core for the game by name, so with KaeGae Core 0.8.4 or newer it runs
+> on 1.0.0 as well as 1.1.1 (it started on 1.0.0 in Fritchii, 17 November 2026). The 1.x download
+> is 1.1.1 only.
+>
 > **First Person 2.0 runs on KaeGae Core 0.8** ([`core/`](core/first_person.c); works in Fritchii,
 > 12 November 2026). Same view, plus a page in the Mods menu (- and +):
 >

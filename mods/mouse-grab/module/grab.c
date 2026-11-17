@@ -15,15 +15,11 @@
 #include "core.h"
 #include "input.h"
 
-#define CAMERA_SLOT    0x4E98068
-#define F_SET_VELOCITY 0x12DBE0    // f_8014dbe0(body, float vel[3])
-#define BODY_VT        0x4C34658
-#define F_HOLDER       0x837620
+// From Core's symbol pack (core.h): CAMERA_SLOT GameCameraPtr, F_SET_VELOCITY BodySetLinearVelocity
+// (body, float vel[3]), F_CHANGE_POS CctChangePosition (controller, float pos[4]), VT_CCT
+// vtable.Cct (CharacterProperty, the character controller), BODY_VT vtable.CctBody (its body).
 #define MIDDLE         0.8f        // Link's middle above his feet (m)
 #define MAX_BODIES     32
-#define F_CHANGE_POS   0x6B2530    // f_806d2530(controller, float pos[4])
-#define VT_CCT         0x4C34F10   // CharacterProperty, the character controller
-#define BODY_VT        0x4C34658   // the controller's body
 #define MAX_CANDIDATES 96
 // Depth works like a mouse: turning the controller moves him, holding it still keeps him where
 // he is, and slow turns below the gyro deadzone (a setting) don't count, so you can turn back slowly and flick again.
@@ -78,7 +74,7 @@ static uint64_t ticks(void) {
 
 // The ray under the mouse. False if there's no camera.
 static bool mouse_ray(const mouse_state_t *m, v3 *from, v3 *dir) {
-    char *slot = AT(kp_main + CAMERA_SLOT, 0, char *);
+    char *slot = AT(KP_ADDR(CAMERA_SLOT), 0, char *);
     char *camera = slot && kp_readable((uintptr_t)slot + 0x68, 8) ? AT(slot, 0x68, char *) : 0;
     if (!camera || !kp_readable((uintptr_t)camera, 0x150))
         return false;
@@ -102,12 +98,12 @@ static int next_candidate;
 static void *controller_of(void *actor) {
     void *holder = actor_holder(actor);
     void *c = holder ? AT(holder, 8, void *) : 0;
-    return c && kp_readable((uintptr_t)c, 0x28) && AT(c, 0, uintptr_t) == kp_main + VT_CCT ? c : 0;
+    return c && kp_readable((uintptr_t)c, 0x28) && AT(c, 0, uintptr_t) == KP_ADDR(VT_CCT) ? c : 0;
 }
 
 static void *body_of(void *controller) {
     void *b = controller ? AT(controller, 0x20, void *) : 0;
-    return b && kp_readable((uintptr_t)b, 8) && AT(b, 0, uintptr_t) == kp_main + BODY_VT ? b : 0;
+    return b && kp_readable((uintptr_t)b, 8) && AT(b, 0, uintptr_t) == KP_ADDR(BODY_VT) ? b : 0;
 }
 
 static struct {

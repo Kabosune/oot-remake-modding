@@ -152,6 +152,8 @@ class Mod:
         self.symbols = list(core.get("symbols", []))     # "function:Name", "field:Name" it asks Core for
         self.cflags = list(core.get("cflags", []))       # extra compiler flags for its sources (after Core's own)
         self.unsupported = {}                            # game version: names its pack lacks (check_symbols)
+        self.raw_offsets = False                         # it reads the game by raw offset (kae_game_base)
+        self.tested = [str(v) for v in self.manifest.get("game", {}).get("tested", [])]   # game versions its author tried
         text = "".join(s.read_text() for s in self.sources)
         assert f'"{self.id}"' in text, f"{self.id}: no KAE_MOD with this id in its sources"
 
@@ -176,7 +178,20 @@ class Mod:
 
     def objects(self, work):
         objs = compile_sources(self.sources, work / self.id, [f"-I{self.folder}", *self.cflags])
+        self.check_raw_offsets(objs)
         return objs + compile_sources([SDK / "libc.c"], work / (self.id + "-libc"))
+
+    def check_raw_offsets(self, objs):
+        """A mod that calls kae_game_base reads the game at offsets of its own: those belong to one
+        game version, so the mod runs only on the version they were found on (and on any other it
+        reads the wrong code or data). Asking Core by name (kae_sym, kae_field) works on all."""
+        out = subprocess.run(["llvm-nm", "--undefined-only", *map(str, objs)], check=True,
+                             capture_output=True, text=True).stdout
+        self.raw_offsets = any(line.split()[-1] == "kae_game_base" for line in out.splitlines() if line.strip())
+        if self.raw_offsets:
+            print(f"warning: {self.id} uses kae_game_base (the game's own offsets): it runs only on the game version "
+                  f"those offsets are for. Ask Core by name (kae_sym, kae_field) to run on every version, or check "
+                  f"kae_game_build() in start and return non-zero on any other", file=sys.stderr)
 
     def as_module(self, work, core_exports):
         """The mod as its own module (ELF)."""
@@ -304,7 +319,11 @@ def package_manifest(mods, bundle, name, with_core=True, package_id=None):
     lines = ["# Written by tools/kaemod.py: what this folder holds. Format: api/MANIFEST.md.", "manifest = 1", "",
              f"id       = {q(package_id or ident)}", f"name     = {q(name)}", f"version  = {q(version)}",
              f"authors  = [{', '.join(q(a) for a in authors)}]", f"license  = {q(' AND '.join(licenses))}",
-             "", "[game]", f"title = {q(TITLE_ID)}", "", "[modules]"]
+             "", "[game]", f"title = {q(TITLE_ID)}"]
+    tested = sorted({v for m in mods for v in m.tested}) if len(mods) == 1 else []
+    if tested:
+        lines.append(f"tested = [{', '.join(q(v) for v in tested)}]      # the game versions its author tried it on")
+    lines += ["", "[modules]"]
     entries = [f"{m.id}@{m.manifest['version']}" for m in mods]
     if bundle:
         lines.append(f"{CORE_SLOT} = [{', '.join(q(e) for e in [core_module] + entries)}]      # linked into one module")
@@ -339,6 +358,10 @@ def readme(mods, bundle, files, with_core=True):
     major, minor = api_version()
     gaps = [f"{m.name} doesn't run on game version {v} yet (its symbol pack lacks {', '.join(names)})."
             for m in mods for v, names in sorted(m.unsupported.items())]
+    gaps += [f"{m.name} reads the game at offsets of its own: it runs only on the game version they're for."
+             for m in mods if m.raw_offsets]
+    gaps += [f"{m.name} was tested on game version{'s' if len(m.tested) > 1 else ''} {', '.join(m.tested)}."
+             for m in mods if m.tested]
     if not with_core:
         lines = [", ".join(f"{m.name} {m.manifest['version']}" for m in mods) + " (Ocarina of Time, Switch 2)", "",
                  f"A KaeGae mod without KaeGae Core in the folder: it needs Core {major}.{minor} installed as well.",

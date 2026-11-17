@@ -5,7 +5,7 @@ How fast Link is going, for the Ocarina of Time remake, running on
 and how fast he is rising or falling.
 
 **Status, 11 November 2026: version 0.1.0, works in Fritchii (KaeGae Core 0.6, game 1.1.1).** It also passes the module
-tests (`tests/test_kaegae_modules.py`). Game version 1.1.1 only.
+tests (`tests/test_kaegae_modules.py`) on both game versions. It asks Core for the game by name, so with KaeGae Core 0.8.4 or newer it runs on 1.0.0 too (not tried in the game there yet).
 
 ## Settings
 

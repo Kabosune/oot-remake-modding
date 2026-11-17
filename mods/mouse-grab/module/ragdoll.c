@@ -31,27 +31,18 @@ typedef struct {
 } ragdoll_request_t;
 _Static_assert(sizeof(ragdoll_request_t) == 0x30, "request");
 
-#define VT_ACTOR          0x4B25E18   // physics actor
-#define VT_PLAYER         0x4B4C460   // player-type object
-#define F_HOLDER          0x837620    // f_80857620(actor)
-#define F_FIND_RAGDOLL    0x5F88C0    // f_806188c0(holder)
-#define F_RAGDOLL_DOWN    0x3218D30   // f_83238d30(ragdoll, request)
-#define F_PREP_SPEED      0x9339F0    // f_809539f0
-#define F_PREP_A          0x972A40    // f_80992a40
-#define F_PREP_B          0x92FDE0    // f_8094fde0
-#define F_PREP_STATE      0x933270    // f_80953270
-#define G_ZERO            0x4C7DDC0   // [0x84c9ddc0]
-#define G_NAMES           0x4C7F168   // [0x84c9f168]
-#define F_RAGDOLL_END     0x3219090   // f_83239090(ragdoll, end request)
+// The f_ names above are game version 1.1.1's addresses. Every function, global and vtable here
+// comes from Core's symbol pack by name (core.h, symbols.c), so the same code runs on 1.0.0:
+// F_HOLDER ActorHolder, F_FIND_RAGDOLL RagdollFind, F_RAGDOLL_DOWN RagdollStart, F_PREP_* the
+// RagdollDownPrep* steps, G_ZERO IdentityQuatPtr, G_NAMES RagdollDownNamesPtr, F_RAGDOLL_END
+// RagdollEnd, F_REACTION* RagdollReaction / IsActive / End (QueryIsNowRagdoll's test,
+// OneShotRagdollReactionEnd).
 #define RAGDOLL_STATE     0x17c       // in the ragdoll component: 3 while down, 0 otherwise
-#define F_REACTION        0x2C1D670   // f_82c3d670(actor): ragdoll reaction component, [components+0x390]
-#define F_REACTION_ACTIVE 0x2E94110   // f_82eb4110(reaction): QueryIsNowRagdoll's test
-#define F_REACTION_END    0x2E92F80   // f_82eb2f80(reaction): OneShotRagdollReactionEnd
 
 #define AT(p, off, type) (*(type *)((char *)(p) + (off)))
 
 static bool is_link(void *actor) {
-    if (AT(actor, 0, uintptr_t) != kp_main + VT_ACTOR)
+    if (AT(actor, 0, uintptr_t) != KP_ADDR(VT_ACTOR))
         return false;
     char *components = AT(actor, 0x270, char *);
     if (!components)
@@ -60,7 +51,7 @@ static bool is_link(void *actor) {
     if (!movement || AT(movement, 0x18, void *) != actor)
         return false;
     char *player = movement - 0x1d50;
-    if (AT(player, 0, uintptr_t) != kp_main + VT_PLAYER)
+    if (AT(player, 0, uintptr_t) != KP_ADDR(VT_PLAYER))
         return false;
     char *res = AT(player, 0x10, char *);
     return res && AT(res, 0x58, uint32_t) == 0x79616c50 && AT(res, 0x5c, uint16_t) == 0x7265 && !res[0x5e];   // "Player"
@@ -119,8 +110,8 @@ static void ragdoll_down(void *actor) {
     char *components = AT(actor, 0x270, char *);
     char *player = components ? AT(components, 0x358, char *) : 0;
     if (player && AT(player, 0x18, void *) == actor) {
-        void *zero = AT(kp_main + G_ZERO, 0, void *);
-        void *names = AT(kp_main + G_NAMES, 0, void *);
+        void *zero = AT(KP_ADDR(G_ZERO), 0, void *);
+        void *names = AT(KP_ADDR(G_NAMES), 0, void *);
         KP_FN(void (*)(void *, float), F_PREP_SPEED)(player, 0.0f);
         KP_FN(void (*)(void *, void *, int), F_PREP_A)(player, zero, 0);
         KP_FN(void (*)(void *, void *, int), F_PREP_B)(player, zero, 0);
@@ -181,7 +172,7 @@ int ragdoll_bodies(void *actor, void **out, int max) {
         kp_log_2("bodies: set count field, bodies found:", count + 1, n);
         kp_log_hex("bodies: entries at", (uintptr_t)entries);
         if (n)
-            kp_log_hex("bodies: first body's vtable (main offset)", AT(out[0], 0, uintptr_t) - kp_main);
+            kp_log_hex("bodies: first body's vtable", AT(out[0], 0, uintptr_t));
     }
     return n;
 }

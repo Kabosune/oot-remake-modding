@@ -4,7 +4,7 @@ Low gravity, bigger jumps and a hold-to-fly button for the Ocarina of Time remak
 [KaeGae Core](../../api/README.md).
 
 **Status, 11 November 2026: version 0.1.0, works in Fritchii (KaeGae Core 0.6, game 1.1.1).** It also passes the module
-tests (`tests/test_kaegae_modules.py`). Game version 1.1.1 only (Core has no 1.0 symbol pack yet).
+tests (`tests/test_kaegae_modules.py`) on both game versions. It asks Core for Link, so with KaeGae Core 0.8.4 or newer it runs on 1.0.0 too (not tried in the game there yet).
 
 ## What it does
 

@@ -8,6 +8,12 @@ from the controller's pitch.
 
 Still in progress. This folder holds the findings and the builds.
 
+**0.4.0 (17 November 2026, not tested in the game yet): game versions 1.0.0 and 1.1.1.** Every game
+function, global and vtable it uses now comes from KaeGae Core by name ([`module/symbols.c`](module/symbols.c)),
+so the same file runs on both versions. 0.3.0 used 1.1.1's own addresses and crashed on 1.0.0 when
+switched on. Needs KaeGae Core 0.8.5 or newer (the first Core with these names); on an older Core it
+says which name is missing and stays off. Nothing else changed.
+
 ## Settings (0.3.0)
 
 On the mod's page in the Mods menu (- and + together). Core saves them between runs.
@@ -56,7 +62,7 @@ Mouse Grab needs two downloads, each in its own mod folder:
 - [`mouse-grab.zip`](https://github.com/Kabosune/oot-remake-modding/blob/main/releases/mouse-grab.zip):
   the mod, `exefs/subsdk2`. Without Core it loads and does nothing.
 
-Only game version 1.1.1 is supported. The `mod.toml` in each folder is the
+From 0.4.0 game versions 1.0.0 and 1.1.1 are supported (0.3.0 and older: 1.1.1 only). The `mod.toml` in each folder is the
 [KaeGae manifest](../../api/MANIFEST.md); the game ignores it.
 
 **Real Switch 2: not working yet.** In Fritchii it works; on a jailbroken Switch 2 with
@@ -182,8 +188,9 @@ python3 mods/mouse-grab/build.py
 - `module/cursor.c` holds the mod's start (`KAE_MOD`): it subscribes to Core's `draw` and
   `actor_move` events. `module/core.h` maps the names of Core's first skeleton (`kp_...`), which
   the other files were written against, onto the public API in `api/include/kaegae.h`.
-- It is still a research build: it calls the game's functions by raw offset from `kae_game_base()`,
-  so it only supports game version 1.1.1.
+- From 0.4.0 it asks Core for every game address by name (`module/symbols.c`; `KP_FN` / `KP_ADDR`
+  in `module/core.h`), so it runs on every game version Core has a symbol pack for. Before, it
+  called the game by raw offset from `kae_game_base()`, 1.1.1 only.
 - `api/core/core.c`: finds main from the exported `nnMain` and recognises the build from the
   symbol packs, then starts Core's services.
 - `api/core/draw.c`: swaps main's GOT slot for `nvnBootstrapLoader`, so it can wrap the NVN

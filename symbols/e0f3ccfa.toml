@@ -340,6 +340,62 @@ ld     = "FRAMEWORK_FRAME"
 note   = "runs one frame of the game framework (slot 28 of the vtable at 0x84c83f80)"
 source = "gleedgleed (pull request 1): disassembly, in game"
 
+# Mouse Grab's ragdoll calls (0.4.0 asks for them by name). The RagdollDownPrep* steps are what the
+# ExecuteEventPlayerImmediateRagdollDown node does to Link's player object before it starts the
+# ragdoll (player = [[actor+0x270]+0x358]); mods/mouse-grab/module/ragdoll.c has the whole sequence.
+
+[function.RagdollFind]
+offset = 0x5F88C0
+alias  = "f_806188c0"
+args   = "holder"
+note   = "the ragdoll component of a holder (ActorHolder's result), looked up by type; 0 if none"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[function.RagdollDownPrepSpeed]
+offset = 0x9339F0
+alias  = "f_809539f0"
+args   = "player, float 0.0"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[function.RagdollDownPrepA]
+offset = 0x972A40
+alias  = "f_80992a40"
+args   = "player, [IdentityQuatPtr], 0"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[function.RagdollDownPrepB]
+offset = 0x92FDE0
+alias  = "f_8094fde0"
+args   = "player, [IdentityQuatPtr], 0"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[function.RagdollDownPrepState]
+offset = 0x933270
+alias  = "f_80953270"
+args   = "player, 0, [RagdollDownNamesPtr], 15, 0"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[function.RagdollReaction]
+offset = 0x2C1D670
+alias  = "f_82c3d670"
+args   = "actor"
+note   = "the ragdoll reaction component, [components+0x390]"
+source = "disassembly, tested (Mouse Grab)"
+
+[function.RagdollReactionIsActive]
+offset = 0x2E94110
+alias  = "f_82eb4110"
+args   = "reaction"
+note   = "the QueryIsNowRagdoll query's test"
+source = "disassembly, tested (Mouse Grab)"
+
+[function.RagdollReactionEnd]
+offset = 0x2E92F80
+alias  = "f_82eb2f80"
+args   = "reaction"
+note   = "what OneShotRagdollReactionEnd does"
+source = "disassembly, tested (Mouse Grab)"
+
 # ---- globals ----
 
 [global.CameraManagerSlot]
@@ -365,6 +421,21 @@ offset = 0x4E94840
 ld     = "EVENTMGR_PTR"
 note   = "the EventMgr pointer variable"
 source = "gleedgleed (pull request 1): disassembly, in game"
+
+[global.IdentityQuatPtr]
+offset = 0x4C7DDC0
+note   = "pointer to a (0, 0, 0, 1) quaternion; the ragdoll-down node passes it to RagdollDownPrepA / B"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[global.RagdollDownNamesPtr]
+offset = 0x4C7F168
+note   = "pointer to the names \"SlippingDown\", \"SlippingDownLand\" the ragdoll-down node passes to RagdollDownPrepState"
+source = "disassembly of the ragdoll-down node, tested (Mouse Grab)"
+
+[global.GameCameraPtr]
+offset = 0x4E98068
+note   = "[[ptr]+0x68] = the gameplay camera: position +0x38, look-at +0x44, tan(half vertical FOV) +0x13C, aspect +0x140"
+source = "sloperina (camera_ptr), tested (Mouse Grab)"
 
 # ---- vtables (asked for as "vtable.<Name>") ----
 

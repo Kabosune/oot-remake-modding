@@ -34,8 +34,6 @@ static bool logged_missing;
 
 void ragdoll_move(void *actor);
 
-uintptr_t mg_main;
-
 static void on_draw(const KaeFrame *frame, void *user);
 static void on_actor_move(void *actor, void *user) {
     (void)user;
@@ -43,9 +41,14 @@ static void on_actor_move(void *actor, void *user) {
 }
 
 static int start(void) {
-    KAE_LOG("%s", "mouse grab: build 2026-11-11 h (on KaeGae Core 0.5, with settings)");
+    KAE_LOG("mouse grab 0.4.0 on game %s (KaeGae Core's names)", kae_game_version());
+    const char *missing = mg_symbols_start();
+    if (missing) {
+        KAE_LOG("mouse grab: Core has no %s for game version %s (needs KaeGae Core 0.8.5 or newer): not starting",
+                missing, kae_game_version());
+        return 1;
+    }
     mg_settings_start();
-    mg_main = kae_game_base();
     if (kae_on_actor_move(on_actor_move, 0, 0) != KAE_OK)
         KAE_LOG("%s", "mouse grab: no movement hook (Core's .ips is missing): the cursor works, grabbing doesn't");
     if (!kae_has("motion"))
@@ -53,7 +56,7 @@ static int start(void) {
     return kae_on_draw(on_draw, 0, 0);
 }
 
-KAE_MOD("kabosune.mouse-grab", "0.3.0", start, 0);
+KAE_MOD("kabosune.mouse-grab", "0.4.0", start, 0);
 
 // One rectangle for each run of the same kind of cell in a row.
 static void draw_arrow(int left, int top, int scale, uint32_t fill) {

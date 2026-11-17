@@ -29,7 +29,7 @@ extern "C" {
 
 #define KAE_API_MAJOR 0
 #define KAE_API_MINOR 8
-#define KAE_CORE_PATCH 4   /* Core's own fix number: changes that give mods nothing new (0.8.4). Not checked for mods */
+#define KAE_CORE_PATCH 5   /* Core's own fix number: changes that give mods nothing new (0.8.5). Not checked for mods */
 
 /* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
    Core keeps running older mods, back to the oldest minor version it still supports (Core 0.8:
@@ -89,7 +89,7 @@ KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in thi
                                                       Mods menu's Keyboard switch is on)
                                                       "event.view" (0.8) "view.fovy" (0.8: the view's
                                                       field of view can be read and changed) */
-KAE_API const char *kae_game_version(void);        /* "1.1.1"; "" if the game's build isn't known */
+KAE_API const char *kae_game_version(void);        /* "1.0.0" or "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
 /* Things inside the game, by name, from the symbol pack of the running build. */
@@ -97,7 +97,8 @@ KAE_API void       *kae_sym(const char *name);     /* a function, global or "vta
 KAE_API int64_t     kae_field(const char *name);   /* a field's offset, e.g. "Actor.position"; -1 if not known */
 
 /* The address main is loaded at (it changes from run to run); 0 if the build isn't known.
-   For research builds that still use raw offsets. A released mod asks kae_sym instead. */
+   For research builds that still use raw offsets: those are one game version's, so such a mod
+   runs only there (the build warns). A released mod asks kae_sym instead. */
 KAE_API uintptr_t   kae_game_base(void);
 
 /* 1 if `size` bytes at `p` are mapped and readable. For following pointers that aren't understood yet. */

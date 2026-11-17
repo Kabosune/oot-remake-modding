@@ -83,6 +83,31 @@ What a mod can rely on:
   `log\eden_log.txt` in its data folder (`%APPDATA%\fritchii` from v5.8, `%APPDATA%\eden` before) as
   `Debug.Emulated <Info>`.
 
+## Running on every game version
+
+The game has two versions, 1.0.0 and 1.1.1 ([docs/game-versions.md](../docs/game-versions.md)), and
+everything inside `main` sits at different addresses in each. A core mod doesn't need to care, if
+it follows one rule: **ask Core for the game's functions, data and fields by name** (`kae_sym`,
+`kae_field`, or Core's own functions like `kae_player_of`). Core answers from the symbol pack of
+the version it finds itself in, so the same mod file runs on both, and on any later version Core
+gets a pack for.
+
+- List the names in `[core] symbols`: the build checks them against every pack. A name that only
+  1.1.1's pack has yet is a warning (the mod won't run on 1.0.0 until the name is ported with
+  `tools/port_pack.py`); on that version `kae_sym` returns 0, so check what it returns in `start`
+  and return non-zero if something is missing: Core then shows the mod as off instead of it crashing.
+- Don't add offsets to `kae_game_base()`. Those are one version's, and on the other they point
+  into unrelated code. The build warns when a mod uses it, and the mod's README.txt says it's tied
+  to one version. Research builds may (Emotes 0.1 does, and checks `kae_game_build()` in `start`);
+  move the addresses into the packs before releasing. Mouse Grab 0.4.0 is an example of a mod that
+  moved: its table of names is `mods/mouse-grab/module/symbols.c`.
+- Fields (`kae_field`) are per version too, even where they are the same today.
+- `[game] tested` in `mod.toml` says which versions you tried the mod on ([MANIFEST.md](MANIFEST.md)).
+  It's for players; your mod page can say the same.
+- Romfs files are a separate matter: the size table and the text archives have the version in
+  their names (`.Product.100` for 1.0.0, `.111` / `.110` for 1.1.1), so a data mod made from 1.1.1's
+  files does nothing on 1.0.0 for those.
+
 ## Checking and installing mods
 
 ```

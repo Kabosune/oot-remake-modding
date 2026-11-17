@@ -338,6 +338,73 @@ ld     = "FRAMEWORK_FRAME"
 note   = "runs one frame of the game framework (slot 28 of the vtable at 0x84c83f80)"
 port   = "matched (1.1.1 0x3B4EA90)"
 
+[function.RagdollFind]
+offset = 0x587460
+alias  = "f_805a7460"
+args   = "holder"
+note   = "the ragdoll component of a holder (ActorHolder's result), looked up by type; 0 if none"
+port   = "matched (1.1.1 0x5F88C0)"
+
+[function.RagdollDownPrepSpeed]
+offset = 0x920F90
+alias  = "f_80940f90"
+args   = "player, float 0.0"
+port   = "through 57 of 169 callers, all agreeing (1.1.1 0x9339F0)"
+
+[function.RagdollDownPrepA]
+offset = 0xBF83A0
+alias  = "f_80c183a0"
+args   = "player, [IdentityQuatPtr], 0"
+port   = "matched (1.1.1 0x972A40)"
+
+[function.RagdollDownPrepB]
+offset = 0x91CC60
+alias  = "f_8093cc60"
+args   = "player, [IdentityQuatPtr], 0"
+port   = "matched (1.1.1 0x92FDE0)"
+
+[function.RagdollDownPrepState]
+offset = 0x920810
+alias  = "f_80940810"
+args   = "player, 0, [RagdollDownNamesPtr], 15, 0"
+port   = "matched (1.1.1 0x933270)"
+
+[function.RagdollReaction]
+offset = 0x2BC9700
+alias  = "f_82be9700"
+args   = "actor"
+note   = "the ragdoll reaction component, [components+0x390]"
+port   = "through 15 of 16 callers, all agreeing (1.1.1 0x2C1D670)"
+
+[function.RagdollReactionIsActive]
+offset = 0x2E3F380
+alias  = "f_82e5f380"
+args   = "reaction"
+note   = "the QueryIsNowRagdoll query's test"
+port   = "matched (1.1.1 0x2E94110)"
+
+[function.RagdollReactionEnd]
+offset = 0x2E3E1F0
+alias  = "f_82e5e1f0"
+args   = "reaction"
+note   = "what OneShotRagdollReactionEnd does"
+port   = "matched (1.1.1 0x2E92F80)"
+
+[global.IdentityQuatPtr]
+offset = 0x4C18118
+note   = "pointer to a (0, 0, 0, 1) quaternion; the ragdoll-down node passes it to RagdollDownPrepA / B"
+port   = "from 27 of 40 references, all agreeing (1.1.1 0x4C7DDC0)"
+
+[global.RagdollDownNamesPtr]
+offset = 0x4C194C0
+note   = "pointer to the names \"SlippingDown\", \"SlippingDownLand\" the ragdoll-down node passes to RagdollDownPrepState"
+port   = "from 2 of 2 references, all agreeing (1.1.1 0x4C7F168)"
+
+[global.GameCameraPtr]
+offset = 0x4E27C08
+note   = "[[ptr]+0x68] = the gameplay camera: position +0x38, look-at +0x44, tan(half vertical FOV) +0x13C, aspect +0x140"
+port   = "by hand: no adrp references to port; sloperinaGZ's 1.0.0 camera_ptr, and the same shift as the other .bss globals (+0x70460) (1.1.1 0x4E98068)"
+
 [global.CameraManagerSlot]
 offset = 0x4C20ED8
 ld     = "CAMMGR_SLOT"

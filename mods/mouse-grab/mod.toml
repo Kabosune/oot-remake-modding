@@ -3,7 +3,7 @@ manifest = 1
 
 id       = "kabosune.mouse-grab"
 name     = "Mouse Grab"
-version  = "0.3.0"
+version  = "0.4.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
@@ -12,11 +12,19 @@ homepage = "https://github.com/Kabosune/oot-remake-modding"
 title = "0400486024DEC000"
 
 [core]
-api     = "0.5"
+api     = "0.8"
 sources = ["module/*.c"]
 events  = ["draw", "actor_move"]
-# A research build: it still reaches into the game by raw offset through kae_game_base, so it
-# only supports game version 1.1.1. Its offsets move into the symbol pack as they settle.
+# From 0.4.0 every game address comes from Core's symbol pack by name (module/symbols.c), so it runs
+# on every game version Core has a pack for (1.0.0 and 1.1.1). The names below are checked against
+# each pack when it's built. Needs Core 0.8.5 (the first with these names).
+symbols = ["function:ActorHolder", "function:RagdollFind", "function:RagdollStart", "function:RagdollEnd",
+           "function:RagdollDownPrepSpeed", "function:RagdollDownPrepA", "function:RagdollDownPrepB",
+           "function:RagdollDownPrepState", "function:RagdollReaction", "function:RagdollReactionIsActive",
+           "function:RagdollReactionEnd", "function:AsPlay", "function:BodySetLinearVelocity",
+           "function:CctChangePosition", "global:IdentityQuatPtr", "global:RagdollDownNamesPtr",
+           "global:GameCameraPtr", "vtable:vtable.Actor", "vtable:vtable.Player", "vtable:vtable.Cct",
+           "vtable:vtable.CctBody"]
 
 [core.imports]                # system functions the mod imports itself, and which module exports them
 _ZN2nn3hid14GetMouseStatesEPNS0_10MouseStateEi = "sdk"
