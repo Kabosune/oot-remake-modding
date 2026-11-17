@@ -169,11 +169,11 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S8, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S10, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
 crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
-forever; S5 (the placement files' `FilePath` fixed) and S6 (the door's own event) too; S7 / S8 / S4 are next (below).
+forever; S5 (the placement files' `FilePath` fixed) and S6 (the door's own event) too; S8 too; **S4, the vanilla Deku Tree under a new name, loads** (below).
 
 What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
 
@@ -212,7 +212,9 @@ first-visit event; B60 left the door alone. S6 keeps the door's own event (only 
 row for the new scene to RSDB `DungeonParam` (keyed by scene name); S4 is the vanilla Deku Tree under a new name. **S6
 stalled too.** Every file path `main` builds from a scene name is covered, but `main` has the dungeon scene names built
 in as enum lists, and the new scene's settings still point at the Deku Tree's `DungeonParam`; S8 removes that line
-(30 of the game's 80 scenes have none).
+(30 of the game's 80 scenes have none). **S8 stalled too, but S4 (the vanilla Deku Tree under a new name) loads**: new scene names
+work, so the stall comes from the map build's changes together with a new name. S9 / S10 bisect that from S4, without
+the map.
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

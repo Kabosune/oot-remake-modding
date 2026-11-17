@@ -1615,9 +1615,50 @@ def test_s4(game, out, scene="KaeGae_DekuCopy"):
               like=like)
 
 
+S6_BANC = {"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None, "OptimizeChangeBancUnits": None,
+           "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"}
+
+
+def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy"):
+    """S9, S10: halfway steps from S4 (the vanilla Deku Tree as a new scene, loads) to S6 (the map, stalls), without
+    the map. banc_set: S6's scene settings changes. clean: also S6's clean slate (placement emptied to its spawn points,
+    the empty compound, tiny volume stats, the widened AABB, no foliage files)."""
+    files, notes = {}, [f"Test {label}: the Deku Tree as new scene {scene}, a step from S4 towards S6 (no map)."]
+    bp = game.byml(DEKU_BANC)
+    for k, v in (banc_set or {}).items():
+        notes.append(f"{label}: {DEKU_BANC} {k} -> {'(removed)' if v is None else repr(v)}")
+        if v is None:
+            bp.pop(k, None)
+        else:
+            bp[k] = v
+    files[DEKU_BANC] = (bp, 0)
+    if clean:
+        st, dy = emptied_deku(game)
+        files[DEKU_S], files[DEKU_D] = (st, 3), (dy, 3)
+        files[DEKU_COMPOUND] = (game.raw(EMPTY_COMPOUND), 1)
+        files[DEKU_VSTATS] = (game.raw(SMALL_VSTATS), 1)
+        box = game.byml(DEKU_AABB)
+        for k, v in zip("XYZ", (-95.0, 0.0, -90.0)):
+            box["Min"][k] = v
+        for k, v in zip("XYZ", (95.0, 150.0, 100.0)):
+            box["Max"][k] = v
+        files[DEKU_AABB] = (box, 0)
+        notes.append(f"{label}: S6's clean slate: placement emptied to its spawn points, {EMPTY_COMPOUND}, {SMALL_VSTATS}, "
+                     "widened VolumeStatsAABB, no foliage files")
+    else:
+        for rel in [DEKU_S, DEKU_D, DEKU_AABB]:
+            files[rel] = (game.byml(rel), byml.frame_dict_id(game.r / rel) if rel.endswith(".zs") else 0)
+        for rel in [DEKU_COMPOUND, DEKU_VSTATS, DEKU_LOWTREE, DEKU_ORNAMENT] + DEKU_FOLIAGE:
+            files[rel] = (game.raw(rel), byml.frame_dict_id(game.r / rel))
+    note, like = new_scene(game, files, scene, keep_foliage=not clean)
+    write_mod(out, files, game, notes + [note], like=like)
+
+
 def main_1b(game, out, glb=None):
     if glb:
         test_s4(game, out / "KaeGae Map Test S4 - control, the vanilla Deku Tree as a new scene")
+        test_scene_step(game, out / "KaeGae Map Test S9 - S4 with S6's scene settings", "S9", banc_set=S6_BANC)
+        test_scene_step(game, out / "KaeGae Map Test S10 - S9 with S6's clean slate", "S10", banc_set=S6_BANC, clean=True)
         test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,

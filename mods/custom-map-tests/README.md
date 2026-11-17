@@ -728,6 +728,20 @@ strings in `main`, all the dungeons among them), and the new scene's settings st
 |---|---|---|
 | S8. S6 without `DungeonParam` | Only the scene settings: the `DungeonParam` line removed (a plain non-dungeon scene) | Loads: the dungeon code didn't know the new name |
 
+Results (17 Nov ~10:52–11:04 PT): **S8 stuck** like S6 (so not the `DungeonParam` line; S7 not tried). **S4 loads: the
+vanilla Deku Tree under the new name `KaeGae_DekuCopy` works** ("that one loads deku tree fine"). So the game loads new
+scene names, and the stall is in what the map build adds or removes on top. B60 has all of it under the Deku Tree's name
+and works, so it's one of those changes *together with* a new name (a file or table keyed by scene name that the build
+removes, or that a setting makes the game look for). Not found by reading: 41 of 80 scenes have no `LowTree` /
+`Ornament` foliage files (the S builds drop them), `main` also looks palettes up by name
+(`Work/WorldMgr/ResEnvPalette/%s...`, `ResEnvPaletteAreaUnique/%s`). Bisecting from S4 instead, without the map
+(`test_scene_step()`):
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S9. S4 with S6's scene settings | Only the scene settings: `IsEnableBakeLight` off, no `FoliageScene`, `HeightMapParam`, `OptimizeChangeBancUnits`, Hyrule Field's `WorldParam` (`S6_BANC`) | Stuck: one of these lines (then split them) |
+| S10. S9 with S6's clean slate | Plus the placement emptied to its spawn points, the empty compound, tiny volume stats, the widened AABB, no foliage files | Stuck: one of these (S9 loads). Loads: the map's own actors in a new scene |
+
 ## Building
 
 ```
