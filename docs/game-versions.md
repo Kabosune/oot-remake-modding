@@ -26,6 +26,10 @@ was made (17 November 2026), and how to add to it.
   flag; 1.1.1's make one more call when the value is true). The movement update (hook point
   `Actor.MoveUpdate`) was recompiled with a different stack layout; its first two instructions,
   where Core hooks it, are the same.
+- **Tested 17 November (Fritchii v5.8.4):** Core 0.8.4 on 1.0.0 finds the build and Link, its
+  Mods menu and Slopped Up Sloperina work. Fritchii shows 1.0.0 as a black picture with or without
+  mods (an emulator problem). Mouse Grab 0.3.0 crashes there: it calls 1.1.1's `ActorHolder`
+  address itself instead of asking Core.
 - Hookshot-style aliases (`f_806d2530`) name an address, so each build has its own: a mod asking
   for 1.1.1's alias gets 0 on 1.0.0. Use the plain names.
 - **Not checked yet:** romfs. The update ships the whole romfs again (186,583 files against

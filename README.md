@@ -3,15 +3,18 @@
 Research notes, an address map and patch tooling for **The Legend of Zelda: Ocarina of Time** on
 Nintendo Switch 2 (the 2026 remake), plus mods built with them.
 
-Everything here targets one build of the game (though I'm planning on and going to test for 1.0 support/compatibility):
+Everything here was made on game version 1.1.1. **Mods built on KaeGae Core also run on 1.0.0**
+(from Core 0.8.4: Core carries the addresses for both, the mods stay the same). The standalone
+patches (the 1.x downloads), Mouse Grab 0.3.0 and the romfs mods are 1.1.1 only for now; see
+[game versions](docs/game-versions.md).
 
-| | |
-|---|---|
-| Title ID | `0400486024DEC000` |
-| Update | v131072 ("1.1.1") |
-| main build ID | `E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348` |
+| | 1.1.1 | 1.0.0 |
+|---|---|---|
+| Title ID | `0400486024DEC000` | `0400486024DEC000` |
+| Version | v131072 (the update) | v65536 (the base game, no update) |
+| main build ID | `E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348` | `33FA6C2C23848282A77E8B88A0A93F4887C55920` |
 
-Other builds will need their addresses found again. The build scripts check every patched
+Other builds will need their addresses found again (`tools/port_pack.py` does most of it). The build scripts check every patched
 instruction, so a mismatch fails loudly at build time instead of crashing the game.
 
 **No game files are in this repository**: no executables, keys, dumps or extracted assets.

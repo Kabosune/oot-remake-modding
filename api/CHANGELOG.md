@@ -11,9 +11,15 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
-## Core 0.8.4: game version 1.0.0 (17 November 2026; not tested in the game yet)
+## Core 0.8.4: game version 1.0.0 (17 November 2026; works in the game, 17 November, Fritchii, 1.0.0 and 1.1.1)
 
 Core only, nothing new for mods (API still 0.8). The same mod folders run on both game versions.
+
+In the game (Fritchii v5.8.4, 17 November): on 1.0.0 Core finds the build, both hook points go in,
+Slopped Up Sloperina, First Person and FPV Drone start, Core finds Link, his controller and its
+body, and the Mods menu and Sloperina work. Fritchii shows 1.0.0 as a black picture, with or without
+any mod, so the camera mods couldn't be judged by eye there. On 1.1.1, 0.8.4 runs as 0.8.3 did.
+Mouse Grab 0.3.0 crashes on 1.0.0 when switched on: it uses 1.1.1 addresses of its own.
 
 - **A symbol pack for 1.0.0** ([`symbols/33fa6c2c.toml`](../symbols/33fa6c2c.toml), main build
   `33FA6C2C…`): every name the 1.1.1 pack has, at its 1.0.0 address (44 functions, 4 globals, 5

@@ -32,7 +32,7 @@ who patches what, and a small core module that mods call instead of patching the
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Core 0.8: the camera view event (`kae_on_view`, matrix and field of view), the `Camera.View` hook point | Works in the game (12 November, Fritchii): hook points in place, First Person 2.0 and FPV Drone 2.0 run on it. The FOV did nothing in 0.8.0; 0.8.1 changes the camera's own FOV instead, and that works (14 November). 0.8.2 (a lone + no longer reaches the game twice) and 0.8.3 (the Instant + switch) work too (14 November) |
 | Generic hook points (`kae_hook`), config | Design only |
-| Game version 1.0.0 (Core 0.8.4) | Symbol pack and hook point patch built from a real 1.0.0 main (17 November), the module tests run a fake 1.0.0 game; not tested in the game yet. [docs/game-versions.md](../docs/game-versions.md) |
+| Game version 1.0.0 (Core 0.8.4) | Works in the game (17 November, Fritchii v5.8.4): Core finds the build and Link, the Mods menu and Slopped Up Sloperina work (Fritchii itself shows 1.0.0 black, mods or not). Symbol pack and hook point patch built from a real 1.0.0 main; the module tests run a fake 1.0.0 game. [docs/game-versions.md](../docs/game-versions.md) |
 
 ## Writing a mod
 
