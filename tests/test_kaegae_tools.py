@@ -139,7 +139,7 @@ def test_registry():
     # the released patches stay inside what their owners registered
     seen = set()
     with tempfile.TemporaryDirectory() as work:
-        for n, release in enumerate(sorted((REPO / "releases").glob("*.zip"))):
+        for n, release in enumerate(sorted([*(REPO / "releases").glob("*.zip"), *(REPO / "releases" / "archive").glob("*.zip")])):
             for root in kaegae.unpack(release, Path(work) / str(n)):
                 mod = km.load_folder(root)
                 ok(not codes(mod.problems, "error"), f"{release.name}: {[str(p) for p in mod.problems]}")

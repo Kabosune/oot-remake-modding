@@ -288,5 +288,5 @@ works on any set of folders today.
   size table entries for files the game doesn't have.
 - Reading `.pchtxt` patches (they are reported and skipped).
 - Generating the memory map page from the registry.
-- A registry survey for 1.0.0 (needs a 1.0.0 dump).
+- ~~A registry survey for 1.0.0~~: done 17 November (free space and Core's claim; [registry/33fa6c2c.toml](../registry/33fa6c2c.toml)).
 - Hardware install.

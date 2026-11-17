@@ -33,9 +33,17 @@ static bool logged_line(const char *part) {
     return false;
 }
 
+// The build of a game version (the packs are compiled in file name order, not by version).
+static const kp_build_t *build_of(const char *version) {
+    for (unsigned b = 0; b < kp_build_count; b++)
+        if (!strcmp(kp_builds[b].version, version))
+            return &kp_builds[b];
+    return 0;
+}
+
 static void known_game(void) {
     kp_main = 0x80000000;
-    kp_build = &kp_builds[0];
+    kp_build = build_of("1.1.1");
     for (int e = 0; e < KP_EV_COUNT; e++)
         kp_event_on[e] = true;
 }
@@ -196,7 +204,8 @@ static void test_symbols(void) {
         for (uint32_t i = 0; i < kp_build->field_count; i++)
             CHECK(kae_field(kp_build->fields[i].name) == kp_build->fields[i].offset);
     }
-    kp_build = &kp_builds[0];
+    kp_build = build_of("1.1.1");
+    CHECK(kp_build != 0);
     CHECK(kae_sym("CctChangePosition") == (void *)(0x80000000 + 0x6B2530));
     CHECK(kae_sym("f_806d2530") == kae_sym("CctChangePosition"));          // the Hookshot-style alias
     CHECK(kae_sym("vtable.Actor") == (void *)(0x80000000 + 0x4B25E18));
@@ -204,6 +213,15 @@ static void test_symbols(void) {
     CHECK(!kae_sym("NoSuchThing") && !kae_sym("") && !kae_sym(0) && !kae_sym("CctChangePositio") && !kae_sym("CctChangePositionX"));
     CHECK(kae_field("Actor.nothing") == -1 && kae_field(0) == -1);
     CHECK(!strcmp(kae_game_version(), "1.1.1") && !strcmp(kae_game_build(), "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"));
+    kp_build = build_of("1.0.0");                                             // the same names on 1.0.0
+    CHECK(kp_build != 0);
+    CHECK(kae_sym("CctChangePosition") == (void *)(0x80000000 + 0x6D7730));
+    CHECK(kae_sym("vtable.Actor") == (void *)(0x80000000 + 0x4AC0E30));
+    CHECK(kae_field("Actor.position") == 0x31C);
+    CHECK(!strcmp(kae_game_version(), "1.0.0") && !strcmp(kae_game_build(), "33FA6C2C23848282A77E8B88A0A93F4887C55920"));
+    CHECK(build_of("1.0.0")->sym_count == build_of("1.1.1")->sym_count);   // nothing left out
+    CHECK(build_of("1.0.0")->field_count == build_of("1.1.1")->field_count);
+    kp_build = build_of("1.1.1");
     CHECK(kae_api_version() == ((KAE_API_MAJOR << 16) | KAE_API_MINOR));
 }
 

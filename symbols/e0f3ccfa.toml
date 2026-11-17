@@ -18,17 +18,22 @@ size   = 0x4EA0000          # mapped size of main
 
 [core]
 hook-slots = 0x4E9FB00      # one 8-byte function pointer per hook point (docs/memory-map.md)
+hook-code  = "0x3C46310..0x3C46400"   # where Core's patch puts its hook stubs (registry claim)
 
 # ---- hook points: places in main's code that Core's patch redirects ----
 
 [hookpoint."Actor.MoveUpdate"]
 site    = 0x2C215E4         # second instruction of the movement update, f_82c415e0
 slot    = 0
+stub    = "kp_hook_move"   # in api/core/hookpoints.S
+replaces = 0xFC180FEA       # str d10, [sp, #-0x80]!
 context = "x0 = actor; runs for every physics actor every frame on the game's thread"
 
 [hookpoint."Camera.View"]
 site    = 0x4C5068          # f_804e48c0, right after a view's matrix is written (ldr x8, [x19, #0x20])
 slot    = 1
+stub    = "kp_hook_view"
+replaces = 0xF9401268       # ldr x8, [x19, #0x20]
 context = "x19 = camera, x20 = view; every view (menus too), mid-function: all registers live"
 
 # ---- functions ----

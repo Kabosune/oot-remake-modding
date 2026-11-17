@@ -2,6 +2,9 @@
 
     python3 tests/test_kaegae_hooks.py <flat main image> <any zip built by tools/kaemod.py>
 
+The image may be any game build with a symbol pack (1.0.0 or 1.1.1): the test takes that build's
+patch from the zip and its addresses from its pack.
+
 With the slot empty and with a function in it (one that trashes every caller-saved register), the
 movement update's second instruction must still do its work (d10 stored, sp down 0x80) and come
 back to the third with the arguments, x29 and x30 as they were.
@@ -9,17 +12,28 @@ back to the third with the arguments, x29 and x30 as they were.
 import struct
 import sys
 import zipfile
+from pathlib import Path
 
 from unicorn import Uc, UC_ARCH_ARM64, UC_MODE_ARM, UC_HOOK_CODE
 from unicorn.arm64_const import *
 
-BASE, SLOT, SITE, AFTER, FN, STACK = 0x80020000, 0x84EBFB00, 0x82C415E4, 0x82C415E8, 0x30000000, 0x20000000
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+import kaemod  # noqa: E402
+
+BASE, FN, STACK = 0x80020000, 0x30000000, 0x20000000
 
 
 def main():
     img = bytearray(open(sys.argv[1], "rb").read())
+    build = kaemod.main_build(sys.argv[1])
+    assert build, f"{sys.argv[1]}: not a main image of a build with a symbol pack"
+    pack = kaemod.hook_builds()[build][0]
+    SLOT = BASE + pack["core"]["hook-slots"]
+    SITE = BASE + pack["hookpoint"]["Actor.MoveUpdate"]["site"]
+    AFTER = SITE + 4
+    print(f"game version {pack['version']} ({build[:8]})")
     z = zipfile.ZipFile(sys.argv[2])
-    b = z.read(next(n for n in z.namelist() if n.endswith(".ips")))
+    b = z.read(next(n for n in z.namelist() if n.endswith(f"/{build}.ips")))
     pos = 5
     while b[pos:pos + 4] != b"EEOF":
         o, s = struct.unpack_from(">IH", b, pos)

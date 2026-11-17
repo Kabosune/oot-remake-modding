@@ -11,6 +11,33 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.8.4: game version 1.0.0 (17 November 2026; not tested in the game yet)
+
+Core only, nothing new for mods (API still 0.8). The same mod folders run on both game versions.
+
+- **A symbol pack for 1.0.0** ([`symbols/33fa6c2c.toml`](../symbols/33fa6c2c.toml), main build
+  `33FA6C2C…`): every name the 1.1.1 pack has, at its 1.0.0 address (44 functions, 4 globals, 5
+  vtables, 27 fields, both hook points). Core already picked its pack by the build it finds itself
+  in; on 1.0.0 it used to find none and do nothing. Ported with the new `tools/port_pack.py`
+  against a 1.0.0 main dumped by Fritchii; how each entry was found is on its `port` line, and
+  [docs/game-versions.md](../docs/game-versions.md) has the comparison.
+- **Core's patch to main for both builds.** The zip holds `exefs/33FA6C2C….ips` next to
+  `exefs/E0F3CCFA….ips`; the emulator applies the one for the build it runs. The 1.0.0 stubs sit
+  in 1.0.0's own code cave (`0x3BE6900`), its hook slots at `0x4E2FB00`
+  ([`registry/33fa6c2c.toml`](../registry/33fa6c2c.toml)). The 1.1.1 patch is byte for byte
+  0.8.3's. Each pack now says where its stubs go (`[core] hook-code`) and what each hook point's
+  instruction is (`stub`, `replaces`); `tools/kaemod.py` builds one patch per pack that has them.
+- **Packs may be incomplete.** A mod that needs a name one version's pack lacks still builds; the
+  build warns, the mod's README.txt says which version it won't run on, and on that version Core
+  gives it no address for the name (`kae_sym` returns 0). Missing from every pack is still an error.
+- **`tools/port_pack.py`**: ports a pack to another build of main (both as flat images): functions
+  by their code with the addresses masked (or through their callers), globals through the code
+  that loads them, vtables through the functions in them. Writes a draft pack to check by hand.
+- Real differences between the versions, not just in where things are: the 1.1.1 update changed
+  `PouchAddContent` and the dungeon item setters (`DungeonSetMap` / `Compass` / `BossKey`); the
+  pack notes say how. Hookshot-style aliases (`f_806d2530`) name an address, so they differ per
+  build: mods should ask for the plain names.
+
 ## Core 0.8.3: Instant + (14 November 2026; works in the game, 14 November, Fritchii)
 
 Core only, nothing new for mods (API still 0.8).

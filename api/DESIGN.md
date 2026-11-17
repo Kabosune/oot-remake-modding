@@ -268,6 +268,10 @@ context = "x20 = view"
   correction to it fixes every mod at once.
 - There is one pack per supported build, 1.0.0 and 1.1.1. A name only counts as part of the
   standard once it is in both packs, so a core mod runs on both versions without changes.
+  *Both packs exist from Core 0.8.4 (17 November).* A new name is found on 1.1.1 and ported with
+  `tools/port_pack.py` (the method is in [docs/game-versions.md](../docs/game-versions.md)). Until
+  it is in both packs, a mod that needs it builds, says which version it won't run on, and gets 0
+  from `kae_sym` there.
   Level 1 and 2 mods (their own patches) support whichever builds their author ports them to,
   and say so in the manifest.
 - Names are the shared vocabulary. Where a function has a Hookshot-style name (`f_806d2530`),

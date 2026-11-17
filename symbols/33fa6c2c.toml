@@ -1,0 +1,523 @@
+# KaeGae symbol pack for main build 33FA6C2C23848282A77E8B88A0A93F4887C55920 (game version 1.0.0).
+#
+# Ported from the 1.1.1 pack (e0f3ccfa.toml) on 17 November 2026 with tools/port_pack.py, against
+# a 1.0.0 main dumped by Fritchii ("Dump Decompressed NSOs"), then finished by hand. Each entry's
+# `port` line says how it was found. Same names, same meaning as in the 1.1.1 pack: a mod that runs
+# on one runs on the other. Offsets are module offsets (address minus 0x80020000).
+#
+# Where the two versions really differ (not just in where things are), the entry's note says so.
+# docs/game-versions.md has the comparison.
+
+build   = "33FA6C2C23848282A77E8B88A0A93F4887C55920"
+version = "1.0.0"
+
+[detect]
+nnmain = 0x11C1FB0
+mod0   = 0x3BE705C
+size   = 0x4E30000
+
+[core]
+hook-slots = 0x4E2FB00      # one 8-byte function pointer per hook point: the same spot from the end of
+                            # .bss as in 1.1.1; nothing in 1.0.0 refers past 0x4E2A068 (registry/33fa6c2c.toml)
+hook-code  = "0x3BE6900..0x3BE6A00"   # where Core's patch puts its hook stubs: in the zero padding after .text
+                                     # (which ends at 0x3BE6850), before sloperinaGZ's claim
+
+[hookpoint."Actor.MoveUpdate"]
+site     = 0x2BCD714
+slot     = 0
+stub     = "kp_hook_move"
+replaces = 0xFC180FEA
+context  = "x0 = actor; runs for every physics actor every frame on the game's thread"
+port     = "matched (1.1.1 0x2C215E4)"
+
+[hookpoint."Camera.View"]
+site     = 0x6641C8
+slot     = 1
+stub     = "kp_hook_view"
+replaces = 0xF9401268
+context  = "x19 = camera, x20 = view; every view (menus too), mid-function: all registers live"
+port     = "matched (1.1.1 0x4C5068)"
+
+[function.CctChangePosition]
+offset = 0x6D7730
+alias  = "f_806f7730"
+args   = "controller, float pos[4]"
+ld     = "CCT_CHANGE_POSITION"
+port   = "matched (1.1.1 0x6B2530)"
+
+[function.ActorHolder]
+offset = 0x9979D0
+alias  = "f_809b79d0"
+args   = "actor"
+note   = "[[[[actor+0x270]+0x50]+0x20]+0x10], no null checks"
+port   = "matched (1.1.1 0x837620)"
+
+[function.IsChildLink]
+offset = 0x5723F0
+alias  = "f_805923f0"
+args   = "actor"
+port   = "matched (1.1.1 0x4B6DB0)"
+
+[function.SetActorLife]
+offset = 0x50B020
+alias  = "f_8052b020"
+port   = "matched (1.1.1 0x49D8C0)"
+
+[function.BodySetLinearVelocity]
+offset = 0x1ED800
+alias  = "f_8020d800"
+args   = "body, float v[3], 0"
+port   = "matched (1.1.1 0x12DBE0)"
+
+[function.BodyGetLinearVelocity]
+offset = 0x1E23A0
+alias  = "f_802023a0"
+args   = "body, float out[3], 1"
+port   = "matched (1.1.1 0x122750)"
+
+[function.RagdollStart]
+offset = 0x31C1580
+alias  = "f_831e1580"
+args   = "ragdoll, request"
+port   = "matched (1.1.1 0x3218D30)"
+
+[function.RagdollEnd]
+offset = 0x31C18E0
+alias  = "f_831e18e0"
+args   = "ragdoll, {actor, 0}"
+port   = "matched (1.1.1 0x3219090)"
+
+[function.AsPlay]
+offset = 0x2B63A0
+alias  = "f_802d63a0"
+args   = "request"
+port   = "matched (1.1.1 0x2022A0)"
+
+[function.PouchAddContent]
+offset = 0x11378F0
+alias  = "f_811578f0"
+ld     = "POUCH_ADD_CONTENT"
+note   = "adds a content (an item, ammo, rupees and so on) to the pouch. Changed in 1.1.1: in 1.0.0 the item event returns from it without the separate notification 1.1.1 has (sloperinaGZ)"
+port   = "through 9 of 13 callers (1.1.1 0x110D570)"
+
+[function.PouchGetContentNum]
+offset = 0x47B950
+alias  = "f_8049b950"
+ld     = "POUCH_GET_CONTENT_NUM"
+note   = "returns how many of a content the pouch holds, by the content's actor name"
+port   = "matched (1.1.1 0x5963E0)"
+
+[function.PouchInfoFind]
+offset = 0x473490
+alias  = "f_80493490"
+ld     = "POUCH_INFO_FIND"
+note   = "finds a content's pouch info by its actor name"
+port   = "matched (1.1.1 0x58ED10)"
+
+[function.PouchCategoryFromString]
+offset = 0x47AAF0
+alias  = "f_8049aaf0"
+ld     = "POUCH_CATEGORY_FROM_STRING"
+note   = "converts a pouch category name to its number: bool (u32* out, const char** name)"
+port   = "matched (1.1.1 0x13FDD0)"
+
+[function.PouchPushPickedUp]
+offset = 0x2E34EF0
+alias  = "f_82e54ef0"
+ld     = "POUCH_PUSH_PICKED_UP"
+note   = "pushes a picked-up item's content into the pouch"
+port   = "matched (1.1.1 0xC6F620)"
+
+[function.PickupHandler]
+offset = 0x2E354B0
+alias  = "f_82e554b0"
+ld     = "PICKUP_HANDLER"
+note   = "handles an item pickup"
+port   = "matched (1.1.1 0x2E8A1E0)"
+
+[function.DropReadParams]
+offset = 0xBD89B0
+alias  = "f_80bf89b0"
+ld     = "DROP_READ_PARAMS"
+note   = "reads a placed actor's drop parameters (Drop__DropActor)"
+port   = "matched (1.1.1 0xBD1C00)"
+
+[function.QuerySetGetEventRequestArg]
+offset = 0x2A8D700
+alias  = "f_82aad700"
+ld     = "QUERY_SET_GET_EVENT_REQUEST_ARG"
+note   = "QuerySetGetEventRequestArg(node, request)"
+port   = "matched (1.1.1 0x2AE0750)"
+
+[function.EventFlowProcessContext]
+offset = 0x11E4220
+alias  = "f_81204220"
+ld     = "EVFL_PROCESS_CONTEXT"
+note   = "processes an EventFlow flowchart context: runs its actions, queries and subflows"
+port   = "matched (1.1.1 0x1228840)"
+
+[function.EventFlowBuildContext]
+offset = 0x11E5A80
+alias  = "f_81205a80"
+ld     = "EVFL_BUILD_CONTEXT"
+note   = "builds an EventFlow context"
+port   = "matched (1.1.1 0x122A0A0)"
+
+[function.EventFlowMarkEntries]
+offset = 0x11E65C0
+alias  = "f_812065c0"
+ld     = "EVFL_MARK_ENTRIES"
+note   = "marks the entries reachable from one EventFlow entry: bool (err*, flowcharts*, bitsets*, u32 flowchart, u64 entry)"
+port   = "matched (1.1.1 0x122ABE0)"
+
+[function.EventFlowBindAction]
+offset = 0xD66E60
+alias  = "f_80d86e60"
+ld     = "EVFL_BIND_ACTION"
+note   = "adds an action handler to an EventFlow binding, by the action's name"
+port   = "matched (1.1.1 0xD3C9A0)"
+
+[function.EventFlowBindQuery]
+offset = 0x11E6E80
+alias  = "f_81206e80"
+ld     = "EVFL_BIND_QUERY"
+note   = "adds a query handler to an EventFlow binding, by the query's name"
+port   = "matched (1.1.1 0x122B4A0)"
+
+[function.BancLoad]
+offset = 0xBE6DD0
+alias  = "f_80c06dd0"
+ld     = "BANC_LOAD"
+note   = "loads a Banc (an area's placements)"
+port   = "matched (1.1.1 0xBFBA50)"
+
+[function.WindowSetMessage]
+offset = 0x688740
+alias  = "f_806a8740"
+ld     = "WINDOW_SET_MESSAGE"
+note   = "sets a talk window's message from a message file and label"
+port   = "matched (1.1.1 0xA6C460)"
+
+[function.DungeonAddSmallKey]
+offset = 0x3224110
+alias  = "f_83244110"
+ld     = "DUNGEON_ADD_SMALL_KEY"
+note   = "adds small keys: (dungeon manager, int count)"
+port   = "matched (1.1.1 0x3283160)"
+
+[function.DungeonSetBossKey]
+offset = 0x32240E0
+alias  = "f_832440e0"
+ld     = "DUNGEON_SET_BOSS_KEY"
+note   = "sets the boss key: (dungeon manager, bool). In 1.0.0 it only sets the flag; 1.1.1's version makes one more call when the value is true (not looked into)"
+port   = "through 1 of 1 callers (1.1.1 0x32830E0)"
+
+[function.DungeonSetMap]
+offset = 0x3224080
+alias  = "f_83244080"
+ld     = "DUNGEON_SET_MAP"
+note   = "sets the map: (dungeon manager, bool). In 1.0.0 it only sets the flag; 1.1.1's version makes one more call when the value is true (not looked into)"
+port   = "by hand: the setter before DungeonSetCompass, same flag hash 0x58AEB8FB as 1.1.1's (1.1.1 0x3282FE0)"
+
+[function.DungeonSetCompass]
+offset = 0x32240B0
+alias  = "f_832440b0"
+ld     = "DUNGEON_SET_COMPASS"
+note   = "sets the compass: (dungeon manager, bool). In 1.0.0 it only sets the flag; 1.1.1's version makes one more call when the value is true (not looked into)"
+port   = "by hand: same flag hash 0xC7692E3F as 1.1.1's (1.1.1 0x3283060)"
+
+[function.BoolExpEvaluate]
+offset = 0x399D20
+alias  = "f_803b9d20"
+ld     = "BOOLEXP_EVALUATE"
+note   = "evaluates a GameData BoolExp (a condition expression)"
+port   = "through 33 of 98 callers (1.1.1 0x3E29E0)"
+
+[function.BoolExpCompareEnumOrder]
+offset = 0xA07490
+alias  = "f_80a27490"
+ld     = "BOOLEXP_COMPARE_ENUM_ORDER"
+note   = "compares the order of two enum values for the BoolExp evaluators"
+port   = "matched (1.1.1 0x4048F0)"
+
+[function.ShopIsSoldOut]
+offset = 0xB88F30
+alias  = "f_80ba8f30"
+ld     = "SHOP_IS_SOLD_OUT"
+note   = "checks whether a shop's goods slot is sold out: (owner link, index, ...)"
+port   = "matched (1.1.1 0xB988D0)"
+
+[function.GameDataFindStruct]
+offset = 0xEFBC60
+alias  = "f_80f1bc60"
+ld     = "GAMEDATA_FIND_STRUCT"
+note   = "finds a GameData struct: (manager, Key* out, u32 struct hash)"
+port   = "matched (1.1.1 0x9B3EB0)"
+
+[function.GameDataGetBool]
+offset = 0x59A6C0
+alias  = "f_805ba6c0"
+ld     = "GAMEDATA_GET_BOOL"
+note   = "gets a GameData bool: (manager, bool* out, Key*, u32 member hash)"
+port   = "through 50 of 140 callers (1.1.1 0x179F70)"
+
+[function.GameDataGetInt]
+offset = 0x59BB00
+alias  = "f_805bbb00"
+ld     = "GAMEDATA_GET_INT"
+note   = "gets a GameData int: (manager, int* out, Key*, u32 member hash)"
+port   = "matched (1.1.1 0x17B3B0)"
+
+[function.GameDataGetEnum]
+offset = 0x59C6E0
+alias  = "f_805bc6e0"
+ld     = "GAMEDATA_GET_ENUM"
+note   = "gets a GameData enum: (manager, u32* out, Key*, u32 member hash)"
+port   = "matched (1.1.1 0x17BF90)"
+
+[function.GameDataSetBool]
+offset = 0x6DCFA0
+alias  = "f_806fcfa0"
+ld     = "GAMEDATA_SET_BOOL"
+note   = "sets a GameData bool: (manager, bool value, Key*, u32 member hash)"
+port   = "matched (1.1.1 0x608A10)"
+
+[function.GameDataSetInt]
+offset = 0xBAE7D0
+alias  = "f_80bce7d0"
+ld     = "GAMEDATA_SET_INT"
+note   = "sets a GameData int: (manager, int value, Key*, u32 member hash)"
+port   = "through 52 of 54 callers (1.1.1 0x9B39E0)"
+
+[function.GameDataSetBoolByHash]
+offset = 0x691500
+alias  = "f_806b1500"
+ld     = "GAMEDATA_SET_BOOL_BY_HASH"
+note   = "sets a GameData bool by its hash: (manager, bool value, u32 hash)"
+port   = "matched (1.1.1 0x682B20)"
+
+[function.GameDataSetEnumByHash]
+offset = 0x397A20
+alias  = "f_803b7a20"
+ld     = "GAMEDATA_SET_ENUM_BY_HASH"
+note   = "sets a GameData enum by its hash: (manager, u32 value, u32 hash)"
+port   = "matched (1.1.1 0x3E0980)"
+
+[function.EventRequestInit]
+offset = 0xD3C9A0
+alias  = "f_80d5c9a0"
+ld     = "EVENT_REQUEST_INIT"
+note   = "constructs an EventRequest"
+port   = "matched (1.1.1 0xD79F10)"
+
+[function.EventRequest]
+offset = 0xD3D2B0
+alias  = "f_80d5d2b0"
+ld     = "EVENT_REQUEST"
+note   = "requests an event: bool (EventMgr*, EventRequest*)"
+port   = "matched (1.1.1 0xD7A820)"
+
+[function.ActorSetPosition]
+offset = 0x944000
+alias  = "f_80964000"
+ld     = "ACTOR_SET_POSITION"
+note   = "sets an actor's position: (Actor*, const float pos[3], bool)"
+port   = "matched (1.1.1 0x944E70)"
+
+[function.ActorSetTransform]
+offset = 0xC35730
+alias  = "f_80c55730"
+ld     = "ACTOR_SET_TRANSFORM"
+note   = "sets an actor's transform: (Actor*, const float mtx[12], bool)"
+port   = "matched (1.1.1 0xC6FD60)"
+
+[function.FrameworkFrame]
+offset = 0x3AF1420
+alias  = "f_83b11420"
+ld     = "FRAMEWORK_FRAME"
+note   = "runs one frame of the game framework (slot 28 of the vtable at 0x84c83f80)"
+port   = "matched (1.1.1 0x3B4EA90)"
+
+[global.CameraManagerSlot]
+offset = 0x4C20ED8
+ld     = "CAMMGR_SLOT"
+note   = "[[slot]] = camera manager"
+port   = "from 35 of 40 references, all agreeing (1.1.1 0x4C86BC0)"
+
+[global.PouchMgrPtr]
+offset = 0x4E08A30
+ld     = "POUCHMGR_PTR"
+note   = "the PouchMgr pointer variable"
+port   = "from 34 of 40 references, all agreeing (1.1.1 0x4E78E28)"
+
+[global.GameDataMgrPtr]
+offset = 0x4E13E48
+ld     = "GAMEDATAMGR_PTR"
+note   = "the GameDataMgr pointer variable"
+port   = "from 36 of 40 references, all agreeing (1.1.1 0x4E842A8)"
+
+[global.EventMgrPtr]
+offset = 0x4E243E0
+ld     = "EVENTMGR_PTR"
+note   = "the EventMgr pointer variable"
+port   = "from 35 of 40 references, all agreeing (1.1.1 0x4E94840)"
+
+[vtable.View]
+offset = 0x4B92E90
+ld     = "VT_VIEW"
+port   = "6 of 6 ported pointers (1.1.1 0x4BF8A88)"
+
+[vtable.Actor]
+offset = 0x4AC0E30
+ld     = "VT_ACTOR"
+port   = "10 of 10 ported pointers (1.1.1 0x4B25E18)"
+
+[vtable.Player]
+offset = 0x4AE7458
+ld     = "VT_PLAYER"
+port   = "8 of 8 ported pointers (1.1.1 0x4B4C460)"
+
+[vtable.Cct]
+offset = 0x4BCF308
+ld     = "VT_CCT"
+port   = "8 of 9 ported pointers (1.1.1 0x4C34F10)"
+
+[vtable.CctBody]
+offset = 0x4BCEA50
+note   = "the physics body of a character controller, [controller+0x20]; what BodySetLinearVelocity takes"
+port   = "11 of 11 ported pointers (1.1.1 0x4C34658)"
+
+[field."Actor.position"]
+offset = 0x31C
+type   = "f32[3]"
+port   = "same as 1.1.1, not checked"
+
+[field."Actor.rotation"]
+offset = 0x328
+type   = "f32[3][4]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.matrix"]
+offset = 0x8
+type   = "f32[3][4]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.eye"]
+offset = 0x60
+type   = "f64[3]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.target"]
+offset = 0x78
+type   = "f64[3]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.position"]
+offset = 0x38
+type   = "f32[3]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.look_at"]
+offset = 0x44
+type   = "f32[3]"
+port   = "same as 1.1.1, not checked"
+
+[field."View.projection"]
+offset = 0x90
+type   = "embedded"
+port   = "same as 1.1.1, not checked"
+
+[field."Camera.fovy"]
+offset = 0x13C
+type   = "f32"
+port   = "same as 1.1.1, not checked"
+
+[field."Camera.aspect"]
+offset = 0x140
+type   = "f32"
+port   = "same as 1.1.1, not checked"
+
+[field."View.fovy"]
+offset = 0x130
+type   = "f32"
+port   = "same as 1.1.1, not checked"
+
+[field."View.aspect"]
+offset = 0x140
+type   = "f32"
+port   = "same as 1.1.1, not checked"
+
+[field."Components.model"]
+offset = 0x260
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Model.visible"]
+offset = 0xE5
+type   = "u8"
+port   = "same as 1.1.1, not checked"
+
+[field."Model.flags"]
+offset = 0x120
+type   = "u32"
+port   = "same as 1.1.1, not checked"
+
+[field."Actor.components"]
+offset = 0x270
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Components.movement"]
+offset = 0x320
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Movement.actor"]
+offset = 0x18
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Player.movement"]
+offset = 0x1D50
+type   = "embedded"
+port   = "same as 1.1.1, not checked"
+
+[field."Player.resource"]
+offset = 0x10
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Resource.name"]
+offset = 0x58
+type   = "char[]"
+port   = "same as 1.1.1, not checked"
+
+[field."Components.physics"]
+offset = 0x50
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Physics.owner"]
+offset = 0x20
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."PhysicsOwner.holder"]
+offset = 0x10
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Holder.controller"]
+offset = 0x8
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."Cct.body"]
+offset = 0x20
+type   = "ptr"
+port   = "same as 1.1.1, not checked"
+
+[field."CctBody.velocity"]
+offset = 0xE0
+type   = "f32[3]"
+port   = "same as 1.1.1, not checked"

@@ -148,13 +148,14 @@ def split_into_slots(asm, slots):
     return "\n".join(out) + "\n", state["slot"] + 1
 
 
-def build_regions(sources, symbols, regions, hooks, defines, slots=None):
+def build_regions(sources, symbols, regions, hooks, defines, slots=None, cave=(TEXT_END, CAVE_LIMIT)):
     """Compile sources (.S / .c) and link their sections into cave regions and padding slots.
 
     regions: [(start, end, [input section patterns])], module offsets inside the cave.
     slots: [(address, length)] padding slots; when given, the code of every .c source is split
     across them (see split_into_slots) and its data still goes to the regions.
     hooks: [(site address, original word, entry symbol)].
+    cave: (start, end) module offsets the regions must stay inside; default build E0F3CCFA's.
     Returns ([(module offset, bytes, original)], {region start: bytes used}, slots used).
     Any section not placed somewhere (code, data, bss) is an error, so nothing is left out."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -179,7 +180,7 @@ def build_regions(sources, symbols, regions, hooks, defines, slots=None):
             objs.append(obj)
         places = []
         for start, end, patterns in regions:
-            assert TEXT_END <= start < end <= CAVE_LIMIT, f"region {start:#x}..{end:#x} is outside the cave"
+            assert cave[0] <= start < end <= cave[1], f"region {start:#x}..{end:#x} is outside the cave"
             places.append((start, end, patterns))
         for n in range(nslots):
             address, length = slots[n]

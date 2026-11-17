@@ -63,6 +63,7 @@ say what's wrong with it.
 ## Docs
 
 - [Getting started](docs/getting-started.md): from your dump to a flat `main` image you can read and patch.
+- [Game versions](docs/game-versions.md): 1.0.0 and 1.1.1, what differs, how KaeGae Core runs the same mods on both.
 - [The engine](docs/engine.md): what the Tears of the Kingdom engine (ModuleSystem) means for modding this game.
 - [romfs](docs/romfs.md): what's in the game's 26 GB of data, its compression, how to look inside, and the resource size table.
 - [Scenes, scene changes and spawn points](docs/warps.md): how doors / exits name their destination, and all 465 spawn points with coordinates.

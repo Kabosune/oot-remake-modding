@@ -5,6 +5,12 @@ then add yourself: to this page and to [`registry/e0f3ccfa.toml`](../registry/e0
 same information in the form `tools/kaegae.py check` reads ([api/MANIFEST.md](../api/MANIFEST.md)).
 `python3 tools/kaegae.py registry` prints it with how much of each space is taken.
 
+This page is game version 1.1.1 (build `E0F3CCFA…`). For 1.0.0 (`33FA6C2C…`) the registry is
+[`registry/33fa6c2c.toml`](../registry/33fa6c2c.toml): its code cave is `0x3BE6850..0x3BE7000`
+(KaeGae Core's hook stubs at `0x3BE6900..0x3BE6A00`, sloperinaGZ from `0x3BE6A00`) and its free
+`.bss` tail `0x4E2A068..0x4E30000` (Core's hook slots at `0x4E2FB00`). See
+[game-versions.md](game-versions.md).
+
 ## Code cave: `.text` padding `0x3C461D0..0x3C47000` (3632 bytes, executable, zero)
 
 | Range (module offset) | Used by |

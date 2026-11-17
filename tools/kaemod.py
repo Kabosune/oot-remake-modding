@@ -75,12 +75,30 @@ CFLAGS = ["--target=aarch64-none-elf", "-O2", "-fPIC", "-ffreestanding", "-fno-b
           "-fno-stack-protector", "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-mno-outline-atomics",
           "-Wall", "-Wextra", "-Werror", "-std=c11", f"-I{INCLUDE}"]
 
-# Core's patch to main for build E0F3CCFA: the hook point stubs, in the code cave (docs/memory-map.md).
-HOOK_BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"
-HOOK_SYMBOLS = REPO / "symbols" / "e0f3ccfa.ld"
-HOOK_REGIONS = [(0x3C46310, 0x3C46400, [".text.hook", ".text", ".data", ".bss"])]
-HOOK_SITES = [(0x82C415E4, 0xFC180FEA, "kp_hook_move"),   # str d10, [sp, #-0x80]!
-              (0x804E5068, 0xF9401268, "kp_hook_view")]   # ldr x8, [x19, #0x20] (0.8; First Person 1.x's site)
+# Core's patch to main: the hook point stubs (core/hookpoints.S), one IPS per game build. Each
+# build's symbol pack says where they go ([core] hook-code), where the hook slots are ([core]
+# hook-slots) and which instruction each hook point replaces ([hookpoint] site / replaces / stub);
+# symbols/<build>.ld gives the addresses the stubs jump back to.
+HOOK_BUILD_ID = "E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348"   # 1.1.1: the build the tests run against
+
+
+def hook_builds():
+    """{build id: (pack, linker file, regions, sites)} for every pack that has Core's hook stubs."""
+    out = {}
+    for pack in kaegae_symbols.load_packs():
+        code = pack.get("core", {}).get("hook-code")
+        if not code:
+            continue
+        start, end = (int(x, 16) for x in code.split(".."))
+        ld = pack["path"].with_suffix(".ld")
+        assert ld.exists(), f"{pack['path'].name} has hook-code but no {ld.name}"
+        sites = []
+        for name, h in pack["hookpoint"].items():
+            assert "stub" in h and "replaces" in h, f"{pack['path'].name}: hook point {name} needs stub and replaces"
+            sites.append((nxpatch.BASE + h["site"], h["replaces"], h["stub"]))
+        out[pack["build"]] = (pack, ld, [(start, end, [".text.hook", ".text", ".data", ".bss"])], sites)
+    assert HOOK_BUILD_ID in out, "the 1.1.1 pack lost its hook-code"
+    return out
 
 
 def run(*cmd):
@@ -133,17 +151,28 @@ class Mod:
         self.imports = dict(core.get("imports", {}))     # system functions the mod imports itself
         self.symbols = list(core.get("symbols", []))     # "function:Name", "field:Name" it asks Core for
         self.cflags = list(core.get("cflags", []))       # extra compiler flags for its sources (after Core's own)
+        self.unsupported = {}                            # game version: names its pack lacks (check_symbols)
         text = "".join(s.read_text() for s in self.sources)
         assert f'"{self.id}"' in text, f"{self.id}: no KAE_MOD with this id in its sources"
 
     def check_symbols(self, packs):
+        """Which game versions the mod can run on. A pack may lack names another has (a version
+        that is still being ported): the mod still builds, Core gives it no address for those names
+        on that version (kae_sym returns 0; the mod's start should then return an error, and Core
+        shows it as off), and the build says so. Missing from every pack is an error."""
+        self.unsupported = {}
         for pack in packs:
             known = set(kaegae_symbols.symbols(pack))
             fields = set(pack.get("field", {}))
-            for entry in self.symbols:
-                kind, _, name = entry.partition(":")
-                ok = name in fields if kind == "field" else name in known
-                assert ok, f"{self.id} needs {entry}, which game version {pack['version']}'s symbol pack doesn't have"
+            missing = [e for e in self.symbols
+                       if e.partition(":")[2] not in (fields if e.partition(":")[0] == "field" else known)]
+            if missing:
+                self.unsupported[pack["version"]] = missing
+        assert len(self.unsupported) < len(packs), (
+            f"{self.id} needs names no symbol pack has: {sorted(set().union(*self.unsupported.values()))}")
+        for version, missing in sorted(self.unsupported.items()):
+            print(f"warning: {self.id} won't run on game version {version}: its symbol pack lacks {', '.join(missing)}",
+                  file=sys.stderr)
 
     def objects(self, work):
         objs = compile_sources(self.sources, work / self.id, [f"-I{self.folder}", *self.cflags])
@@ -204,16 +233,29 @@ def build_core(work, bundled=(), defines=()):
     return elf
 
 
-def hook_patch(verify_main=None):
-    """Core's patch to main as IPS32 bytes."""
-    records, used, _ = nxpatch.build_regions([CORE / "hookpoints.S"], HOOK_SYMBOLS, HOOK_REGIONS, HOOK_SITES, {})
+def hook_patch(verify_main=None, build=HOOK_BUILD_ID):
+    """Core's patch to main for one game build, as IPS32 bytes (and its records)."""
+    pack, ld, regions, sites = hook_builds()[build]
+    cave = (regions[0][0], regions[0][1])
+    records, used, _ = nxpatch.build_regions([CORE / "hookpoints.S"], ld, regions, sites, {}, cave=cave)
     if verify_main:
         nxpatch.verify(records, verify_main)
     return nxpatch.ips32(records), records
 
 
+def main_build(image):
+    """The build id of a flat main image, from where its MOD0 header is, or None."""
+    data = Path(image).read_bytes()
+    for build, (pack, *_rest) in hook_builds().items():
+        at = pack["detect"]["mod0"]
+        if data[at:at + 4] == b"MOD0" and len(data) == pack["detect"]["size"]:
+            return build
+    return None
+
+
 def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
-    """{path inside the mod folder: bytes} for Core and the given mods (the mods alone if not with_core)."""
+    """{path inside the mod folder: bytes} for Core and the given mods (the mods alone if not with_core).
+    verify_main: flat main images (any builds) to check Core's patches against."""
     work = Path(work)
     packs = kaegae_symbols.load_packs()
     for mod in mods:
@@ -232,7 +274,13 @@ def build(mods, bundle, work, verify_main=None, defines=(), with_core=True):
         for slot, mod in zip(MOD_SLOTS, mods):
             files[f"exefs/{slot}"] = mknso.pack(mod.as_module(work, exports).read_bytes())
     if with_core:
-        files[f"exefs/{HOOK_BUILD_ID}.ips"] = hook_patch(verify_main)[0]
+        images = {}
+        for image in verify_main or ():
+            found = main_build(image)
+            assert found, f"{image}: not a main image of any build with a symbol pack"
+            images[found] = image
+        for build_id in hook_builds():
+            files[f"exefs/{build_id}.ips"] = hook_patch(images.get(build_id), build_id)[0]
     for mod in mods:     # files a mod's manifest asks to ship next to it (its licence, say)
         for rel in mod.manifest.get("ship", []):
             name = rel if len(mods) == 1 else f"{mod.id}/{rel}"
@@ -265,11 +313,13 @@ def package_manifest(mods, bundle, name, with_core=True, package_id=None):
     if mods:
         lines += ["", "[core]", 'api = "%d.%d"      # the Core API the mods are built for' % api_version()]
     if with_core:
-        claim = tomllib.loads((REPO / "registry" / "e0f3ccfa.toml").read_text())["claim"]
-        claim = next(c for c in claim if c["owner"] == "kaegae.core")
-        lines += ["", f"[build.{HOOK_BUILD_ID}]      # KaeGae Core's hook points (registry/e0f3ccfa.toml)",
-                  f'ips    = "exefs/{HOOK_BUILD_ID}.ips"'] + [
-                  f"{key:<6} = [{', '.join(q(v) for v in claim[key])}]" for key in ("code", "memory", "hooks")]
+        for build_id, (pack, *_rest) in hook_builds().items():
+            registry = f"registry/{build_id[:8].lower()}.toml"
+            claim = tomllib.loads((REPO / registry).read_text())["claim"]
+            claim = next(c for c in claim if c["owner"] == "kaegae.core")
+            lines += ["", f"[build.{build_id}]      # {pack['version']}: KaeGae Core's hook points ({registry})",
+                      f'ips    = "exefs/{build_id}.ips"'] + [
+                      f"{key:<6} = [{', '.join(q(v) for v in claim[key])}]" for key in ("code", "memory", "hooks")]
     else:
         lines += ["", "[relations]", f"requires = [{q(core.replace('@', '>='))}]      # install KaeGae Core as well"]
     return "\n".join(lines) + "\n"
@@ -287,16 +337,21 @@ def write_zip(path, name, files, readme):
 
 def readme(mods, bundle, files, with_core=True):
     major, minor = api_version()
+    gaps = [f"{m.name} doesn't run on game version {v} yet (its symbol pack lacks {', '.join(names)})."
+            for m in mods for v, names in sorted(m.unsupported.items())]
     if not with_core:
         lines = [", ".join(f"{m.name} {m.manifest['version']}" for m in mods) + " (Ocarina of Time, Switch 2)", "",
                  f"A KaeGae mod without KaeGae Core in the folder: it needs Core {major}.{minor} installed as well.",
-                 "Without Core it loads and does nothing.", "", "Files:"]
+                 "Without Core it loads and does nothing.", *gaps, "", "Files:"]
         return "\n".join(lines + [f"  {rel}  ({len(blob)} bytes)" for rel, blob in sorted(files.items())]) + "\n"
-    lines = [f"KaeGae Core {core_version()} (Ocarina of Time, Switch 2, game version 1.1.1)", ""]
+    versions = " and ".join(sorted(pack["version"] for pack, *_rest in hook_builds().values()))
+    lines = [f"KaeGae Core {core_version()} (Ocarina of Time, Switch 2, game versions {versions})", ""]
     if mods:
         lines.append("With: " + ", ".join(f"{m.name} {m.manifest['version']}" for m in mods)
                      + (" (linked into Core's module)" if bundle else " (each its own module)"))
         lines.append("")
+    if gaps:
+        lines += gaps + [""]
     lines += ["Copy this folder into the emulator's load folder for the game, then close and reopen the",
               "emulator. Only one mod folder with an exefs/subsdk1 can be on at a time: turn off older",
               "KaeGae or Mouse Grab folders first.", "", "Files:"]
@@ -312,7 +367,8 @@ def main(argv=None):
     p.add_argument("--id", help="the id in the folder's mod.toml (default: the mod's, or pack.<name> for several)")
     p.add_argument("--name", help="mod folder name inside the zip")
     p.add_argument("--out", type=Path, help="zip to write")
-    p.add_argument("--verify-main", type=Path, help="flat main image to check Core's patch against")
+    p.add_argument("--verify-main", type=Path, action="append",
+                   help="flat main image to check Core's patch against (repeatable: one per game build)")
     p.add_argument("--keep", type=Path, help="keep the ELF files and objects in this folder")
     p.add_argument("--define", action="append", default=[], metavar="NAME",
                    help="compile Core with -DNAME (repeatable): KAE_NO_DEBUG_OUT, KAE_LOAD_ONLY")

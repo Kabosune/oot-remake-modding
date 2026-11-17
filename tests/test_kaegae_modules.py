@@ -27,9 +27,11 @@ import kaemod  # noqa: E402
 import kaegae_font  # noqa: E402
 import kaegae_symbols  # noqa: E402
 
-PACK = kaegae_symbols.load_packs()[0]
+PACKS = {pack["version"]: pack for pack in kaegae_symbols.load_packs()}
+PACK = PACKS["1.1.1"]      # the fake game is 1.1.1 unless a test says otherwise
+CORE_VERSION = kaemod.core_version()
 MAIN_BASE, SDK_BASE, CORE_BASE, MOD_BASE = 0x8052F000, 0x70000000, 0x90000000, 0x91000000
-MOVE_UPDATE = 0x2C215E0
+VIEW_LEAD = 0x168          # fake_main_view.S: from the start of view_update to its hook point site
 FAKE_FLAGS = ["--target=aarch64-none-elf", "-O1", "-fPIC", "-ffreestanding", "-fno-builtin", "-fvisibility=hidden",
               "-fno-stack-protector", "-fno-asynchronous-unwind-tables", "-fno-unwind-tables", "-Wall", "-Wextra",
               "-Werror", "-std=c11"]
@@ -40,7 +42,7 @@ SECTIONS {{
   . = 0;
   .text : {{ KEEP(*(.text.header)) *(.text .text.*) }} :code
   .plt  : {{ *(.plt .plt.*) }} :code
-  . = 0x4C4F00;
+  . = {view:#x};
   .text_view : {{ KEEP(*(.text_view)) }} :view
   . = {nnmain:#x};
   .text_nnmain : {{ KEEP(*(.text_nnmain)) }} :nnmain
@@ -70,15 +72,19 @@ def run(*cmd):
     subprocess.run([str(c) for c in cmd], check=True)
 
 
-def build_fakes(work, nnmain=None):
-    """The fake main (with nnMain where the pack says, or elsewhere) and the two fake sdk modules."""
+def build_fakes(work, nnmain=None, pack=PACK):
+    """The fake main (with nnMain where the pack says, or elsewhere) and the two fake sdk modules,
+    laid out as the pack's game build (its hook point sites, nnMain and MOD0 where the pack says)."""
+    work.mkdir(parents=True, exist_ok=True)
     objs = []
     for src in (kaemod.CORE / "crt0.S", HERE / "fake_main.c", HERE / "fake_main_move.S", HERE / "fake_main_view.S"):
         obj = work / (src.name + ".o")
         run("clang", *FAKE_FLAGS, "-c", src, "-o", obj)
         objs.append(obj)
     script = work / "main.ld"
-    script.write_text(MAIN_LD.format(nnmain=nnmain or PACK["detect"]["nnmain"], move=MOVE_UPDATE, mod0=PACK["detect"]["mod0"]))
+    script.write_text(MAIN_LD.format(nnmain=nnmain or pack["detect"]["nnmain"], mod0=pack["detect"]["mod0"],
+                                     view=pack["hookpoint"]["Camera.View"]["site"] - VIEW_LEAD,
+                                     move=pack["hookpoint"]["Actor.MoveUpdate"]["site"] - 4))
     main = work / "main.elf"
     run("ld.lld", "-shared", "-Bsymbolic", "--hash-style=both", "-z", "norelro", "-z", "max-page-size=4096",
         "-T", script, "-o", main, *objs)
@@ -94,9 +100,9 @@ def build_fakes(work, nnmain=None):
     return main.read_bytes(), sdks
 
 
-def apply_ips(p, ips):
+def apply_ips(p, ips, build=kaemod.HOOK_BUILD_ID):
     """Core's patch to main, checking that it replaces the instruction it expects to."""
-    _, records = kaemod.hook_patch()
+    _, records = kaemod.hook_patch(build=build)
     for offset, new, original in records:
         found = p.read(MAIN_BASE + offset, len(original))
         assert found == original, f"main+{offset:#x}: the patch expects {original.hex()}, the fake main has {found.hex()}"
@@ -112,12 +118,12 @@ class Game:
     """A process with the fake game in it and the built modules loaded, linked and started."""
 
     def __init__(self, fakes, files, order="core-first", lazy=True, patched=True, sdk="sdk", with_core=True,
-                 other_hook=False):
+                 other_hook=False, pack=PACK):
         main_elf, sdks = fakes
         p = self.p = emu.Process()
-        self.main = p.load("main", MAIN_BASE, emu.elf_segments(main_elf), size=PACK["detect"]["size"])
+        self.main = p.load("main", MAIN_BASE, emu.elf_segments(main_elf), size=pack["detect"]["size"])
         if patched:
-            apply_ips(p, files[f"exefs/{kaemod.HOOK_BUILD_ID}.ips"])
+            apply_ips(p, files[f"exefs/{pack['build']}.ips"], pack["build"])
         added = []
         slots = sorted(name for name in files if name.startswith("exefs/subsdk"))
         for n, name in enumerate(slots):
@@ -190,7 +196,7 @@ def check_full_run(g, style_set=1):
     """Hello and the probe mod on a known game with everything in place."""
     p = g.p
     assert not p.unresolved, p.unresolved
-    g.expect("kaegae: Core 0.8.3 loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
+    g.expect(f"kaegae: Core {CORE_VERSION} loaded, game 1.1.1, main at 0x8052f000", "hook point in place: Actor.MoveUpdate")
     assert not g.logged("started"), "a mod started before the game ran"
     g.game("game_boot")
     g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started")
@@ -245,16 +251,21 @@ def check_full_run(g, style_set=1):
     LAST_LOG[:] = p.log
 
 
+# Core's patch, one per game build with a symbol pack (1.0.0 and 1.1.1)
+IPS = sorted(f"exefs/{build}.ips" for build in kaemod.hook_builds())
+
+
 def main():
+    assert len(IPS) == 2, IPS
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         fakes = build_fakes(tmp)
         mods = [kaemod.Mod(HELLO), kaemod.Mod(PROBE)]
         separate = kaemod.build(mods, False, tmp / "separate")
         bundle = kaemod.build(mods, True, tmp / "bundle")
-        assert sorted(separate) == ["exefs/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips", "exefs/subsdk1",
+        assert sorted(separate) == [*IPS, "exefs/subsdk1",
                                     "exefs/subsdk2", "exefs/subsdk3"]
-        assert sorted(bundle) == ["exefs/E0F3CCFAF50065AE4EA01EB5AEB13B1A45DA3348.ips", "exefs/subsdk1"]
+        assert sorted(bundle) == [*IPS, "exefs/subsdk1"]
 
         for files, how in ((separate, "each mod its own module"), (bundle, "mods linked into Core's module")):
             for order in ("core-first", "core-last"):
@@ -266,6 +277,24 @@ def main():
                         assert started == (["kaegae.hello", "kaegae.test-probe"] if order == "core-first"
                                            else ["kaegae.test-probe", "kaegae.hello"]), started
             print(f"{how}: ok (Core started first or last, main's imports bound or not)")
+
+        # game version 1.0.0: the same modules on a fake main laid out as 1.0.0 (its pack's hook
+        # point sites, nnMain and MOD0), patched with Core's 1.0.0 .ips
+        old = PACKS["1.0.0"]
+        g = Game(build_fakes(tmp / "v1.0.0", pack=old), separate, pack=old)
+        assert not g.p.unresolved, g.p.unresolved
+        g.expect(f"kaegae: Core {CORE_VERSION} loaded, game 1.0.0, main at 0x8052f000",
+                 "hook point in place: Actor.MoveUpdate", "hook point in place: Camera.View")
+        g.game("game_boot")
+        sym, vt = MAIN_BASE + old["function"]["CctChangePosition"]["offset"], MAIN_BASE + old["vtable"]["Actor"]["offset"]
+        g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started",
+                 f"start: api 8 game 1.0.0 build {old['build']} base {MAIN_BASE:#x}",
+                 # the probe asks for 1.1.1's Hookshot-style alias, f_806d2530: those name an address,
+                 # so they differ per build (1.0.0's is f_806f7730) and only plain names port
+                 f"start: sym {sym:#x} alias 0x0 vtable {vt:#x} field 796 unknown 0x0 -1",
+                 "Core API 0.8, game 1.0.0", f"CctChangePosition at {sym:#x}, Actor.position at +0x31c")
+        g.frame(style_set=1)
+        print("game version 1.0.0: ok (Core finds the build, both hook points in place, the same mods start)")
 
         g = Game(fakes, separate, sdk="old-sdk")
         # the fake main imports the missing ones too (and never calls them); Core's are weak
@@ -443,7 +472,7 @@ def main():
 
         other = build_fakes(tmp, nnmain=PACK["detect"]["nnmain"] + 0x40)
         g = Game(other, separate, order="core-last", patched=False, lazy=False)
-        g.expect("Core 0.8.3: unknown game build, doing nothing",
+        g.expect(f"Core {CORE_VERSION}: unknown game build, doing nothing",
                  "mod kaegae.hello 0.5.0 is off: this build of the game isn't known to Core",
                  "mod kaegae.test-probe 1.2.3 is off: this build of the game isn't known to Core")
         g.game("game_boot")
@@ -490,7 +519,7 @@ def main():
         g.game("game_boot")
         for _ in range(3):
             g.frame(actor=0x40000000)
-        g.expect("Core 0.8.3 loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
+        g.expect(f"Core {CORE_VERSION} loaded", "mod kabosune.slopped-up-sloperina 0.2.1 started", "mod kabosune.mouse-grab 0.2.0 started")
         assert not g.logged(" is off"), g.logged(" is off")
         print("mods built for API 0.5 on Core 0.8: ok (the released Slopped Up Sloperina and Mouse Grab start)")
 

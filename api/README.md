@@ -32,7 +32,7 @@ who patches what, and a small core module that mods call instead of patching the
 | `kaegae build`: one resource size table from every mod's requests | Written, passes its tests, and gives the same table as the hand-made one from a real dump (11 November). The other romfs patch kinds are design only |
 | Core 0.8: the camera view event (`kae_on_view`, matrix and field of view), the `Camera.View` hook point | Works in the game (12 November, Fritchii): hook points in place, First Person 2.0 and FPV Drone 2.0 run on it. The FOV did nothing in 0.8.0; 0.8.1 changes the camera's own FOV instead, and that works (14 November). 0.8.2 (a lone + no longer reaches the game twice) and 0.8.3 (the Instant + switch) work too (14 November) |
 | Generic hook points (`kae_hook`), config | Design only |
-| Game version 1.0.0 | No symbol pack yet: Core does nothing there and says so |
+| Game version 1.0.0 (Core 0.8.4) | Symbol pack and hook point patch built from a real 1.0.0 main (17 November), the module tests run a fake 1.0.0 game; not tested in the game yet. [docs/game-versions.md](../docs/game-versions.md) |
 
 ## Writing a mod
 
@@ -122,7 +122,7 @@ The first four need no game files. `--log` on the second prints the log of a ful
 
 Install `releases/kaegae-core.zip` and any mod built on it (Moon Jump or Speedometer show
 something right away), close and reopen the emulator, start the game. Core's
-log starts with `kaegae: Core 0.8.3 loaded, game 1.1.1, main at ...`, then each mod's own lines
+log starts with `kaegae: Core 0.8.4 loaded, game 1.1.1, main at ...` (or `game 1.0.0`), then each mod's own lines
 (`kaegae [its.id]: ...`); while the emulator runs, the log is `eden_log.busy.txt`. The Mods menu (- and + together) lists every mod Core found, with the
 reason next to any it switched off. Close the emulator before changing mod folders: it locks a
 mod's exefs files while it runs.
