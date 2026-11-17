@@ -169,7 +169,7 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S22, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S24, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
 crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
@@ -224,7 +224,8 @@ has the problem**: some actor of the Deku Tree's placement lets the arrival fini
 back) / S16 (level actors back) split that. **S15 works**: it's one of the system actors. Prime suspect: `ChangeBancBeforehandAnchor` (named
 "the anchor used as the reference point for preloading", 4 m from the entrance); S17 keeps only it, S18 / S19 the room
 actors / the entrance anchors and exit door, S20 is the map with it. **S17 is stuck** (not the preload anchor); S21 / S22 are the map
-with S18's / S19's actors.
+with S18's / S19's actors. **S18 is stuck, S19 works: a new scene needs the Deku Tree's entrance actors** (the `DestinationAnchor`s,
+`MapIconEntranceAnchor`, the exit door `FieldAndDungeonEntranceEventRequestActor`). S22 is the map with them.
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

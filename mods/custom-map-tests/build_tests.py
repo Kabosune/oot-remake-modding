@@ -1643,7 +1643,16 @@ def is_system_actor(gyaml):
 S17_S19 = [("S17", "the preload anchor", {"ChangeBancBeforehandAnchor"}),
            ("S18", "the room actors", {"DungeonRoomIdAnchor", "DungeonRoomArea", "DungeonRoomCenterAnchor"}),
            ("S19", "the entrance anchors and exit door", {"DestinationAnchor", "MapIconEntranceAnchor",
-                                                        "FieldAndDungeonEntranceEventRequestActor"})]
+                                                        "FieldAndDungeonEntranceEventRequestActor"}),
+           ("S23", "the event, ability and location actors",
+            {"AbilityChangeAreaForSceneChange", "PlayerAbilityChangeArea", "EventRequestActor", "EventProxyRequestActor",
+             "LocationArea", "NoEscapeRangeAreaBox", "NaviAreaHintEventActor", "SupplyItemResetSystemActor",
+             "GroundControlActor_ResidentMoveTo", "GroundControlActor_WaveLoop", "GroundControlActor_Rotate", "SoundPortal",
+             "SoundLocator_Waterfall_S", "CameraChangeAreaBox", "ShowToCameraPoint", "CheckReflectedInCameraActor",
+             "MapIconFacilityAnchor", "AnchorLookOnly", "NaviAnchorAction1"}),
+           ("S24", "the areas and air walls", None)]   # None: every other system actor (filled in below)
+S17_S19[-1] = ("S24", "the areas and air walls",
+               lambda g: is_system_actor(g) and not any(g in k for _, _, k in S17_S19[:-1]))
 
 
 def test_scene_step(game, out, label, banc_set=None, clean=False, scene="KaeGae_DekuCopy", keep=None):
@@ -1707,7 +1716,7 @@ def main_1b(game, out, glb=None):
                         clean={"placement"}, keep=lambda g: not is_system_actor(g))
         for lab, name, kinds in S17_S19:
             test_scene_step(game, out / f"KaeGae Map Test {lab} - S13 with {name}", lab, banc_set=S6_BANC,
-                            clean={"placement"}, keep=lambda g, k=kinds: g in k)
+                            clean={"placement"}, keep=kinds if callable(kinds) else (lambda g, k=kinds: g in k))
         test_b40(game, out / "KaeGae Map Test S6 - S5 with the door's own arrival event", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,

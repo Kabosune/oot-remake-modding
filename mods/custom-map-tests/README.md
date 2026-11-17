@@ -798,6 +798,14 @@ are prebuilt so the map can be tried right after S18 or S19 works:
 | S21. S6 with the room actors | The Minecraft map plus the Deku Tree's `DungeonRoomIdAnchor`, `DungeonRoomArea`, `DungeonRoomCenterAnchor` | If S18 works: the map behind the door |
 | S22. S6 with the entrance anchors and exit door | The map plus the Deku Tree's `DestinationAnchor`s, `MapIconEntranceAnchor`, `FieldAndDungeonEntranceEventRequestActor` | If S19 works: the map behind the door |
 
+**S18 result (~12:26 PT): stuck. S19 result (~12:31 PT): works** ("it loads properly"). So a new scene needs one of the
+Deku Tree's entrance actors: the `DestinationAnchor`s (51; near the entrance `HorsePos`, `FieldDungeonEntranceGo`), the
+`MapIconEntranceAnchor` or the exit door `FieldAndDungeonEntranceEventRequestActor` `Entrance` (11 m above the spawn).
+The arrival flow `Event/EventFlow/Dm_SY_BancChangeArrive.bfevfl` has steps like `EventPlayerWarpToTargetActor` /
+`EventWarpToTargetActor`: most likely the arrival looks for one of these by name and waits. (Why B60's emptied placement
+under the Deku Tree's name didn't need them is still open.) **S22** (installed) = the Minecraft map with them. S23 /
+S24 (the rest of S15's system actors) were built but aren't needed.
+
 ## Building
 
 ```
