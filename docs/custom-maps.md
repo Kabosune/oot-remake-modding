@@ -31,7 +31,7 @@ The most used geometry pieces in the Dynamic file: `Land_Deku_CaveProp_B_09` (16
 | Format | Version seen | Tooling |
 |---|---|---|
 | `.bfres` | `FRES`, version bytes `00 04 0a 00` (10.4); textures not embedded, material names point at `Tex/*_Alb`, `_Nrm`, `_Rgh` | Switch-Toolbox opens them ([romfs.md](romfs.md)); writing this version for this game not tried |
-| `.bntx` | version `01 01 04 00`, platform tag `Ounc` (not `NX  `) | Switch 2 texture layout; a writer for it not tried |
+| `.bntx` | version `01 01 04 00`, platform tag `Ounc` (not `NX  `) | [`tools/bntx.py`](../tools/bntx.py) reads them (info, mip 0 as a PNG): block-linear like the Switch 1 but with a different order inside each GOB (17 Nov); a writer not tried |
 | `.bphsh` | `Phive` header, Havok `SDKV20250200` (2025.2) tagfile, `hknpMeshShape` | no public writer found (12 Nov 2026). The [zeldamods wiki page](https://epd.zeldamods.org/wiki/Bphsh) covers Havok 2023.2 |
 | `.bphnm` | `Phive` header | not looked at |
 | `.tscb` | `TSCB` version `0d 01` | TotK-like |
@@ -213,6 +213,31 @@ author in anything published). 339,960 triangles, 661,505 vertices, 75 meshes, 7
 see-through), two 1024 x 1024 texture atlases. One block is 1/70 of a unit, so the world is about 171 x 70 x 127
 blocks; scaled x70 (1 block = 1 m) it is about the size of Inside the Deku Tree. Child Link's camera height is 1.17 m
 ([camera.md](camera.md)).
+
+## Looks: Minecraft block textures (started 17 Nov 2026)
+
+Plan (agreed 13 Nov): one block model per Minecraft material, using the textures inside `test_map.glb` (KaboWabo won't
+distribute the map or its textures), each a copy of the stone block with its albedo swapped.
+
+The stone block `Land_SacredForest_Prop_A_06` (`ModelInfo`: `ModelProjectName` `Land_SacredForest_Prop_A`, `FmdbName`
+`Land_SacredForest_Prop_A_06`) → `Model/Land_SacredForest_Prop_A.Land_SacredForest_Prop_A_06.bfres` (29,352 bytes):
+one material `Mt_Stone_SacredForest_prop_A_06`, shader `field_ground`, textures named by plain strings in the `.bfres`
+string table: `Stone_SacredForest_Prop_A_06_Alb`, `_Nrm`, `_Rgh` (plus the shared `CmnTex_BakeDefault`,
+`CmnTex_BakeLightDefault`). Each is its own `Tex/<name>.bntx` holding one texture of that name:
+
+| Texture | Format | Size | GOB blocks |
+|---|---|---|---|
+| `_Alb` | `0x3206` ASTC 8x5 sRGB | 512 x 512, 10 mips | 1 |
+| `_Nrm` | `0x2F01` ASTC 5x5 | 768 x 768, 10 mips | 1 |
+| `_Rgh` | `0x1D01` BC4 | 512 x 512, 10 mips | 16 |
+
+The textures are a **UV atlas** (islands with padded edges), not one picture per cube face, so a Minecraft tile has to
+go where each face's UVs point. Next steps: read the cube's UVs from the `.bfres`; per material, a copy of the Alb
+`.bntx` with a **same-length** name (32 characters) and new pixels in the same format and size (ASTC 8x5 needs ARM's
+`astcenc`; build it in the cloud workspace), swizzled back with `tools/bntx.py`'s `swizzle()`; a copy of the `.bfres`
+with the Alb name patched in place; a copy of the actor. Open question: the visible blocks are now one scaled block per
+**merged** collision box, which would stretch a texture over several blocks; a real Minecraft look needs one block per
+visible voxel face (or per voxel), so the block count goes up (B41 had 9,397 blocks and ran fine).
 
 ## Placement and size table notes
 
