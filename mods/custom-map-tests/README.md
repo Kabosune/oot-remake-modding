@@ -679,6 +679,20 @@ before that folder existed.
 | S3. S2 with full size table entries | Only the size table: every new-scene file gets at least its Deku Tree original's entry (all other files byte-identical to S2) | Loads and shows the map as in B60: new scenes work, the recipe is complete. Same crash: the empty +0x38 has another cause too (then S4) |
 | S4. Control: the vanilla Deku Tree as a new scene `KaeGae_DekuCopy` | The unchanged Deku Tree (settings, placement, compound, volume stats, foliage) under a new name with S3's way of copying and sizing, the same door change. Only installed if S3 fails | Loads as the normal Deku Tree: new names work and S3's problem is in the map build. Crashes: new scene names need something more |
 
+Result of S3 (17 Nov ~07:50 PT): **no crash, but the new scene never finished loading** ("nothing loads"; the game kept
+drawing until KaboWabo closed it, `eden_log.txt`: no error before the shutdown, the `Userspace PANIC` at the end is the
+forced stop). So the size table fix got past the crash. What still named the old scene: **the placement files'
+`FilePath`** (`Work/Banc/Scene/InsideTheDekuTree/InsideTheDekuTree.bcett.json` in both `_Static` and `_Dynamic`), while
+the scene settings' `Banc.Main` says `.../KaeGae_Minecraft/KaeGae_Minecraft.bcett.json`. In all 160 of the game's own
+placement files `FilePath` is exactly their scene's `Banc.Main`; S3's were the only ones that didn't match, so the loader
+most likely waits for a placement under the new path that never arrives. (Other files still naming the Deku Tree do so by
+path to files that exist: `BaseLocation`, `DungeonParam`, `LocationalLightScenePlacement`, the `.bkres` texture names.)
+S4 had the same mismatch and wasn't tried; it's rebuilt with the fix.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| S5. S3 with the placement's `FilePath` | Only `FilePath` in both placement files → the new scene's `Banc.Main` (`new_scene()` does it now) | Loads: new scenes work. Still stuck: something else names the old scene (then S4, rebuilt with the same fix) |
+
 ## Building
 
 ```

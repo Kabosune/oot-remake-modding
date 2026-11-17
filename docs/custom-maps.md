@@ -169,10 +169,11 @@ What the tests showed (positions from Slopped Up Sloperina's x / y / z watches):
 - Other area limits exist for special places: `NoEscapeRangeArea` / `OutOfNoEscapeArea` (boss rooms; the Deku Tree has
   `NoEscapeArea_Get_StoneOfForest`) and `HoldHountedWastelandOutArea` (the Haunted Wasteland).
 
-## Making a new scene (in progress, tests S1–S4, 13–17 Nov 2026)
+## Making a new scene (in progress, tests S1–S5, 13–17 Nov 2026)
 
 Goal: the custom map as a scene of its own behind a door, so the scene it was built from stays playable. S1 and S2
-crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below) and S3 tests the fix.
+crashed while the new scene loaded; the cause was found on 17 Nov (size table entries, below). S3 with that fixed loaded
+forever (the placement files' `FilePath`, below); S5 tests that fix.
 
 What a new scene `X` gets so far (builder: `new_scene()` in `mods/custom-map-tests/build_tests.py`):
 
@@ -201,6 +202,11 @@ a 3,076-byte file (every scene's is at least 6,424 over its size), the small `Ga
 the `.bkres` and probe files 2–2.5 times their size. 40 files were short. **Rule: a new file made from a game file gets
 at least that file's entry** (`write_mod(..., like=)` in the builder). Details and the table:
 [mods/custom-map-tests](../mods/custom-map-tests/README.md), "The size table was the problem".
+
+**S3 (17 Nov) got past the crash but never finished loading.** Both placement files still said `FilePath:
+Work/Banc/Scene/InsideTheDekuTree/InsideTheDekuTree.bcett.json`; in all 160 of the game's placement files `FilePath` is
+exactly the scene's `Banc.Main`, so **a new scene's placement files need `FilePath` set to its own `Banc.Main`**
+(`new_scene()` does it from S5 on; S5 tests it).
 
 Also: Fritchii most likely uses the first switched-on mod folder by name that has a file (that's how the yuzu family
 layers mod romfs folders; not tested here), so when several mods ship the whole size table, only the alphabetically

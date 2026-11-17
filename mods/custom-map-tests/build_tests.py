@@ -1557,6 +1557,8 @@ def new_scene(game, files, scene, keep_foliage=False):
                 like[scene_path(rel, scene)] = rel
     bp = files[DEKU_BANC.replace(DEKU, scene)][0]
     bp["Banc"]["Main"] = f"Work/Banc/Scene/{scene}/{scene}.bcett.json"
+    for rel in (DEKU_S, DEKU_D):                  # S5: each placement file names its scene by the same path (all 160
+        files[rel.replace(DEKU, scene)][0]["FilePath"] = bp["Banc"]["Main"]   # of the game's match; S3 kept the old one)
     probes = sorted(str(p.relative_to(game.r)) for p in (game.r / "Bake/Probe/Scene" / DEKU).iterdir())
     for rel in DEKU_SCENE_FILES + probes:
         raw = game.raw(rel) if rel.endswith(".zs") else (game.r / rel).read_bytes()
@@ -1608,14 +1610,14 @@ def test_s4(game, out, scene="KaeGae_DekuCopy"):
 def main_1b(game, out, glb=None):
     if glb:
         test_s4(game, out / "KaeGae Map Test S4 - control, the vanilla Deku Tree as a new scene")
-        test_b40(game, out / "KaeGae Map Test S3 - S2 with full size table entries", glb, show_all=True,
+        test_b40(game, out / "KaeGae Map Test S5 - S3 with the placement's FilePath", glb, show_all=True,
                  bounds=((-95.0, 0.0, -85.0), (95.0, 135.0, 100.0)),
                  banc_set={"IsEnableBakeLight": False, "FoliageScene": None, "HeightMapParam": None,
                            "OptimizeChangeBancUnits": None,
                            "WorldMgrName": "Work/WorldMgr/WorldParam/HyruleField_Child.game__wm__WorldParam.gyml"},
                  empty=True, no_compound=True,                 # no palette_set: the Deku Tree's own palette stays
                  aabb=((-95.0, 0.0, -90.0), (95.0, 150.0, 100.0)), small_vstats=True, host_under=True,
-                 scene="KaeGae_Minecraft", label="S3")
+                 scene="KaeGae_Minecraft", label="S5")
         for lab, name, extra, more in (
                 ("B60", "B58 with the flag hosts under the map", dict(no_ornament=True, no_lowtree=True,
                  small_vstats=True, host_under=True), {"HeightMapParam": None, "OptimizeChangeBancUnits": None}),
