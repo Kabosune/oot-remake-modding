@@ -76,6 +76,7 @@ HOOK_VIEW2_TAKEN = 0x804e5b78;  /* where that cbz goes */
 HOOK_MOVE        = 0x82c415e0;  /* f_82c415e0's first instruction: pacibsp; x0 = actor */
 HOOK_MOVE_RET    = 0x82c415e4;
 MOVE_SECOND_RET  = 0x82c415e8;  /* after the movement update's second instruction (str d10, [sp, #-0x80]!) */
+HOOK_EQUIP_RET   = 0x80a9acd8;  /* PouchEquip's third instruction (after sub sp, sp, #0x180): hook point Pouch.Equip resumes here */
 
 /* --- free memory claimed by mods in this repo (see docs/memory-map.md) --- */
 FP_STATE         = 0x84ebfc00;  /* 0x40 bytes of unused .bss (zeroed at boot) */

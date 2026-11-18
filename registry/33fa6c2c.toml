@@ -28,7 +28,8 @@ name   = "KaeGae Core"
 code   = ["0x3BE6900..0x3BE6A00"]          # hook point stubs
 memory = ["0x4E2FB00..0x4E2FC00"]          # one function pointer per hook point
 hooks  = ["0x2BCD714",                     # hook point Actor.MoveUpdate
-          "0x6641C8"]                      # hook point Camera.View
+          "0x6641C8",                      # hook point Camera.View
+          "0xA12F64"]                      # hook point Pouch.Equip (0.9)
 
 # ---- claims read from mods that don't follow the standard ----
 

@@ -43,6 +43,7 @@ Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
 |---|---|---|
 | [Moon Jump](mods/moon-jump/README.md) | [moon-jump.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/moon-jump.zip) | Low gravity, boosted jumps, hold L + A to fly up. |
 | [Speedometer](mods/speedometer/README.md) | [speedometer.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/speedometer.zip) | Link's speed as a big number and a bar, with his top speed and rise / fall. m/s, km/h or mph. |
+| [Equip Anything](mods/equip-anything/README.md) | build it with `tools/kaemod.py` (needs Core 0.9) | Child and adult Link can equip every item; pick an equipped sword, shield or tunic again to take it off. Both are switches on the Mods menu. |
 | [Drunk Mode](mods/drunk-mode/README.md) | [drunk-mode.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/drunk-mode.zip) | The movement stick wobbles; sticks and A / B can be mirrored, flipped or swapped. |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's

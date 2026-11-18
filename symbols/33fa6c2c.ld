@@ -59,6 +59,7 @@ HOOK_VIEW_RET    = 0x806841cc;
 HOOK_MOVE        = 0x82bed710;  /* the movement update's first instruction: pacibsp; x0 = actor */
 HOOK_MOVE_RET    = 0x82bed714;
 MOVE_SECOND_RET  = 0x82bed718;  /* after the movement update's second instruction (str d10, [sp, #-0x80]!) */
+HOOK_EQUIP_RET   = 0x80a32f68;  /* PouchEquip's third instruction (after sub sp, sp, #0x180): hook point Pouch.Equip resumes here */
 
 /* --- free memory claimed by KaeGae Core (registry/33fa6c2c.toml) --- */
 KP_HOOK_SLOTS    = 0x84e4fb00;  /* KaeGae Core: one 8-byte function pointer per hook point, set by the module */

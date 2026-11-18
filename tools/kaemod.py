@@ -40,7 +40,7 @@ TITLE_ID = "0400486024DEC000"
 CORE_SLOT = "subsdk1"
 MOD_SLOTS = [f"subsdk{n}" for n in range(2, 9)]   # subsdk9 is left to standalone mods (sloperinaGZ)
 
-CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "symbols.c", "log.c", "format.c",
+CORE_SOURCES = [CORE / f for f in ("crt0.S", "core.c", "mods.c", "events.c", "pouch.c", "symbols.c", "log.c", "format.c",
                                    "platform.c", "alloc.c", "imports.c", "draw.c", "text.c", "menu.c", "input.c", "input_wrap.S", "motion.c",
                                    "hooks.c", "player.c", "settings.c", "keyboard.c",
                                    "view.c", "view_entry.S")]

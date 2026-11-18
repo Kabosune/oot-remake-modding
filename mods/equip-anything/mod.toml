@@ -1,20 +1,22 @@
-# Equip Anything's manifest: a romfs-only KaeGae package (no code, no Core needed).
+# Equip Anything's manifest: a core mod (no patches of its own; it runs on KaeGae Core 0.9 and up).
 manifest = 1
 
 id          = "kabosune.equip-anything"
 name        = "Equip Anything"
-version     = "0.3.0"
+version     = "1.0.0"
 authors     = ["KaboWabo/Kabosune"]
 license     = "MIT"
 homepage    = "https://github.com/Kabosune/oot-remake-modding"
-description = "Child and adult Link can equip every item and piece of equipment in the pause menu."
+description = "Child and adult Link can equip every item and piece of equipment, and picking an equipped one again takes it off."
 
 [game]
 title = "0400486024DEC000"
 
-# The menu table grows by 424 bytes; the game builds the menu's objects in the memory this entry
-# sets aside, so it needs more room (0.1.0 without it crashed at boot). 46,824 + 424 + 2,048 spare.
-[[romfs-patch]]
-kind     = "size-table"
-path     = "UI/Pouch/PouchTable/PouchTable.game__ui__PouchTable.bgyml"
-at-least = 49296
+[core]
+api     = "0.9"
+sources = ["equip_anything.c"]
+events  = ["frame", "pouch_equip"]
+# Every game address comes from Core's symbol packs by name, so it runs on 1.0.0 and 1.1.1.
+symbols = ["global:PouchMgrPtr", "field:PouchMgr.ui", "field:PouchUi.table", "field:PouchTable.pages",
+           "field:PouchButton.items", "field:PouchItem.name", "field:PouchItem.usable_child",
+           "field:PouchItem.usable_adult"]

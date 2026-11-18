@@ -63,7 +63,7 @@ static inline uint64_t kp_tick(void) {
 
 // ---- the game: one entry per symbol pack (generated, see tools/kaegae_symbols.py) ----
 typedef struct { const char *name; uint32_t offset; } kp_sym_t;
-typedef struct { const char *name; uint32_t site; uint32_t slot; } kp_hookpoint_t;
+typedef struct { const char *name; uint32_t site; uint32_t slot; uint32_t menu_lo, menu_hi; } kp_hookpoint_t;   // menu: (0.9) the pause menu's code, for Pouch.Equip; 0..0 if none
 typedef struct {
     const char *version;     // "1.1.1"
     const char *build_id;    // 40 hex digits
@@ -99,7 +99,7 @@ void kp_mods_ready(void);
 KaeMod *kp_mod_starting(void);
 
 // ---- events ----
-enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_PLAYER_MOVE, KP_EV_VIEW, KP_EV_COUNT };
+enum { KP_EV_FRAME, KP_EV_INPUT, KP_EV_DRAW, KP_EV_ACTOR_MOVE, KP_EV_PLAYER_MOVE, KP_EV_VIEW, KP_EV_POUCH_EQUIP, KP_EV_COUNT };
 extern bool kp_event_on[KP_EV_COUNT];   // set by the service that feeds the event
 
 void kp_fire_frame(void);
@@ -109,6 +109,8 @@ void kp_fire_actor_move(void *actor);
 bool kp_wants_player_move(void);                 // someone subscribed: worth looking for Link
 void kp_fire_player_move(const KaePlayer *link);
 void kp_fire_view(KaeView *view);
+int kp_fire_pouch_equip(KaePouchEquip *equip);   // 1 if a subscriber asked to skip the game's equip
+bool kp_wants_pouch_equip(void);
 void kp_unsubscribe_mod(const KaeMod *mod);
 
 // ---- the Mods menu (menu.c) ----
@@ -136,6 +138,8 @@ bool kp_keyboard_on(void);                   // ... and the About tab's switch i
 void kp_keyboard_switch(bool on);
 bool kp_keyboard_read(uint64_t keys[4]);     // keys held now, bit n = USB HID usage n; false if off
 bool kp_hooks_start(void);
+bool kp_pouch_start(void);                       // (0.9) the pouch functions (pouch.c), from kp_hooks_start
+int  kp_pouch_entry(void *pouch, void *name, int mode, int flag, uintptr_t lr);   // Pouch.Equip's module side
 bool kp_view_start(void);                        // the view event's symbols (view.c), from kp_hooks_start
 bool kp_view_fov(void);                          // the view's field of view can be changed
 bool kp_player_start(void);                      // after kp_hooks_start

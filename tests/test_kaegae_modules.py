@@ -101,6 +101,28 @@ def build_fakes(work, nnmain=None, pack=None):
     return main.read_bytes(), sdks
 
 
+def fake_pouch(pack):
+    """{module offset: code} for the fake pouch functions at the pack's offsets (0.9): PouchEquip
+    (returns 7 when it runs; its second instruction is the real one's, Core's hook point),
+    PouchIsEquipped (1 for a name starting with "E"), PouchUnequip (stores the name's first 8
+    bytes at pouch+0x200), and a caller inside the hook point's menu range."""
+    ret = 0xD65F03C0
+    equip = pack["function"]["PouchEquip"]["offset"]
+    menu = int(pack["hookpoint"]["Pouch.Equip"]["menu"].split("..")[0], 16)
+    bl = 0x94000000 | (((equip - (menu + 4)) >> 2) & 0x3FFFFFF)
+    return {
+        equip: (0xD503237F, 0xD10603FF, 0x910603FF, 0x528000E0, 0xD50323FF, ret),   # pacibsp, sub/add sp, mov w0 #7, autibsp
+        pack["function"]["PouchIsEquipped"]["offset"]: (0xF9400028, 0x39400108, 0x7101151F, 0x1A9F17E0, ret),
+        pack["function"]["PouchUnequip"]["offset"]: (0xF9400028, 0xF9400109, 0xF9010009, ret),
+        menu: (0xA9BF7BFD, bl, 0xA8C17BFD, ret),                                       # stp, bl PouchEquip, ldp, ret
+    }
+
+
+def write_fake_pouch(p, pack):
+    for offset, words in fake_pouch(pack).items():
+        p.write(MAIN_BASE + offset, struct.pack(f"<{len(words)}I", *words))
+
+
 def apply_ips(p, ips, build=kaemod.HOOK_BUILD_ID):
     """Core's patch to main, checking that it replaces the instruction it expects to."""
     _, records = kaemod.hook_patch(build=build)
@@ -124,6 +146,7 @@ class Game:
         main_elf, sdks = fakes
         p = self.p = emu.Process()
         self.main = p.load("main", MAIN_BASE, emu.elf_segments(main_elf), size=pack["detect"]["size"])
+        write_fake_pouch(p, pack)
         if patched:
             apply_ips(p, files[f"exefs/{pack['build']}.ips"], pack["build"])
         added = []
@@ -205,10 +228,10 @@ def check_full_run(g, style_set=1):
     base = MAIN_BASE
     sym, vtable = base + PACK["function"]["CctChangePosition"]["offset"], base + PACK["vtable"]["Actor"]["offset"]
     alias = sym if PACK["version"] == "1.1.1" else 0     # the probe asks for 1.1.1's alias, f_806d2530: aliases are per build
-    g.expect(f"kaegae [kaegae.test-probe]: start: api 8 game {PACK['version']} build {PACK['build']} base {base:#x}",
+    g.expect(f"kaegae [kaegae.test-probe]: start: api {kaemod.api_version()[1]} game {PACK['version']} build {PACK['build']} base {base:#x}",
              f"start: sym {sym:#x} alias {alias:#x} vtable {vtable:#x} field 796 unknown 0x0 -1",
              "start: has 1111110", "start: alloc 1 readable 10", "start: subscribed 0 0 0 0",
-             f"kaegae [kaegae.hello]: hello from its own start. Core API 0.8, game {PACK['version']}",
+             f"kaegae [kaegae.hello]: hello from its own start. Core API 0.{kaemod.api_version()[1]}, game {PACK['version']}",
              "event.actor_move: yes", f"CctChangePosition at {sym:#x}, Actor.position at +0x31c")
     A, B, X, Y = 1, 2, 4, 8
     g.set_controller(A | B | Y, lx=1000, ly=2000, rx=-3000, ry=4000)
@@ -230,9 +253,9 @@ def check_full_run(g, style_set=1):
                          (unit * 2, 720 - unit * 2 - unit * 3, unit * 3, unit * 3, 0x40E060)], rects[:2]   # green: A was held
     assert rects[-2:] == [(10, 720 - 20 - 40, 30, 40, 0x112233), (0, 0, 15, 20, 0xFFFFFF)], (len(rects), rects[-2:])
     assert g.sdk_int("sdk_overruns") == 0
-    # between them hello's text plate, its text ("KaeGae Core 0.8: A is held", white, at its
+    # between them hello's text plate, its text (f"KaeGae Core 0.{kaemod.api_version()[1]}: A is held", white, at its
     # default size 2) and its picture
-    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len("KaeGae Core 0.8: A is held")
+    text_x, text_y, size, chars = unit * 7, unit * 2, 2, len(f"KaeGae Core 0.{kaemod.api_version()[1]}: A is held")
     plate, text = rects[2], [r for r in rects[3:-2] if r[4] == 0xFFFFFF and r[0] < text_x + chars * 8 * size]
     assert plate[4] == 0x101820 and plate[0] == text_x - 4 and plate[1] == 720 - (text_y - 4) - plate[3], plate
     assert all(text_x <= r[0] and r[0] + r[2] <= text_x + chars * 8 * size and
@@ -292,11 +315,11 @@ def suite():
         g.game("game_boot")
         sym, vt = MAIN_BASE + old["function"]["CctChangePosition"]["offset"], MAIN_BASE + old["vtable"]["Actor"]["offset"]
         g.expect("kaegae: mod kaegae.hello 0.5.0 started", "kaegae: mod kaegae.test-probe 1.2.3 started",
-                 f"start: api 8 game 1.0.0 build {old['build']} base {MAIN_BASE:#x}",
+                 f"start: api {kaemod.api_version()[1]} game 1.0.0 build {old['build']} base {MAIN_BASE:#x}",
                  # the probe asks for 1.1.1's Hookshot-style alias, f_806d2530: those name an address,
                  # so they differ per build (1.0.0's is f_806f7730) and only plain names port
                  f"start: sym {sym:#x} alias 0x0 vtable {vt:#x} field 796 unknown 0x0 -1",
-                 "Core API 0.8, game 1.0.0", f"CctChangePosition at {sym:#x}, Actor.position at +0x31c")
+                 f"Core API 0.{kaemod.api_version()[1]}, game 1.0.0", f"CctChangePosition at {sym:#x}, Actor.position at +0x31c")
         g.frame(style_set=1)
         print("game version 1.0.0: ok (Core finds the build, both hook points in place, the same mods start)")
 
@@ -872,6 +895,69 @@ def suite():
         assert not g.p.unresolved, g.p.unresolved
         print("World Tools: ok (reads the time and weather through the state's vtable, draws the clock top right, "
               "Jump to night and One hour later call WmSetTime)")
+
+        # the pouch_equip event (0.9): the fake PouchEquip (7 = it ran) called from the fake menu
+        # caller and from outside it; the test mod takes an item picked again in the menu off
+        g = Game(fakes, kaemod.build([kaemod.Mod(HERE / "pouch-test")], False, tmp / "pouch"))
+        POUCH = 0x43000000
+        g.p.uc.mem_map(POUCH, 0x1000)
+        g.p.write(MAIN_BASE + PACK["global"]["PouchMgrPtr"]["offset"], struct.pack("<Q", POUCH))
+        g.game("game_boot")
+        g.expect("hook point in place: Pouch.Equip", "pouch: has 1 1")
+        equip_at = MAIN_BASE + PACK["function"]["PouchEquip"]["offset"]
+        menu_at = MAIN_BASE + int(PACK["hookpoint"]["Pouch.Equip"]["menu"].split("..")[0], 16)
+
+        def equip(fn, text):
+            g.p.write(POUCH + 0x500, text.encode() + b"\0")
+            g.p.write(POUCH + 0x400, struct.pack("<Qi", POUCH + 0x500, 0x40))
+            return g.p.call(fn, POUCH, POUCH + 0x400, 3, 0)
+
+        assert equip(menu_at, "Equip_Sword") == POUCH, "picked again in the menu: the game's equip should be skipped"
+        assert g.p.read(POUCH + 0x200, 8) == b"Equip_Sw", "the mod's kae_pouch_unequip didn't reach PouchUnequip"
+        assert equip(equip_at, "Equip_Sword") == 7, "the game's own call (not the menu) must go ahead"
+        assert equip(menu_at, "Weapon_Bow") == 7, "a new item picked in the menu must be equipped"
+        g.expect("pouch: Equip_Sword menu 1 equipped 1 mode 3 handled 0", "pouch: unequip 0, still equipped 1",
+                 "pouch: Equip_Sword menu 0 equipped 1 mode 3", "pouch: Weapon_Bow menu 1 equipped 0")
+        assert not g.p.unresolved, g.p.unresolved
+        print("pouch_equip: ok (menu vs game calls told apart, a handled equip is skipped, kae_pouch_unequip reaches the game)")
+
+        # Equip Anything 1.0 (0.9): a fake pause-menu table behind PouchMgrPtr (one page, one button,
+        # two items: one only for a child, one only for an adult); the mod sets both age flags on
+        # every item, puts them back when switched off, and takes an item picked again off
+        equip_mod = kaemod.Mod(REPO / "mods" / "equip-anything")
+        g = Game(fakes, kaemod.build([equip_mod], False, tmp / "equip"))
+        F = PACK["field"]
+        POUCH, UI, TABLE, BUTTON, ITEMS, NAMES = (0x44000000 + i * 0x1000 for i in range(6))
+        g.p.uc.mem_map(POUCH, 0x6000)
+        g.p.write(MAIN_BASE + PACK["global"]["PouchMgrPtr"]["offset"], struct.pack("<Q", POUCH))
+        g.p.write(POUCH + F["PouchMgr.ui"]["offset"], struct.pack("<Q", UI))
+        g.p.write(UI + F["PouchUi.table"]["offset"], struct.pack("<Q", TABLE))
+        page = TABLE + F["PouchTable.pages"]["offset"]                      # the first page
+        g.p.write(page, struct.pack("<QIIQ", 0, 1, 1, TABLE + 0x800))         # count 1, elements at +0x800
+        g.p.write(TABLE + 0x800, struct.pack("<Q", BUTTON))
+        g.p.write(BUTTON + F["PouchButton.items"]["offset"], struct.pack("<QIIQ", 0, 2, 2, BUTTON + 0x800))
+        g.p.write(BUTTON + 0x800, struct.pack("<QQ", ITEMS, ITEMS + 0x100))
+        child_at, adult_at = F["PouchItem.usable_child"]["offset"], F["PouchItem.usable_adult"]["offset"]
+        for n, (name, child, adult) in enumerate((("Weapon_Sword_Kokiri", 1, 0), ("Weapon_Sword_Master", 0, 1))):
+            g.p.write(NAMES + n * 0x40, name.encode() + b"\0")
+            g.p.write(ITEMS + n * 0x100 + F["PouchItem.name"]["offset"], struct.pack("<Q", NAMES + n * 0x40))
+            g.p.write(ITEMS + n * 0x100 + child_at, bytes((child, adult, 0, child, adult)))   # values, then "set here"
+        flags = lambda n: tuple(g.p.read(ITEMS + n * 0x100 + child_at, 5))   # noqa: E731
+        g.game("game_boot")
+        g.expect("equip anything 1.0.0", "any age ready", "take off ready")
+        g.set_controller(0)
+        g.frame()
+        assert flags(0) == (1, 1, 0, 1, 1) and flags(1) == (1, 1, 0, 1, 1), (flags(0), flags(1))
+        g.expect("equip anything: every age can use 2 more items")
+        # picked again in the menu: taken off (the fake unequip stores the name at pouch+0x200), skipped
+        g.p.write(NAMES + 0x200, b"Equip_Shield\0")
+        g.p.write(NAMES + 0x300, struct.pack("<Qi", NAMES + 0x200, 0x40))
+        menu_at = MAIN_BASE + int(PACK["hookpoint"]["Pouch.Equip"]["menu"].split("..")[0], 16)
+        assert g.p.call(menu_at, POUCH, NAMES + 0x300, 3, 0) == POUCH
+        assert g.p.read(POUCH + 0x200, 8) == b"Equip_Sh"
+        g.expect("equip anything: took off Equip_Shield (0)")
+        assert not g.p.unresolved, g.p.unresolved
+        print("Equip Anything: ok (both age flags set on every item of the menu's table, an item picked again taken off)")
 
         # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
         # update fills the registers, passes Core's hook point and stores them: they must come back.

@@ -63,3 +63,28 @@ kp_hook_view:
     ldp     x16, x17, [sp], #0x20
     ldr     x8, [x19, #0x20]         // the replaced instruction
     b       HOOK_VIEW_RET
+
+    // slot 2  pouch equip       (0.9) PouchEquip's second instruction, after its pacibsp (so lr is
+    //                            signed). x0 = PouchMgr, x1 = name, w2 = mode, w3 = flag. The
+    //                            module gets them and lr in x4 (still signed: core/pouch.c strips
+    //                            it) and returns nonzero to skip the game's equip.
+    .ascii  "KPHOOK01"
+    .global kp_hook_equip
+kp_hook_equip:
+    adrp    x16, KP_HOOK_SLOTS
+    ldr     x16, [x16, :lo12:KP_HOOK_SLOTS + 16]
+    cbz     x16, 9f
+    stp     x29, x30, [sp, #-0x30]!
+    stp     x0, x1, [sp, #0x10]
+    stp     x2, x3, [sp, #0x20]
+    mov     x4, x30
+    blr     x16                      // (pouch, name, mode, flag, lr) -> skip?
+    mov     w16, w0
+    ldp     x2, x3, [sp, #0x20]
+    ldp     x0, x1, [sp, #0x10]
+    ldp     x29, x30, [sp], #0x30
+    cbz     w16, 9f
+    autibsp                          // PouchEquip's own pacibsp signed lr: return from it
+    ret
+9:  sub     sp, sp, #0x180           // the replaced instruction
+    b       HOOK_EQUIP_RET

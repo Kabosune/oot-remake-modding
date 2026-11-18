@@ -48,6 +48,7 @@ int kae_has(const char *feature) {
         { "event.frame", KP_EV_FRAME }, { "event.input", KP_EV_INPUT }, { "event.draw", KP_EV_DRAW },
         { "event.actor_move", KP_EV_ACTOR_MOVE }, { "draw.rect", KP_EV_DRAW },
         { "draw.text", KP_EV_DRAW }, { "draw.image", KP_EV_DRAW }, { "event.view", KP_EV_VIEW },
+        { "event.pouch_equip", KP_EV_POUCH_EQUIP }, { "pouch", KP_EV_POUCH_EQUIP },
     };
     if (!feature)
         return 0;
