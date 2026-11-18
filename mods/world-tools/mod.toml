@@ -1,0 +1,22 @@
+# World Tools' manifest: a core mod (no patches of its own; it runs on KaeGae Core).
+manifest = 1
+
+id       = "kabosune.world-tools"
+name     = "World Tools"
+version  = "0.1.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.8"
+sources = ["world_tools.c"]
+events  = ["frame", "draw", "player_move"]
+# Every game address comes from Core's symbol pack by name, so it runs on every game version Core
+# has a pack for (1.0.0 and 1.1.1). Needs Core 0.8.6 (the first with these names).
+symbols = ["global:WorldMgrPtr", "function:WmSetTime", "function:WmSetWeather", "function:WmResetWeather",
+           "function:WmSetWind", "function:WmResetWind", "field:WorldMgr.state", "field:WorldState.time_slot",
+           "field:WorldState.weather_slot"]

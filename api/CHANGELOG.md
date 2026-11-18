@@ -11,6 +11,19 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.8.6: names for World Tools (17 November 2026; not tested in the game yet)
+
+Core only, nothing new for mods' API (still 0.8). This takes the number the mod loader was
+planned under; the mod loader moves to the next free one.
+
+- **Six names and three fields in both symbol packs**, for the world state: the global
+  `WorldMgrPtr`; `WmSetTime`, `WmSetWeather`, `WmResetWeather`, `WmSetWind`, `WmResetWind` (the
+  functions the game's own event actions `ExecuteWmSetTime`, `OneShotWmSetWeatherForFlowchart`,
+  `ExecuteWmSetWindForFlowchart` and their resets call); fields `WorldMgr.state`,
+  `WorldState.time_slot`, `WorldState.weather_slot` (the virtual calls that read the time and the
+  weather). Their 1.0.0 addresses come from `tools/port_pack.py` (every one matched). **World
+  Tools 0.1.0** (`mods/world-tools`) asks for them; it needs this Core.
+
 ## Core 0.8.5: names for Mouse Grab, and guard rails for every game version (17 November 2026; works in the game, 17 November, Fritchii, 1.0.0 and 1.1.1)
 
 Core only, nothing new for mods' API (still 0.8).

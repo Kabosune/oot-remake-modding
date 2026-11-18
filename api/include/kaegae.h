@@ -29,7 +29,7 @@ extern "C" {
 
 #define KAE_API_MAJOR 0
 #define KAE_API_MINOR 8
-#define KAE_CORE_PATCH 5   /* Core's own fix number: changes that give mods nothing new (0.8.5). Not checked for mods */
+#define KAE_CORE_PATCH 6   /* Core's own fix number: changes that give mods nothing new (0.8.6). Not checked for mods */
 
 /* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
    Core keeps running older mods, back to the oldest minor version it still supports (Core 0.8:

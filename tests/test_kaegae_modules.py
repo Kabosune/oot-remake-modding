@@ -820,6 +820,59 @@ def suite():
         assert not g.p.unresolved, g.p.unresolved
         print("Speedometer: ok (measures Link's speed, draws its display bottom right with a filled bar)")
 
+        # World Tools (0.1.0): a fake WorldMgr behind the pack's names. Its state object answers the
+        # time (13:25) and the weather (2) through its vtable; the fake setters store their arguments
+        # in the WorldMgr, so the test can read what the mod asked for.
+        world = kaemod.Mod(REPO / "mods" / "world-tools")
+        g = Game(fakes, kaemod.build([world], False, tmp / "world"))
+        WM, STATE, VT, CODE = 0x42000000, 0x42001000, 0x42002000, 0x42003000
+        g.p.uc.mem_map(WM, 0x4000)
+        ret = 0xD65F03C0
+        code = struct.pack("<8I", 0xB9400800, ret, 0xB9400C00, ret, 0, 0, 0, 0)       # ldr w0, [x0, #8] / #12
+        g.p.write(CODE, code)
+        g.p.write(MAIN_BASE + PACK["global"]["WorldMgrPtr"]["offset"], struct.pack("<Q", WM))
+        g.p.write(WM + PACK["field"]["WorldMgr.state"]["offset"], struct.pack("<Q", STATE))
+        g.p.write(STATE, struct.pack("<QII", VT, 13 * 3600 + 25 * 60 + 7, 2))
+        g.p.write(VT + PACK["field"]["WorldState.time_slot"]["offset"], struct.pack("<Q", CODE))
+        g.p.write(VT + PACK["field"]["WorldState.weather_slot"]["offset"], struct.pack("<Q", CODE + 8))
+        for name, words in (("WmSetTime", (0xB9010001, ret)),                                  # str w1, [x0, #0x100]
+                            ("WmSetWeather", (0xF9400021, 0xF9008401, 0xB9011002, ret)),       # the name, the speed
+                            ("WmSetWind", (0xB9011801, 0xBD011C00, 0xBD012001, 0xBD012402, ret)),
+                            ("WmResetWeather", (0xB9012801, ret)), ("WmResetWind", (0xB9012C01, ret))):
+            g.p.write(MAIN_BASE + PACK["function"][name]["offset"], struct.pack(f"<{len(words)}I", *words))
+        text = "[kabosune.world-tools]\nJump to night = 0x1\nOne hour later = 0x2\nShow weather number = 1\n"
+        g.p.write(g.sdk.exports["sdk_file"], text.encode())
+        g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+        g.game("game_boot")
+        g.expect("mod kabosune.world-tools 0.1.0 started", f"world tools 0.1.0: clock, time of day, weather, wind (game {PACK['version']})")
+        set_time = lambda: struct.unpack("<i", g.p.read(WM + 0x100, 4))[0]               # noqa: E731
+        g.p.write(WM + 0x100, struct.pack("<i", -5))
+        for _ in range(3):
+            g.set_controller(0)
+            g.frame()
+        g.expect("world tools: WorldMgr at")
+        assert set_time() == -5, "the time was set without asking"
+        # the clock, top right: "13:25  weather 2" at size 2 on its plate (the recorded rectangles
+        # count y from the bottom, as Speedometer's check above shows)
+        label = "13:25  weather 2"
+        width, height = len(label) * 8 * 2 + 2 * 8, 16 * 2 + 2 * 8
+        plate = [r for r in g.rects() if r[4] == 0x101820]
+        assert any(r[0] == 1280 - 720 // 45 - width and r[1] == 720 - 720 // 45 - height and r[2] == width
+                   and r[3] == height for r in plate), plate
+        # Jump to night (A): 0:00; One hour later (B): 14:25 from the reported 13:25
+        g.set_controller(1 << 0)
+        g.frame()
+        assert set_time() == 0, set_time()
+        g.set_controller(0)
+        g.frame()
+        g.set_controller(1 << 1)
+        g.frame()
+        assert set_time() == 14 * 3600 + 25 * 60 + 7, set_time()
+        g.expect("world tools: time set to 0:00", "world tools: time set to 14:25")
+        assert not g.p.unresolved, g.p.unresolved
+        print("World Tools: ok (reads the time and weather through the state's vtable, draws the clock top right, "
+              "Jump to night and One hour later call WmSetTime)")
+
         # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
         # update fills the registers, passes Core's hook point and stores them: they must come back.
         cams = [kaemod.Mod(REPO / "mods" / "first-person" / "core"), kaemod.Mod(REPO / "mods" / "fpv-drone" / "core")]

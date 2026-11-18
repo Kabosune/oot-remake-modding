@@ -588,3 +588,63 @@ port   = "same as 1.1.1, not checked"
 offset = 0xE0
 type   = "f32[3]"
 port   = "same as 1.1.1, not checked"
+
+# ---- World Tools (Core 0.8.6): WorldMgr, time of day, weather, wind ----
+
+[global.WorldMgrPtr]
+offset = 0x4E0E668
+note   = "the WorldMgr pointer variable: [ptr] = the WorldMgr (0x40D8 bytes, made by 0xF93A70); 0 before it exists"
+port   = "from 37 of 40 references, all agreeing (1.1.1 0x4E7EAB0)"
+
+[function.WmSetTime]
+offset = 0x33F1580
+alias  = "f_83411580"
+args   = "worldmgr, u32 seconds since midnight"
+note   = "sets the time of day (a request applied on WorldMgr's next update); what the event action ExecuteWmSetTime calls with hour * 3600 + minute * 60"
+port   = "matched (1.1.1 0x34522D0)"
+
+[function.WmSetWeather]
+offset = 0x33F4260
+alias  = "f_83414260"
+args   = "worldmgr, const char **name, int change_speed"
+note   = "sets the weather by its ResWeatherInfluenceParam name (\"Rainy\", \"Thunderstorm\", ...); 5 = at once (OneShotWmSetWeatherForFlowchart with IsImmTrans)"
+port   = "matched (1.1.1 0x3454FB0)"
+
+[function.WmResetWeather]
+offset = 0x33F43D0
+alias  = "f_834143d0"
+args   = "worldmgr, int change_speed"
+note   = "back to the area's own weather (OneShotWmResetWeatherForFlowchart)"
+port   = "matched (1.1.1 0x3455120)"
+
+[function.WmSetWind]
+offset = 0x33F4440
+alias  = "f_83414440"
+args   = "worldmgr, bool at_once, float azimuth, float elevation, float speed"
+note   = "sets the wind (ExecuteWmSetWindForFlowchart; degrees, degrees, the areas' MinWindSpeed / MaxWindSpeed units)"
+port   = "matched (1.1.1 0x3455190)"
+
+[function.WmResetWind]
+offset = 0x33F4500
+alias  = "f_83414500"
+args   = "worldmgr, bool at_once"
+note   = "back to the area's own wind (ExecuteWmResetWindForFlowchart)"
+port   = "matched (1.1.1 0x3455250)"
+
+[field."WorldMgr.state"]
+offset = 0x578
+type   = "ptr"
+note   = "an object answering questions about the world through its vtable (WorldState.*)"
+port   = "same as 1.1.1: the 1.0.0 query nodes matched with their offsets unmasked"
+
+[field."WorldState.time_slot"]
+offset = 0x30
+type   = "vtable byte offset"
+note   = "int (*)(state): the world time in seconds (the game takes it mod 86400 for the time of day); QueryWorldGetCurrentTime"
+port   = "same as 1.1.1: the 1.0.0 query nodes matched with their offsets unmasked"
+
+[field."WorldState.weather_slot"]
+offset = 0xF0
+type   = "vtable byte offset"
+note   = "int (*)(state): the current weather, 0..4 (which is which not checked); QueryWeather"
+port   = "same as 1.1.1: the 1.0.0 query nodes matched with their offsets unmasked"

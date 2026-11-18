@@ -34,6 +34,7 @@ who patches what, and a small core module that mods call instead of patching the
 | Generic hook points (`kae_hook`), config | Design only |
 | Game version 1.0.0 (Core 0.8.4) | Works in the game (17 November, Fritchii v5.8.4): Core finds the build and Link, the Mods menu and Slopped Up Sloperina work (Fritchii itself shows 1.0.0 black, mods or not). Symbol pack and hook point patch built from a real 1.0.0 main; the module tests run a fake 1.0.0 game. [docs/game-versions.md](../docs/game-versions.md) |
 | Core 0.8.5: more names (Mouse Grab's ragdoll calls), the raw-offset warning, `[game] tested` | Works in the game (17 November, Fritchii v5.8.4, 1.0.0 and 1.1.1): Mouse Grab 0.4.0 runs on both. [Running on every game version](#running-on-every-game-version) |
+| Core 0.8.6: names for the world state (WorldMgr: time of day, weather, wind) | Built and passes its tests (17 November); not tested in the game yet. World Tools 0.1.0 uses them. [docs/world.md](../docs/world.md) |
 
 ## Writing a mod
 
