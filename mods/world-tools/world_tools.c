@@ -39,6 +39,9 @@ static const char *const weather_files[] = {
     "Kokiri", "Cloudy_Ash", "Rainy_Graveyard", "Thunderstorm_Graveyard",
     "GanonCloudy", "GanonRainy", "ZoraDomain",
 };
+// The game's own number for each (the state's weather call; seen in the game, 18 Nov 2026):
+// 0 clear, 1 rain, 2 snow, 3 thunderstorm, 4 cloudy.
+static const int weather_numbers[] = { 0, 4, 1, 3, 2, 0, 4, 1, 3, 4, 3, 0 };
 #define WEATHERS ((int)(sizeof weather_files / sizeof *weather_files))
 
 static void on_action(KaeItem *item, void *user);
@@ -65,7 +68,7 @@ static KaeItem settings[ITEMS] = {
     [TO_NIGHT]     = KEY("Jump to night", "Sets the time to 0:00."),
     [PLUS_HOUR]    = KEY("One hour later", "Moves the time of day on by an hour."),
     [WEATHER]      = { KAE_CHOICE, "Weather", "For Set weather.", 2, 2, 0, WEATHERS - 1, 0, weather_names, 0, 0, 0, 0 },
-    [CHANGE_SPEED] = { KAE_NUMBER, "Change speed", "5 = at once (what the game uses for that); 0-4 not known yet.", 5, 5, 0, 5, 1, 0, 0, 0, 0, 0 },
+    [CHANGE_SPEED] = { KAE_NUMBER, "Change speed", "How fast the weather changes: 0 = slow fade, 3 = fast, 5 = at once.", 5, 5, 0, 5, 1, 0, 0, 0, 0, 0 },
     [SET_WEATHER]  = ACT("Set weather", "Changes the weather to the one above.", SET_WEATHER),
     [OWN_WEATHER]  = ACT("Area's own weather", "Back to the weather this area has by itself.", OWN_WEATHER),
     [WIND_DIR]     = { KAE_NUMBER, "Wind direction", "Degrees, as the game's areas give it.", 0, 0, 0, 345, 15, 0, 0, 0, 0, 0 },
@@ -83,8 +86,9 @@ static volatile int pending;          // bit per action id, set by the menu, don
 static volatile int shown_seconds = -1, shown_weather = -1;
 static int chosen_weather = -1;       // what Set weather last asked for (index), -1 = the area's own
 static int chosen_wind;               // 1 while Set wind is in force
-static void *last_link;               // Link's actor at the last check: it is rebuilt when an area loads
-static int reapply_in;                // frames until Keep after loading sets things again
+static void *last_state;              // WorldMgr's state object: a new one is made when an area loads
+static int settle;                    // frames until Keep after loading sets things again
+static int checks_left, check_in;     // then: how many more weather checks, frames to the next one
 static int logged_state;
 
 static void on_action(KaeItem *item, void *user) {
@@ -195,21 +199,35 @@ static void frame(void *user) {
         KAE_LOG("world tools: wind back to the area's own");
     }
 
-    // Keep after loading: a new area gives Link a new actor; set our choices again a second later.
-    if (reapply_in > 0 && --reapply_in == 0 && settings[KEEP].value) {
+    // Keep after loading: loading an area gives WorldMgr a new state object (and the area's own
+    // weather and wind). Once it has stayed the same for a second, set our choices again, then check
+    // the weather number every second for ten seconds in case the area sets its own after that.
+    char *slot = (char *)wm + off_state;
+    void *state = kae_readable(slot, sizeof(void *)) ? *(void **)slot : 0;
+    if (state != last_state) {
+        if (last_state && settings[KEEP].value && (chosen_weather >= 0 || chosen_wind)) {
+            settle = 60;
+            checks_left = 0;
+        }
+        last_state = state;
+    }
+    if (settle > 0 && --settle == 0 && settings[KEEP].value) {
+        KAE_LOG("world tools: new area: setting the chosen weather and wind again");
         if (chosen_weather >= 0)
             do_set_weather(chosen_weather);
         if (chosen_wind)
             do_set_wind();
+        checks_left = 10;
+        check_in = 60;
     }
-}
-
-static void player_move(const KaePlayer *link, void *user) {
-    (void)user;
-    if (link->actor != last_link) {
-        if (last_link && (chosen_weather >= 0 || chosen_wind))
-            reapply_in = 30;
-        last_link = link->actor;
+    if (checks_left > 0 && --check_in == 0) {
+        checks_left--;
+        check_in = 60;
+        int n = ask_state(off_weather);
+        if (settings[KEEP].value && chosen_weather >= 0 && n >= 0 && n != weather_numbers[chosen_weather]) {
+            KAE_LOG("world tools: the area changed the weather (%d): setting it again", n);
+            do_set_weather(chosen_weather);
+        }
     }
 }
 
@@ -276,11 +294,9 @@ static int start(void) {
     }
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
-    if (kae_on_player_move(player_move, 0, 0) != KAE_OK)
-        KAE_LOG("world tools: no player_move event here: Keep after loading won't notice new areas");
     kae_settings("World Tools", settings, ITEMS);
-    KAE_LOG("world tools 0.1.0: clock, time of day, weather, wind (game %s)", kae_game_version());
+    KAE_LOG("world tools 0.1.1: clock, time of day, weather, wind (game %s)", kae_game_version());
     return 0;
 }
 
-KAE_MOD("kabosune.world-tools", "0.1.0", start, 0);
+KAE_MOD("kabosune.world-tools", "0.1.1", start, 0);

@@ -843,7 +843,7 @@ def suite():
         assert not g.p.unresolved, g.p.unresolved
         print("Speedometer: ok (measures Link's speed, draws its display bottom right with a filled bar)")
 
-        # World Tools (0.1.0): a fake WorldMgr behind the pack's names. Its state object answers the
+        # World Tools (0.1.1): a fake WorldMgr behind the pack's names. Its state object answers the
         # time (13:25) and the weather (2) through its vtable; the fake setters store their arguments
         # in the WorldMgr, so the test can read what the mod asked for.
         world = kaemod.Mod(REPO / "mods" / "world-tools")
@@ -867,7 +867,7 @@ def suite():
         g.p.write(g.sdk.exports["sdk_file"], text.encode())
         g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
         g.game("game_boot")
-        g.expect("mod kabosune.world-tools 0.1.0 started", f"world tools 0.1.0: clock, time of day, weather, wind (game {PACK['version']})")
+        g.expect("mod kabosune.world-tools 0.1.1 started", f"world tools 0.1.1: clock, time of day, weather, wind (game {PACK['version']})")
         set_time = lambda: struct.unpack("<i", g.p.read(WM + 0x100, 4))[0]               # noqa: E731
         g.p.write(WM + 0x100, struct.pack("<i", -5))
         for _ in range(3):
@@ -895,6 +895,70 @@ def suite():
         assert not g.p.unresolved, g.p.unresolved
         print("World Tools: ok (reads the time and weather through the state's vtable, draws the clock top right, "
               "Jump to night and One hour later call WmSetTime)")
+
+        # World Tools' Keep after loading (0.1.1): Set weather (Rain) from its Mods menu page, then a new
+        # area (WorldMgr gets a new state object, which reports clear weather): a second later the
+        # mod sets Rain again, and again when its check still sees the wrong weather number. With the
+        # setting off, a new area changes nothing.
+        def world_game(keep):
+            g = Game(fakes, kaemod.build([world], False, tmp / f"world-keep-{keep}"))
+            g.p.uc.mem_map(WM, 0x8000)
+            g.p.write(CODE, code)
+            g.p.write(MAIN_BASE + PACK["global"]["WorldMgrPtr"]["offset"], struct.pack("<Q", WM))
+            g.p.write(WM + PACK["field"]["WorldMgr.state"]["offset"], struct.pack("<Q", STATE))
+            g.p.write(STATE, struct.pack("<QII", VT, 13 * 3600, 0))
+            g.p.write(VT + PACK["field"]["WorldState.time_slot"]["offset"], struct.pack("<Q", CODE))
+            g.p.write(VT + PACK["field"]["WorldState.weather_slot"]["offset"], struct.pack("<Q", CODE + 8))
+            for name, words in (("WmSetTime", (0xB9010001, ret)), ("WmSetWeather", (0xF9400021, 0xF9008401, 0xB9011002, ret)),
+                                ("WmSetWind", (0xB9011801, 0xBD011C00, 0xBD012001, 0xBD012402, ret)),
+                                ("WmResetWeather", (0xB9012801, ret)), ("WmResetWind", (0xB9012C01, ret))):
+                g.p.write(MAIN_BASE + PACK["function"][name]["offset"], struct.pack(f"<{len(words)}I", *words))
+            text = f"[kabosune.world-tools]\nKeep after loading = {keep}\n"
+            g.p.write(g.sdk.exports["sdk_file"], text.encode())
+            g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+            g.game("game_boot")
+            return g
+        MINUS, PLUS, A_BUTTON, DOWN = 1 << 11, 1 << 10, 1 << 0, 1 << 15
+        for keep in (1, 0):
+            g = world_game(keep)
+
+            def frames(buttons, count=1):
+                g.set_controller(buttons)
+                for _ in range(count):
+                    g.frame()
+            frames(0, 3)
+            frames(MINUS | PLUS, 3)
+            frames(0, 2)
+            frames(A_BUTTON)                       # the first page: World Tools
+            frames(0, 2)
+            for _ in range(12):                    # down to Set weather (Weather's default: Rain)
+                frames(DOWN)
+                frames(0, 2)
+            frames(A_BUTTON)
+            frames(0, 2)
+            frames(MINUS | PLUS, 3)
+            frames(0, 3)
+            weather_sets = lambda: len(g.logged("world tools: weather set to Rainy"))   # noqa: E731
+            assert weather_sets() == 1, g.p.log[-10:]
+            g.p.write(WM + 0x108, struct.pack("<Q", 0))
+            g.p.write(STATE + 0x1000, struct.pack("<QII", VT, 14 * 3600, 0))        # the new area's state: clear
+            g.p.write(WM + PACK["field"]["WorldMgr.state"]["offset"], struct.pack("<Q", STATE + 0x1000))
+            frames(0, 59)
+            assert weather_sets() == 1, "Keep after loading set the weather before the area settled"
+            frames(0, 2)
+            if keep:
+                g.expect("world tools: new area: setting the chosen weather and wind again")
+                assert weather_sets() == 2
+                name = struct.unpack("<Q", g.p.read(WM + 0x108, 8))[0]
+                assert g.p.read(name, 6) == b"Rainy\0"
+                frames(0, 61)
+                g.expect("world tools: the area changed the weather (0): setting it again")
+                assert weather_sets() == 3
+            else:
+                frames(0, 120)
+                assert weather_sets() == 1 and not g.logged("new area"), "Keep after loading is off, but the mod set the weather"
+        print("World Tools' Keep after loading: ok (a new state object = a new area: Rain set again after a second, "
+              "and again when the weather number is wrong; nothing with the setting off)")
 
         # the pouch_equip event (0.9): the fake PouchEquip (7 = it ran) called from the fake menu
         # caller and from outside it; the test mod takes an item picked again in the menu off
