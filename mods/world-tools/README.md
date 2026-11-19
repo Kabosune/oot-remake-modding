@@ -5,11 +5,11 @@ The time of day, the weather and the wind for the Ocarina of Time remake, runnin
 pick any of the game's 12 weathers, and set the wind.
 
 **Status, 18 November 2026: version 0.1.0 works in Fritchii on game 1.1.1** (the clock, Set time,
-the weathers and the wind; run on KaeGae Core 0.9.0, which has its names), except "Keep after
-loading", which never noticed a new area (it watched Link's actor, which the game keeps across
-areas). **0.1.1** (on `main`, not tested yet) watches WorldMgr's state object instead; the
-download is still 0.1.0. It asks Core for the game by name, so it should run on 1.0.0 too (not
-tried).
+the weathers and the wind; run on KaeGae Core 0.9.0, which has its names). **0.1.1 (18 November)
+works too and fixes "Keep after loading"**: 0.1.0 never noticed a new area (it watched Link's
+actor, which the game keeps across areas); 0.1.1 watches WorldMgr's state object. The area's own
+weather still shows for about a second after you arrive, then yours comes back. It asks Core for
+the game by name, so it should run on 1.0.0 too (not tried).
 
 **Needs KaeGae Core 0.8.6 or later** (the first Core with the names it asks for). The
 [kaegae-core.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip)
