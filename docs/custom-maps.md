@@ -187,7 +187,8 @@ The Minecraft map runs as a scene of its own, `KaeGae_Minecraft`, behind Kokiri 
 4. **The entrance actors of the source scene's placement kept** (`DestinationAnchor`, `MapIconEntranceAnchor`, the
    exit door `FieldAndDungeonEntranceEventRequestActor`). Without them the door's arrival never finishes: the scene
    loads (noclip moves Link) but **Link gets no control and the UI never shows** (the pause menu works, undrawn), which
-   looks like an endless load (S3–S21). Which one of the three is needed isn't narrowed down; the arrival flow
+   looks like an endless load (S3–S21). The test log calls this **improper loading**: no freeze, no crash, the game
+   keeps running. Which one of the three is needed isn't narrowed down; the arrival flow
    (`Dm_SY_BancChangeArrive.bfevfl`) has warp-to-actor steps. The same emptied placement under the Deku Tree's *own*
    name didn't need them (B60): not explained.
 5. **The door:** only `NextBancParamNameChild` / `Adult` → `X` (S22 keeps the door's own `NextEventName`

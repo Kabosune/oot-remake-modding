@@ -22,6 +22,17 @@ How it works: a collision shape (`Phive/ShapeParam/*.bgyml`) can be a list of pl
 `HalfExtents` and `OffsetTranslation`) instead of a Havok mesh. Block maps fit that well: the map's visible block
 faces are turned into blocks, closed-off insides filled, and the blocks merged into as few boxes as possible.
 
+## Words used in this log
+
+- **Improper loading** (KaboWabo's name for it, 18 Nov 2026): the scene loads, but the arrival never finishes. The screen
+  stays **black** (or the scene shows with no HUD), **Link can't be controlled** or do anything, and the **pause menu
+  opens but its UI isn't drawn**. The game hasn't crashed or frozen: it keeps running, and a noclip mod (Slopped Up
+  Sloperina's) still moves Link around to other coordinates. Most likely the door's arrival event never ends (the game
+  hides the UI and takes control away during scene-change events). S3–S21 did this (they lacked the entrance actors),
+  and so does S28. Earlier entries in this log call it "never finished loading", "stuck" or "no control / UI".
+- **Freeze**: the game stops responding (noclip doesn't move Link either). **Crash**: the game closes or stops with an
+  error; the emulator log (`eden_log.txt`) then has a backtrace. Neither of these is improper loading.
+
 ## Round 1 result and round 1b
 
 Round 1 (12 Nov): with all four turned on at once, going into the Deku Tree hung on the loading screen (the game
@@ -884,6 +895,22 @@ Most likely a limit per actor (or per model) somewhere between those, or a limit
 | S28 (built before) | S27's blocks within 60 m of the spawn: as dense near the spawn as S27, but under 9,300 per actor | Only if S29 still has holes: holes in the same places = a limit per area; none = a total limit |
 
 Installed: S29 (`load\0400486024DEC000\`); S27 moved to `round1b\`.
+
+**S29 result (18 Nov ~19:30 PT): loads properly (control, HUD), but part of the map isn't drawn.** Screenshot at
+x -31.7, y 93, z 0.7 (S27's spot): the single missing blocks around Link seem to be gone (not yet confirmed), but on the
++x side (towards the map's middle and the entrance) nothing is drawn, of any material, unsplit ones like Dirt too; the
+hidden collision hosts (6 m under the map) show through. Collision is all there (the hosts). The builder places the blocks
+sorted by x (-85 to 85), and x -30 is about the 20,500th of 65,866: so most likely either the blocks stream in in file
+order and weren't all made yet, or the game stops making block actors at about 20,500 in total. The log has nothing
+about actors (no crash; the usual emulator stubs).
+
+**S28 result (18 Nov ~19:30 PT): improper loading** (see "Words used in this log": black screen, no control, the pause
+menu opens undrawn, noclip still moves Link; no crash). Every file of S28 except the block placement and its size table
+entry (correct: 3,186,704 for 3,186,188 bytes) is byte for byte S27's: the same door, entrance actors, hosts, palette;
+no duplicate actor `Hash`. Its 25,425 map blocks are a subset of S27's, in the same order. So nothing in its data should
+stop the arrival (S27 and S29, with more blocks, arrive fine). Either the arrival is timing-dependent, or the way the
+blocks are made gets in its way. Next: S28 once more (repeatable?), and S29 standing still for a minute or two (does the
+missing part fill in? where along x do the blocks stop?).
 
 ## Building
 
