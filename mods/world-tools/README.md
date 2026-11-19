@@ -22,7 +22,7 @@ Download: [world-tools.zip](https://github.com/Kabosune/oot-remake-modding/raw/m
 | Show clock | on | The time of day on screen, hours:minutes (24 hours) |
 | Clock corner | Top right | Where it sits |
 | Clock size | 2 | Text size, 1 to 4 |
-| Show weather number | off | The game's own number for the current weather (0–4) next to the clock. Which number is which isn't known yet |
+| Show weather number | off | The game's own number for the current weather next to the clock: 0 clear, 1 rain, 2 snow, 3 thunderstorm, 4 cloudy (the area kinds count as their family: Kokiri and Zora's Domain 0, the rains 1, the storms and Ganon rain 3, Ash and Ganon clouds 4) |
 | Hour, Minute | 12:00 | For Set time |
 | Set time | | Sets the time of day to the hour and minute above |
 | Jump to day / Jump to night / One hour later | unbound | Bindings: 12:00, 0:00, an hour on |

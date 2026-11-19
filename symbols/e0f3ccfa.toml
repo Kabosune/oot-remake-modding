@@ -678,7 +678,7 @@ source = "disassembly (QueryWorldGetCurrentTime, QueryWeather), tested (World To
 [field."WorldState.weather_slot"]
 offset = 0xF0
 type   = "vtable byte offset"
-note   = "int (*)(state): the current weather, 0..4 (which is which not checked); QueryWeather"
+note   = "int (*)(state): the current weather: 0 clear, 1 rain, 2 snow, 3 thunderstorm, 4 cloudy (seen in the game, 18 Nov); QueryWeather"
 source = "disassembly (QueryWorldGetCurrentTime, QueryWeather), tested (World Tools, 18 Nov)"
 
 # ---- the pause menu's table (UI/Pouch/PouchTable), as the game parsed it ----
