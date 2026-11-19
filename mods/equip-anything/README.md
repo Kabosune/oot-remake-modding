@@ -5,10 +5,9 @@ the Master Sword, the Hylian or Mirror Shield, the Fairy Bow, the Hookshot, the 
 adult Link with the Kokiri Sword, the Slingshot, the masks, and so on. And picking an equipped
 sword, shield or tunic again takes it off.
 
-**Status, 17 November 2026: 1.0.0 is built and passes its tests on both game versions (1.0.0,
-1.1.1); not tried in the game yet.** It needs **KaeGae Core 0.9**. The two halves worked in the
-game as 0.1.1 (any age, 14 November) and 0.3.0 (taking off, 17 November); 1.0.0 does the same
-things through Core instead.
+**Status, 18 November 2026: 1.0.1 is being tested in the game** (1.0.0 worked, apart from the
+tunic bug below). It needs **KaeGae Core 0.9**. The two halves worked in the game as 0.1.1 (any
+age, 14 November) and 0.3.0 (taking off, 17 November); 1.0 does the same things through Core.
 
 What the game does with an item that was never meant for that age (models, animations, holding
 it) is untested and may look wrong.
@@ -27,8 +26,10 @@ it) is untested and may look wrong.
 `IsUsableChild` and `IsUsableAdult`, each with a "set here" byte (0 = take it from the table's
 parent, or false). The mod finds the table through Core's names (`PouchMgrPtr`, then the fields
 `PouchMgr.ui`, `PouchUi.table`, `PouchTable.pages`, `PouchButton.items`, `PouchItem.*`), sets
-both flags on every item of the menu's seven pages, and keeps what it found so switching the
-setting off puts it back. It looks again every second, in case the game loaded the table anew. The
+both flags on the items of the menu's seven pages, and keeps what it found so switching the
+setting off puts it back. A button that already has an item of its own for an age is left alone
+for that age (1.0.1): the Kokiri Tunic's button holds `Obj_Armor_Child_Normal` (child) and
+`Armor_Adult_Normal` (adult), and the menu equips the first item the age may use. It looks again every second, in case the game loaded the table anew. The
 table's eighth array (+0x88) isn't one of the menu's pages and is left alone, as 0.1.1 left
 `NoDisplayArray` alone.
 
@@ -54,6 +55,16 @@ The game's equipped items are GameData strings: `PlayerStatus.EquipWeapon`, `Equ
   then `PouchUnequip` and return". Worked. Core 0.9's `Pouch.Equip` hook point is that patch.
 - 1.0.0 needs no romfs file, no size table entry and no patch of its own, so it can't clash with
   other mods that ship a whole size table.
+
+## 1.0.1 (18 November): the tunic bug
+
+1.0.0 opened every item to both ages, so the Kokiri Tunic's child item (listed first on its button)
+became usable for adult Link too, and the menu equipped that one: adult Link got
+`Obj_Armor_Child_Normal` and his look didn't change back from the Goron Tunic for the rest of the
+session (it did after a reload). Seen in the emulator's log of 17 November (the Adventure Log's
+`965d02dc` is that name's CRC32). 1.0.1 opens an item to an age only where its button has no item
+of that age's own. Taking a tunic off also puts `Obj_Armor_Child_Normal` in the slot (the game's
+`PouchUnequip`), also for adult Link: not changed in 1.0.1 (one change per test).
 
 ## Building
 

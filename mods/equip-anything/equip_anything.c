@@ -3,9 +3,12 @@
 //
 // Any age: the pause menu reads which age may use an item from its table (UI/Pouch/PouchTable),
 // as the game parsed it: every item has IsUsableChild and IsUsableAdult, each with a "set here"
-// byte. The mod sets both, in memory, on every item of the menu's pages, keeping what it found so
+// byte. The mod sets both, in memory, on the items of the menu's pages, keeping what it found so
 // that switching the setting off puts it back. It looks again every second, in case the table
-// was loaded anew.
+// was loaded anew. A button that already has an item of its own for an age is left alone for
+// that age: the Kokiri Tunic's button holds Obj_Armor_Child_Normal (child) and Armor_Adult_Normal
+// (adult), and the menu equips the first usable item, so opening the child one to adults put the
+// child's tunic on adult Link (1.0.0's tunic bug).
 //
 // Taking off: Core's pouch_equip event says when the menu equips an item that already is in its
 // slot; the mod empties the slot instead (kae_pouch_unequip) and the game's equip is skipped.
@@ -83,7 +86,11 @@ static void put_back(void) {
     table_done = 0;
 }
 
-// Sets both flags on every item. Returns how many items it changed.
+static int usable_item(const uint8_t *it) {
+    return it && kae_readable(it + f_name, 8) && kae_readable(it + f_child, 4) && is_name(*(const char **)(it + f_name));
+}
+
+// Opens every item to the ages its button has no item of its own for. Returns how many items it changed.
 static int unlock(uint8_t *table) {
     int changed = 0, seen = 0;
     for (int p = 0; p < PAGES; p++) {
@@ -95,17 +102,30 @@ static int unlock(uint8_t *table) {
             uint8_t *button = buttons[b];
             void **items;
             int m = button ? array_at(button + f_items, &items) : 0;
+            // Which ages the button already has an item for (value and "set here" both 1).
+            int has_child = 0, has_adult = 0;
             for (int i = 0; i < m; i++) {
                 uint8_t *it = items[i];
-                if (!it || !kae_readable(it + f_name, 8) || !kae_readable(it + f_child, 4) || !is_name(*(const char **)(it + f_name)))
+                if (!usable_item(it))
+                    continue;
+                has_child |= it[f_child] == 1 && it[f_child + 3] == 1;
+                has_adult |= it[f_adult] == 1 && it[f_adult + 3] == 1;
+            }
+            for (int i = 0; i < m; i++) {
+                uint8_t *it = items[i];
+                if (!usable_item(it))
                     continue;
                 seen++;
-                if (it[f_child] == 1 && it[f_adult] == 1 && it[f_child + 3] == 1 && it[f_adult + 3] == 1)
+                int open_child = !has_child && !(it[f_child] == 1 && it[f_child + 3] == 1);
+                int open_adult = !has_adult && !(it[f_adult] == 1 && it[f_adult + 3] == 1);
+                if (!open_child && !open_adult)
                     continue;
                 if (saved_count < MAX_ITEMS)
                     saved[saved_count++] = (saved_t){ it, it[f_child], it[f_adult], it[f_child + 3], it[f_adult + 3] };
-                it[f_child] = it[f_adult] = 1;
-                it[f_child + 3] = it[f_adult + 3] = 1;
+                if (open_child)
+                    it[f_child] = it[f_child + 3] = 1;
+                if (open_adult)
+                    it[f_adult] = it[f_adult + 3] = 1;
                 changed++;
             }
         }
@@ -165,7 +185,7 @@ static int start(void) {
     kae_settings("Equip Anything", settings, ITEMS);
     int ok_age = pouch_ptr && f_ui >= 0 && f_table >= 0 && f_pages >= 0 && f_items >= 0 && f_name >= 0 && f_child >= 0 && f_adult == f_child + 1;
     int ok_off = kae_has("event.pouch_equip");
-    KAE_LOG("equip anything 1.0.0 (game %s): any age %s, take off %s", kae_game_version(),
+    KAE_LOG("equip anything 1.0.1 (game %s): any age %s, take off %s", kae_game_version(),
             ok_age ? "ready" : "unavailable (names missing)", ok_off ? "ready" : "unavailable (Core's Pouch.Equip hook point is off)");
     if (ok_age)
         kae_on_frame(frame, 0, 0);
@@ -174,4 +194,4 @@ static int start(void) {
     return ok_age || ok_off ? 0 : 1;
 }
 
-KAE_MOD("kabosune.equip-anything", "1.0.0", start, 0);
+KAE_MOD("kabosune.equip-anything", "1.0.1", start, 0);

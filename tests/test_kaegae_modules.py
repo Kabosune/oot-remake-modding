@@ -921,34 +921,42 @@ def suite():
         assert not g.p.unresolved, g.p.unresolved
         print("pouch_equip: ok (menu vs game calls told apart, a handled equip is skipped, kae_pouch_unequip reaches the game)")
 
-        # Equip Anything 1.0 (0.9): a fake pause-menu table behind PouchMgrPtr (one page, one button,
-        # two items: one only for a child, one only for an adult); the mod sets both age flags on
-        # every item, puts them back when switched off, and takes an item picked again off
+        # Equip Anything 1.0 (0.9): a fake pause-menu table behind PouchMgrPtr (one page, two
+        # buttons: the Kokiri Tunic's, with one item only for a child and one only for an adult,
+        # and one with an adult-only item); the mod opens an item to an age only where its button
+        # has no item of that age's own (1.0.1), puts them back when switched off, and takes an
+        # item picked again off
         equip_mod = kaemod.Mod(REPO / "mods" / "equip-anything")
         g = Game(fakes, kaemod.build([equip_mod], False, tmp / "equip"))
         F = PACK["field"]
         POUCH, UI, TABLE, BUTTON, ITEMS, NAMES = (0x44000000 + i * 0x1000 for i in range(6))
+        BUTTON2 = BUTTON + 0x400
         g.p.uc.mem_map(POUCH, 0x6000)
         g.p.write(MAIN_BASE + PACK["global"]["PouchMgrPtr"]["offset"], struct.pack("<Q", POUCH))
         g.p.write(POUCH + F["PouchMgr.ui"]["offset"], struct.pack("<Q", UI))
         g.p.write(UI + F["PouchUi.table"]["offset"], struct.pack("<Q", TABLE))
         page = TABLE + F["PouchTable.pages"]["offset"]                      # the first page
-        g.p.write(page, struct.pack("<QIIQ", 0, 1, 1, TABLE + 0x800))         # count 1, elements at +0x800
-        g.p.write(TABLE + 0x800, struct.pack("<Q", BUTTON))
+        g.p.write(page, struct.pack("<QIIQ", 0, 2, 2, TABLE + 0x800))         # count 2, elements at +0x800
+        g.p.write(TABLE + 0x800, struct.pack("<QQ", BUTTON, BUTTON2))
         g.p.write(BUTTON + F["PouchButton.items"]["offset"], struct.pack("<QIIQ", 0, 2, 2, BUTTON + 0x800))
         g.p.write(BUTTON + 0x800, struct.pack("<QQ", ITEMS, ITEMS + 0x100))
+        g.p.write(BUTTON2 + F["PouchButton.items"]["offset"], struct.pack("<QIIQ", 0, 1, 1, BUTTON2 + 0x200))
+        g.p.write(BUTTON2 + 0x200, struct.pack("<Q", ITEMS + 0x200))
         child_at, adult_at = F["PouchItem.usable_child"]["offset"], F["PouchItem.usable_adult"]["offset"]
-        for n, (name, child, adult) in enumerate((("Weapon_Sword_Kokiri", 1, 0), ("Weapon_Sword_Master", 0, 1))):
+        for n, (name, child, adult) in enumerate((("Obj_Armor_Child_Normal", 1, 0), ("Armor_Adult_Normal", 0, 1),
+                                                  ("Weapon_Sword_Master", 0, 1))):
             g.p.write(NAMES + n * 0x40, name.encode() + b"\0")
             g.p.write(ITEMS + n * 0x100 + F["PouchItem.name"]["offset"], struct.pack("<Q", NAMES + n * 0x40))
             g.p.write(ITEMS + n * 0x100 + child_at, bytes((child, adult, 0, child, adult)))   # values, then "set here"
         flags = lambda n: tuple(g.p.read(ITEMS + n * 0x100 + child_at, 5))   # noqa: E731
         g.game("game_boot")
-        g.expect("equip anything 1.0.0", "any age ready", "take off ready")
+        g.expect("equip anything 1.0.1", "any age ready", "take off ready")
         g.set_controller(0)
         g.frame()
-        assert flags(0) == (1, 1, 0, 1, 1) and flags(1) == (1, 1, 0, 1, 1), (flags(0), flags(1))
-        g.expect("equip anything: every age can use 2 more items")
+        assert flags(0) == (1, 0, 0, 1, 0) and flags(1) == (0, 1, 0, 0, 1), \
+            ("the Kokiri Tunic's button has an item for each age: leave it alone", flags(0), flags(1))
+        assert flags(2) == (1, 1, 0, 1, 1), ("an adult-only button: open to a child", flags(2))
+        g.expect("equip anything: every age can use 1 more items")
         # picked again in the menu: taken off (the fake unequip stores the name at pouch+0x200), skipped
         g.p.write(NAMES + 0x200, b"Equip_Shield\0")
         g.p.write(NAMES + 0x300, struct.pack("<Qi", NAMES + 0x200, 0x40))
@@ -957,7 +965,7 @@ def suite():
         assert g.p.read(POUCH + 0x200, 8) == b"Equip_Sh"
         g.expect("equip anything: took off Equip_Shield (0)")
         assert not g.p.unresolved, g.p.unresolved
-        print("Equip Anything: ok (both age flags set on every item of the menu's table, an item picked again taken off)")
+        print("Equip Anything: ok (items opened to the ages their button lacks, the Kokiri Tunic's pair left alone, an item picked again taken off)")
 
         # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
         # update fills the registers, passes Core's hook point and stores them: they must come back.

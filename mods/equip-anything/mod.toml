@@ -3,7 +3,7 @@ manifest = 1
 
 id          = "kabosune.equip-anything"
 name        = "Equip Anything"
-version     = "1.0.0"
+version     = "1.0.1"
 authors     = ["KaboWabo/Kabosune"]
 license     = "MIT"
 homepage    = "https://github.com/Kabosune/oot-remake-modding"
