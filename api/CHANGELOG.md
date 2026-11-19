@@ -43,7 +43,7 @@ The mod loader moves to the next free number again.
 - Module tests: a fake `PouchEquip`, its two helpers and a caller inside the menu range, on both
   fake game versions; Equip Anything on a fake menu table.
 
-## Core 0.8.6: names for World Tools (17 November 2026; its names work in the game on 1.1.1 as part of the 0.9.0 test build, 18 November; 0.8.6 itself wasn't run, and the release zip is still 0.8.5)
+## Core 0.8.6: names for World Tools (17 November 2026; its names work in the game on 1.1.1 as part of the 0.9.0 test build, 18 November; 0.8.6 itself wasn't run and wasn't released: the release zip went from 0.8.5 to 0.9.0)
 
 Core only, nothing new for mods' API (still 0.8). This takes the number the mod loader was
 planned under; the mod loader moves to the next free one.
