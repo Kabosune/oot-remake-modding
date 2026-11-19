@@ -4,9 +4,16 @@ The time of day, the weather and the wind for the Ocarina of Time remake, runnin
 [KaeGae Core](../../api/README.md): a clock on screen, set the time (or jump to day / night),
 pick any of the game's 12 weathers, and set the wind.
 
-**Status, 17 November 2026: version 0.1.0, not tested in the game yet.** Needs KaeGae Core 0.8.6
-(the first Core with the names it asks for). It asks Core for the game by name, so it should run
-on 1.0.0 and 1.1.1.
+**Status, 18 November 2026: version 0.1.0 works in Fritchii on game 1.1.1** (the clock, Set time,
+the weathers and the wind; run on KaeGae Core 0.9.0, a test build that has its names). It asks
+Core for the game by name, so it should run on 1.0.0 too (not tried).
+
+**Needs KaeGae Core 0.8.6 or later** (the first Core with the names it asks for). The
+[kaegae-core.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/kaegae-core.zip)
+download is still 0.8.5: the next Core release (0.9.x) brings the names. Until then World Tools
+loads and says in the log that this Core doesn't know the world's names, and does nothing.
+
+Download: [world-tools.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/world-tools.zip).
 
 ## Settings
 

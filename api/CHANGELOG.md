@@ -11,7 +11,7 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
-## Core 0.8.6: names for World Tools (17 November 2026; not tested in the game yet)
+## Core 0.8.6: names for World Tools (17 November 2026; its names work in the game on 1.1.1 as part of the 0.9.0 test build, 18 November; 0.8.6 itself wasn't run, and the release zip is still 0.8.5)
 
 Core only, nothing new for mods' API (still 0.8). This takes the number the mod loader was
 planned under; the mod loader moves to the next free one.

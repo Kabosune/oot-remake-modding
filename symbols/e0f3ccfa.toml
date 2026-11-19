@@ -597,57 +597,57 @@ source = "sloperina (not checked against main by us)"
 [global.WorldMgrPtr]
 offset = 0x4E7EAB0
 note   = "the WorldMgr pointer variable: [ptr] = the WorldMgr (0x40D8 bytes, made by 0xF93A70); 0 before it exists"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [function.WmSetTime]
 offset = 0x34522D0
 alias  = "f_834722d0"
 args   = "worldmgr, u32 seconds since midnight"
 note   = "sets the time of day (a request applied on WorldMgr's next update); what the event action ExecuteWmSetTime calls with hour * 3600 + minute * 60"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [function.WmSetWeather]
 offset = 0x3454FB0
 alias  = "f_83474fb0"
 args   = "worldmgr, const char **name, int change_speed"
 note   = "sets the weather by its ResWeatherInfluenceParam name (\"Rainy\", \"Thunderstorm\", ...); 5 = at once (OneShotWmSetWeatherForFlowchart with IsImmTrans)"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [function.WmResetWeather]
 offset = 0x3455120
 alias  = "f_83475120"
 args   = "worldmgr, int change_speed"
 note   = "back to the area's own weather (OneShotWmResetWeatherForFlowchart)"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [function.WmSetWind]
 offset = 0x3455190
 alias  = "f_83475190"
 args   = "worldmgr, bool at_once, float azimuth, float elevation, float speed"
 note   = "sets the wind (ExecuteWmSetWindForFlowchart; degrees, degrees, the areas' MinWindSpeed / MaxWindSpeed units)"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [function.WmResetWind]
 offset = 0x3455250
 alias  = "f_83475250"
 args   = "worldmgr, bool at_once"
 note   = "back to the area's own wind (ExecuteWmResetWindForFlowchart)"
-source = "disassembly (the event nodes that call them), not tested in the game yet"
+source = "disassembly (the event nodes that call them), tested (World Tools, 18 Nov)"
 
 [field."WorldMgr.state"]
 offset = 0x578
 type   = "ptr"
 note   = "an object answering questions about the world through its vtable (WorldState.*)"
-source = "disassembly (QueryWorldGetCurrentTime, QueryWeather)"
+source = "disassembly (QueryWorldGetCurrentTime, QueryWeather), tested (World Tools, 18 Nov)"
 
 [field."WorldState.time_slot"]
 offset = 0x30
 type   = "vtable byte offset"
 note   = "int (*)(state): the world time in seconds (the game takes it mod 86400 for the time of day); QueryWorldGetCurrentTime"
-source = "disassembly (QueryWorldGetCurrentTime, QueryWeather)"
+source = "disassembly (QueryWorldGetCurrentTime, QueryWeather), tested (World Tools, 18 Nov)"
 
 [field."WorldState.weather_slot"]
 offset = 0xF0
 type   = "vtable byte offset"
 note   = "int (*)(state): the current weather, 0..4 (which is which not checked); QueryWeather"
-source = "disassembly (QueryWorldGetCurrentTime, QueryWeather)"
+source = "disassembly (QueryWorldGetCurrentTime, QueryWeather), tested (World Tools, 18 Nov)"

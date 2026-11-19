@@ -6,7 +6,7 @@ reading `main` and the romfs; addresses are module offsets of `main` (1.1.1 buil
 said otherwise), the same as `symbols/*.toml`. Research by KaboWabo/Kabosune (me :3) with AI
 assistance (Claude Opus 5.5).
 
-**Labels:** **checked** = read in `main`'s code or the romfs files (17 Nov); **guess** = not confirmed, says why it's likely. Nothing here has been tried in the game yet.
+**Labels:** **checked** = read in `main`'s code or the romfs files (17 Nov); **guess** = not confirmed, says why it's likely. In the game (KaboWabo, 18 Nov, game 1.1.1, World Tools 0.1.0 on the Core 0.9.0 test build): `WmSetTime`, `WmSetWeather` / `WmResetWeather`, `WmSetWind` and reading the time work when called from a mod; the rest below is as found in the code.
 
 ## Where the world state lives
 
