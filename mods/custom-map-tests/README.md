@@ -923,6 +923,14 @@ good run starts the door's arrival event right after the area change (event `0bc
 +0.9 s); the two bad runs never start it. S28's blocks are sorted by x too: if the game makes only about 20,500 blocks
 in total, S28's drawn part should end near x +25 (its 20,500th block; S29's ended near x -30).
 
+**S28 in one session (18 Nov ~20:03 PT): first entry proper, then (after loading the save from before the Deku Tree)
+improper loading.** Same mods, same session, so not a mod conflict. Proper: Link stands at x 0.22, y 91, z 13.94.
+Improper: x 0.22, z 14.71 = the scene's `Entrance` start position (0.2, 101, 14.7), y -342 and falling: he drops straight
+from the start position, so the hosts' collision is never there. Guess (not checked): the blocks and the 14 hosts share
+one budget (memory for actors); the blocks use most of it (about 20,500 fit), and the hosts, which each need a big heap
+(the flag's plus 2 MiB), only get made when enough is left, which a second load in the same session makes less likely.
+Test: the same map with far fewer blocks (well under 20,000), entered several times, also after a save reload.
+
 ## Building
 
 ```
