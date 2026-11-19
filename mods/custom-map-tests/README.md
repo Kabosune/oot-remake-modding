@@ -917,6 +917,12 @@ going down; the pause menu opens undrawn, no control). So under Link there's no 
 (`KaeGae_MapHost_*`, Static file) aren't there, or not yet. The arrival most likely never ends because Link never
 lands. The log has nothing new (no crash, nothing about actors).
 
+**S28 a third time (18 Nov ~19:58 PT): loads properly** (control, HUD), nothing changed (same files, same mods switched
+on). Like S29, part of the map isn't drawn but has collision. So the improper loading comes and goes. In the log, the
+good run starts the door's arrival event right after the area change (event `0bc644cc` begins at +0.1 s and ends at
++0.9 s); the two bad runs never start it. S28's blocks are sorted by x too: if the game makes only about 20,500 blocks
+in total, S28's drawn part should end near x +25 (its 20,500th block; S29's ended near x -30).
+
 ## Building
 
 ```
