@@ -38,6 +38,15 @@ replaces = 0xF9401268
 context  = "x19 = camera, x20 = view; every view (menus too), mid-function: all registers live"
 port     = "matched (1.1.1 0x4C5068)"
 
+[hookpoint."Pouch.Equip"]
+site     = 0xA12F64
+slot     = 2
+stub     = "kp_hook_equip"
+replaces = 0xD10603FF
+menu     = "0x3340000..0x3360000"   # the pause menu's code (its six PouchEquip calls are 0x334653C..0x335A9F8)
+context  = "x0 = PouchMgr, x1 = the item's name (a string whose first word is the char pointer), w2 = mode, w3 = flag; function entry, lr signed; 21 callers (the menu, area loads, events)"
+port     = "matched (1.1.1 0xA7ACD4)"
+
 [function.CctChangePosition]
 offset = 0x6D7730
 alias  = "f_806f7730"
@@ -390,6 +399,27 @@ args   = "reaction"
 note   = "what OneShotRagdollReactionEnd does"
 port   = "matched (1.1.1 0x2E92F80)"
 
+[function.PouchEquip]
+offset = 0xA12F60
+alias  = "f_80a32f60"
+args   = "PouchMgr*, name, int mode, int flag"
+note   = "equips an item by actor name into its PlayerStatus.Equip... slot (the pause menu calls it with mode 3); hook point Pouch.Equip is its second instruction"
+port   = "matched (1.1.1 0xA7ACD0)"
+
+[function.PouchIsEquipped]
+offset = 0xA0CA40
+alias  = "f_80a2ca40"
+args   = "PouchMgr*, name"
+note   = "1 if the item is the one in its slot"
+port   = "matched (1.1.1 0xA71080)"
+
+[function.PouchUnequip]
+offset = 0x3347170
+alias  = "f_83367170"
+args   = "PouchMgr*, name, int flag (0)"
+note   = "the pause menu's own unequip: finds the item's category and writes the empty string into that PlayerStatus.Equip... slot"
+port   = "matched (1.1.1 0x33A6A40)"
+
 [global.IdentityQuatPtr]
 offset = 0x4C18118
 note   = "pointer to a (0, 0, 0, 1) quaternion; the ragdoll-down node passes it to RagdollDownPrepA / B"
@@ -648,3 +678,40 @@ offset = 0xF0
 type   = "vtable byte offset"
 note   = "int (*)(state): the current weather, 0..4 (which is which not checked); QueryWeather"
 port   = "same as 1.1.1: the 1.0.0 query nodes matched with their offsets unmasked"
+
+# ---- the pause menu's table (see the 1.1.1 pack); the getters that use these offsets are byte for byte the same in 1.0.0 ----
+
+[field."PouchMgr.ui"]
+offset = 0x8
+type   = "ptr"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchUi.table"]
+offset = 0x150
+type   = "ptr"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchTable.pages"]
+offset = 0x38
+type   = "array[8], 0x28 bytes each"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchButton.items"]
+offset = 0x38
+type   = "array"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchItem.name"]
+offset = 0x38
+type   = "char*"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchItem.usable_child"]
+offset = 0x48
+type   = "bool; set-here byte at +0x4B"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"
+
+[field."PouchItem.usable_adult"]
+offset = 0x49
+type   = "bool; set-here byte at +0x4C"
+port   = "same as 1.1.1: the code that uses it is byte for byte the same (checked 17 Nov)"

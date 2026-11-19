@@ -59,6 +59,8 @@ bool kp_hooks_start(void) {
     }
     if (kp_view_start() && place("Camera.View", (void *)kp_view_entry))
         kp_event_on[KP_EV_VIEW] = true;
+    if (kp_pouch_start() && place("Pouch.Equip", (void *)kp_pouch_entry))
+        kp_event_on[KP_EV_POUCH_EQUIP] = true;
     if (!place("Actor.MoveUpdate", (void *)on_move))
         return false;
     kp_event_on[KP_EV_ACTOR_MOVE] = true;

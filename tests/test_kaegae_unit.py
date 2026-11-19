@@ -35,7 +35,7 @@ def packs_match_ld(packs):
                     assert int(entry["alias"][2:], 16) - 0x80020000 == entry["offset"], f"{name}: alias and offset disagree"
                     checked += 1
         assert values["KP_HOOK_SLOTS"] - 0x80020000 == pack["core"]["hook-slots"]
-        returns = {"Actor.MoveUpdate": "MOVE_SECOND_RET", "Camera.View": "HOOK_VIEW_RET"}
+        returns = {"Actor.MoveUpdate": "MOVE_SECOND_RET", "Camera.View": "HOOK_VIEW_RET", "Pouch.Equip": "HOOK_EQUIP_RET"}
         for name, h in pack.get("hookpoint", {}).items():
             assert h["site"] + 0x80020000 + 4 == values[returns[name]], f"hook point {name} and the .ld disagree"
     return checked

@@ -1,0 +1,17 @@
+# A mod that exists only for tests/test_kaegae_modules.py: the pouch_equip event (0.9).
+manifest = 1
+
+id       = "kaegae.pouch-test"
+name     = "Pouch Test"
+version  = "1.0.0"
+authors  = ["KaboWabo/Kabosune"]
+license  = "MIT"
+homepage = "https://github.com/Kabosune/oot-remake-modding"
+
+[game]
+title = "0400486024DEC000"
+
+[core]
+api     = "0.9"
+sources = ["pouch_test.c"]
+events  = ["pouch_equip"]

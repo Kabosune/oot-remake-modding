@@ -81,6 +81,10 @@ int kae_on_player_move(KaePlayerFn fn, void *user, int priority) {
 
 int kae_on_view(KaeViewFn fn, void *user, int priority) { return subscribe(KP_EV_VIEW, (void *)fn, user, priority); }
 
+int kae_on_pouch_equip(KaePouchEquipFn fn, void *user, int priority) {
+    return subscribe(KP_EV_POUCH_EQUIP, (void *)fn, user, priority);
+}
+
 void kp_fire_frame(void) {
     sub_t s[MAX_SUBSCRIBERS];
     int n = snapshot(KP_EV_FRAME, s);
@@ -134,4 +138,17 @@ void kp_fire_view(KaeView *view) {
     for (int i = 0; i < n; i++)
         if (!kp_mod_off(s[i].owner))
             ((KaeViewFn)s[i].fn)(view, s[i].user);
+}
+
+bool kp_wants_pouch_equip(void) { return __atomic_load_n(&lists[KP_EV_POUCH_EQUIP].count, __ATOMIC_RELAXED) != 0; }
+
+// Every subscriber runs; once one returns nonzero the game's equip is skipped, and the later ones
+// see `handled` set.
+int kp_fire_pouch_equip(KaePouchEquip *equip) {
+    sub_t s[MAX_SUBSCRIBERS];
+    int n = snapshot(KP_EV_POUCH_EQUIP, s);
+    for (int i = 0; i < n; i++)
+        if (!kp_mod_off(s[i].owner) && ((KaePouchEquipFn)s[i].fn)(equip, s[i].user))
+            equip->handled = 1;
+    return equip->handled;
 }

@@ -35,6 +35,7 @@ who patches what, and a small core module that mods call instead of patching the
 | Game version 1.0.0 (Core 0.8.4) | Works in the game (17 November, Fritchii v5.8.4): Core finds the build and Link, the Mods menu and Slopped Up Sloperina work (Fritchii itself shows 1.0.0 black, mods or not). Symbol pack and hook point patch built from a real 1.0.0 main; the module tests run a fake 1.0.0 game. [docs/game-versions.md](../docs/game-versions.md) |
 | Core 0.8.5: more names (Mouse Grab's ragdoll calls), the raw-offset warning, `[game] tested` | Works in the game (17 November, Fritchii v5.8.4, 1.0.0 and 1.1.1): Mouse Grab 0.4.0 runs on both. [Running on every game version](#running-on-every-game-version) |
 | Core 0.8.6: names for the world state (WorldMgr: time of day, weather, wind) | Its names work in Fritchii on 1.1.1 (18 November, in the 0.9.0 test build) with World Tools 0.1.0; 1.0.0 not tried. Not a release of its own: `releases/kaegae-core.zip` stays 0.8.5 until 0.9.x. [docs/world.md](../docs/world.md) |
+| Core 0.9.0: the pouch (`kae_on_pouch_equip`, `kae_pouch_unequip`, hook point `Pouch.Equip`) | Works in the game on 1.1.1 (18 November, Fritchii v6.1) with Equip Anything 1.0.1; on 1.0.0 the module tests and the patch check against the real main pass, not tried in the game. [CHANGELOG.md](CHANGELOG.md) |
 
 ## Writing a mod
 

@@ -292,6 +292,15 @@ Mods often need to run at a precise place inside the game's code. Core owns thos
 - Adding a hook point is a pack and Core update. Mods never ship patches to `main`.
 - Before use, Core checks that each patched place holds exactly the expected bytes. A mismatch
   disables that hook point and the mods that need it.
+- **Room for the stubs (17 Nov 2026, Core 0.9): full.** The stubs have to sit inside `main`'s own
+  code (a hook site's branch can't reach Core's module, which loads at a different address each
+  run), so they go in `.text` padding: each pack's `[core] hook-code` range. On 1.1.1 that range
+  (`0x3C46310..0x3C46400`, 240 bytes) is used up by the movement, view and pouch stubs; 1.0.0's
+  (256 bytes) has 16 left. **Before the next hook point:** let `hook-code` be a list of ranges
+  (free on 1.1.1: `0x3C461D0..0x3C46200`, 48 bytes, the retired Equip Anything 0.3.0 patch's; and
+  the padding slots in `symbols/e0f3ccfa-slots.txt` from 128 on, 24 bytes each; check
+  `registry/` first), or move to one shared stub with a 2–3 instruction jump per site. If a stub
+  doesn't fit, `kaemod.py`'s link step fails, so it can't go wrong silently.
 
 ### Events
 

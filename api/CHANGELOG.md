@@ -11,6 +11,38 @@ one (0.8.1, 0.8.2, ...). 1.0 comes when the basics won't need a redesign (the mo
 event and settings shapes, how mods are loaded, real hardware, the 1.0.0 symbol pack), not when
 every feature is in: after 1.0, new Cores never break older mods.
 
+## Core 0.9.0: the pouch, for Equip Anything (17 November 2026; works in the game on 1.1.1, 18 November; `releases/kaegae-core.zip`)
+
+API 0.9: new things for mods (the middle number moves). Mods built for 0.5 to 0.8 keep running.
+Built on 0.8.6: World Tools' names are in this build. Tested in Fritchii v6.1 on 1.1.1 (18
+November) with Equip Anything 1.0.1, World Tools, First Person, FPV Drone, Mouse Grab and Slopped
+Up Sloperina; on 1.0.0 only the module tests and the patch check against the real 1.0.0 main.
+The mod loader moves to the next free number again.
+
+- **Hook point `Pouch.Equip`** (slot 2, stub `kp_hook_equip`): the second instruction of the
+  game's `PouchEquip` (1.1.1 `0xA7ACD0`, 1.0.0 `0xA12F60`), the function the pause menu and the
+  game's own code (area loads, events: 21 callers) use to put an item into one of Link's
+  `PlayerStatus.Equip...` slots. The stub hands the module the arguments and the return address
+  and returns from `PouchEquip` without running it when the module says so. A hook point may now
+  carry a `menu = "lo..hi"` range in its pack (the pause menu's code); Core uses it to tell the
+  menu's calls from the game's. Checked against both real `main` images; the 1.1.1 stubs now fill
+  Core's 240 bytes exactly.
+- **`kae_on_pouch_equip`** (event `pouch_equip`): the item's name, `from_menu`, `equipped` (it
+  already is in its slot), `handled`, the game's mode. Return 1 to skip the game's equip.
+- **`kae_pouch_unequip(name)`** (the menu's own `PouchUnequip`: empties the item's slot) and
+  **`kae_pouch_is_equipped(name)`**. `kae_has("event.pouch_equip")`, `kae_has("pouch")`.
+- **Names in both packs**: `PouchEquip`, `PouchIsEquipped`, `PouchUnequip`; fields for the
+  pause menu's table as the game parsed it (`PouchMgr.ui`, `PouchUi.table`, `PouchTable.pages`,
+  `PouchButton.items`, `PouchItem.name`, `PouchItem.usable_child`, `PouchItem.usable_adult`).
+  Their 1.0.0 addresses come from `tools/port_pack.py` (all matched); the fields' code (the age
+  and page getters) is byte for byte the same in 1.0.0.
+- **Equip Anything 1.0** (`mods/equip-anything`) uses all of it: any age can equip, and picking
+  an equipped item again takes it off, both as Mods menu switches. 1.0.1 fixed its tunic bug (the
+  mod's own, not Core's: see its README). It replaces its 0.x romfs file,
+  size table entry and patch to main.
+- Module tests: a fake `PouchEquip`, its two helpers and a caller inside the menu range, on both
+  fake game versions; Equip Anything on a fake menu table.
+
 ## Core 0.8.6: names for World Tools (17 November 2026; its names work in the game on 1.1.1 as part of the 0.9.0 test build, 18 November; 0.8.6 itself wasn't run, and the release zip is still 0.8.5)
 
 Core only, nothing new for mods' API (still 0.8). This takes the number the mod loader was

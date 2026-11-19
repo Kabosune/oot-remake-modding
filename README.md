@@ -29,11 +29,12 @@ Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake
 
 | Mod | Download | What it does | Needs KaeGae Core | Status |
 |---|---|---|---|---|
+| [Equip Anything](mods/equip-anything/README.md) | [equip-anything.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/equip-anything.zip) | Child and adult Link can equip every item (child with the Master Sword, adult with the masks, ...); pick an equipped sword, shield or tunic again to take it off. Both are switches on the Mods menu. | Yes (Core 0.9) | 1.0.1 works in Fritchii on 1.1.1 (KaeGae Core 0.9.0, 18 Nov); 1.0.0 not tried |
 | [First Person](mods/first-person/README.md) | [first-person.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/first-person.zip) | R3 toggles a first-person view (right stick looks, left stick walks). Link is hidden by default. Settings page: FOV, eye height and forward, look speed, show Link, rebindable toggle. | Yes (Core 0.8) | 2.0.1 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core is on [its page](mods/first-person/README.md) |
 | [FPV Drone](mods/fpv-drone/README.md) | [fpv-drone.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/fpv-drone.zip) | L3 launches a noclip Free fly camera (L) or an FPV quadcopter with Mode 2 sticks: Angle (Y), Acro (X), Simple (B). R carries Link along behind the camera. Every button rebindable (and keys); FOV, speeds, rates, tilt, thrust on its settings page. | Yes (Core 0.8) | 2.0.0 works in Fritchii (KaeGae Core 0.8, 12 Nov). The old 1.x without Core is on [its page](mods/fpv-drone/README.md) |
 | [Mouse Grab](mods/mouse-grab/README.md) | [mouse-grab.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/mouse-grab.zip) | A mouse cursor that grabs Link (and other characters) as a ragdoll, to move and throw him. Settings for the gyro depth, throw strength and more. | Yes (Core 0.8.5) | 0.4.0 works in Fritchii on 1.0.0 and 1.1.1 (KaeGae Core 0.8.5, 17 Nov) |
 | [Slopped Up Sloperina](mods/slopped-up-sloperina/README.md) | [slopped-up-sloperina.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/slopped-up-sloperina.zip) | PracticeROM's sloperinaGZ practice menu ported onto KaeGae Core: warps, inventory, flags, cheats, watches, levitate, frame advance, memory viewer and more. **GPL-3.0**, unlike the rest of the repo. | Yes | 0.4.0 works in Fritchii (KaeGae Core 0.7, 12 Nov): shortcuts rebindable on Core's page, with keyboard keys. Needs Core 0.7 |
-| [World Tools](mods/world-tools/README.md) | [world-tools.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/world-tools.zip) | A clock on screen, set the time of day (or jump to day / night, an hour on), any of the game's 12 weathers (rain, thunderstorm, snow, ...) and the wind, all from its settings page. | Yes (Core 0.8.6 or later: **the Core download is still 0.8.5**, the next Core release brings it) | 0.1.0 works in Fritchii on 1.1.1 (KaeGae Core 0.9.0 test build, 18 Nov); 1.0.0 not tried |
+| [World Tools](mods/world-tools/README.md) | [world-tools.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/world-tools.zip) | A clock on screen, set the time of day (or jump to day / night, an hour on), any of the game's 12 weathers (rain, thunderstorm, snow, ...) and the wind, all from its settings page. | Yes (Core 0.8.6 or later) | 0.1.0 works in Fritchii on 1.1.1 (KaeGae Core 0.9.0, 18 Nov); 1.0.0 not tried |
 
 ### Extra mods
 
@@ -48,7 +49,7 @@ Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older
-Fritchii: `%APPDATA%\eden\load\`), then close and reopen the emulator. Do this for
+Fritchii: `%APPDATA%\eden\load\`), then close and reopen the emulator (Fritchii v6.1 lists new mod folders switched off: switch them on in the game's Add-Ons). Do this for
 `kaegae-core.zip` first, then for each mod; each one gets its own folder. Every mod zip has its
 module as `exefs/subsdk2`, so when you copy more than one by hand, rename the file in each extra
 mod to a free number (`subsdk3`, `subsdk4`, ... up to `subsdk8`), or only one of them loads. Or let the tool do it,

@@ -36,7 +36,8 @@ name   = "KaeGae Core"
 code   = ["0x3C46310..0x3C46400"]          # hook point stubs
 memory = ["0x4E9FB00..0x4E9FC00"]          # one function pointer per hook point
 hooks  = ["0x2C215E4",                     # hook point Actor.MoveUpdate
-          "0x4C5068"]                      # hook point Camera.View (0.8)
+          "0x4C5068",                      # hook point Camera.View (0.8)
+          "0xA7ACD4"]                      # hook point Pouch.Equip (0.9)
 shared = ["kabosune.first-person"]         # Camera.View is First Person 1.x's view hook: from Core 0.8, First Person 2 runs on Core instead
 
 [[claim]]
@@ -55,13 +56,6 @@ memory = ["0x4E9FD00..0x4E9FE00"]
 hooks  = ["0x4C506C",                      # view (runs after First Person's)
           "0x2C215E0",                     # first instruction of the movement update
           "0x3C427FC", "0x3C4280C", "0x3C4281C", "0x3C4282C", "0x3C4283C"]   # br x17 of the five GetNpadStates stubs
-
-[[claim]]
-owner  = "kabosune.equip-anything-unequip"
-name   = "Equip Anything (unequip)"
-code   = ["0x3C461D0..0x3C46200",          # the stub: is it equipped? (the last 48 bytes of .text padding)
-          "0x177D208..0x177D220"]          # the unequip call: padding slot 128
-hooks  = ["0xA7ACD4"]                      # second instruction of the pause menu's equip function
 
 # ---- claims read from mods that don't follow the standard ----
 # `standard = false`: nobody asked for these; they are recorded so the checker knows about them.

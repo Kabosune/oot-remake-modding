@@ -1,4 +1,4 @@
-/* KaeGae Core API 0.8. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
+/* KaeGae Core API 0.9. See ../DESIGN.md for the rules behind it and ../CHANGELOG.md for changes.
  *
  * A mod is plain C (or anything that can call C). The whole of a small mod:
  *
@@ -28,8 +28,8 @@ extern "C" {
 #endif
 
 #define KAE_API_MAJOR 0
-#define KAE_API_MINOR 8
-#define KAE_CORE_PATCH 6   /* Core's own fix number: changes that give mods nothing new (0.8.6). Not checked for mods */
+#define KAE_API_MINOR 9
+#define KAE_CORE_PATCH 0   /* Core's own fix number: changes that give mods nothing new (0.9.0). Not checked for mods */
 
 /* Which mods a Core runs: same major version, and a minor version no newer than Core's. A newer
    Core keeps running older mods, back to the oldest minor version it still supports (Core 0.8:
@@ -88,7 +88,9 @@ KAE_API int         kae_has(const char *feature);  /* 1 if Core offers it in thi
                                                       "keyboard" (0.7: the system has one and the
                                                       Mods menu's Keyboard switch is on)
                                                       "event.view" (0.8) "view.fovy" (0.8: the view's
-                                                      field of view can be read and changed) */
+                                                      field of view can be read and changed)
+                                                      "event.pouch_equip" "pouch" (0.9: the pouch
+                                                      event and kae_pouch_* below) */
 KAE_API const char *kae_game_version(void);        /* "1.0.0" or "1.1.1"; "" if the game's build isn't known */
 KAE_API const char *kae_game_build(void);          /* main's build ID as 40 hex digits; "" if not known */
 
@@ -236,6 +238,32 @@ typedef struct {
 } KaeView;
 typedef void (*KaeViewFn)(KaeView *view, void *user);
 KAE_API int kae_on_view(KaeViewFn fn, void *user, int priority);
+
+/* pouch_equip (0.9): the game is about to put an item into one of Link's equipment slots (sword,
+   shield, tunic, boots, mask...: GameData PlayerStatus.EquipWeapon, EquipShield, EquipArmor,
+   EquipBoot, EquipHeadArmor). The pause menu does it when the player picks an item, and the game's
+   own code does it too (area loads, events, getting an item), so look at `from_menu`. Return 1 to
+   make the game skip its own equip (then you decide what happens, e.g. kae_pouch_unequip); 0 lets
+   it go ahead. Every subscriber is told; once one returned 1, the later ones see `handled` set.
+   The game's thread. Needs Core's patch to main (kae_has("event.pouch_equip")). */
+typedef struct {
+    uint32_t    size;
+    const char *name;        /* the item's actor name, e.g. "Weapon_Sword_Master": only valid during the call */
+    int32_t     from_menu;   /* 1 if the player picked it in the pause menu */
+    int32_t     equipped;    /* 1 if it already is the item in its slot (picked again) */
+    int32_t     handled;     /* 1 once an earlier subscriber returned 1 */
+    int32_t     mode;        /* the game's own argument (the menu passes 3) */
+    void       *pouch;       /* the game's PouchMgr, for research builds */
+} KaePouchEquip;
+typedef int (*KaePouchEquipFn)(KaePouchEquip *equip, void *user);
+KAE_API int kae_on_pouch_equip(KaePouchEquipFn fn, void *user, int priority);
+
+/* (0.9) Is the item, by actor name, the one in its slot: 1 or 0. Takes it off: empties its slot the
+   way the pause menu does (the sword, the shield: Link then has none). KAE_ERR_UNAVAILABLE where
+   Core doesn't have the pouch functions (kae_has("pouch")), KAE_ERR_ARGUMENT for a null or overlong
+   name. The game's thread (the pouch_equip event, frame, player_move). */
+KAE_API int kae_pouch_is_equipped(const char *name);
+KAE_API int kae_pouch_unequip(const char *name);
 
 /* ---- Link ---------------------------------------------------------------------------------- */
 
