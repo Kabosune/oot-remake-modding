@@ -912,6 +912,11 @@ stop the arrival (S27 and S29, with more blocks, arrive fine). Either the arriva
 blocks are made gets in its way. Next: S28 once more (repeatable?), and S29 standing still for a minute or two (does the
 missing part fill in? where along x do the blocks stop?).
 
+**S28 again (18 Nov ~19:48 PT): improper loading again, so it's repeatable, and Link falls forever** (the y watch keeps
+going down; the pause menu opens undrawn, no control). So under Link there's no collision either: the map's hosts
+(`KaeGae_MapHost_*`, Static file) aren't there, or not yet. The arrival most likely never ends because Link never
+lands. The log has nothing new (no crash, nothing about actors).
+
 ## Building
 
 ```
