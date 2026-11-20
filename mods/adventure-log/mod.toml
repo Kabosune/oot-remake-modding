@@ -3,7 +3,7 @@ manifest = 1
 
 id       = "kabosune.adventure-log"
 name     = "Adventure Log"
-version  = "0.2.0"
+version  = "0.3.0"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
@@ -17,3 +17,4 @@ title = "0400486024DEC000"
 api     = "0.8"
 sources = ["adventure_log.c", "names.c"]
 events  = ["frame", "draw"]
+symbols = ["global:GameDataMgrPtr"]     # in both packs since Core 0.8

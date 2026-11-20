@@ -103,6 +103,15 @@ nothing else, in the same slot. Names unknown (no string in `main` hashes to the
 | `0x3F8D9D86` (UInt) | +34 | | ? |
 | `0xEF10B80F` (UInt64) | +2,062 | | ? |
 
+**Reading them live** (Adventure Log 0.3.0): the GameData manager (`GameDataMgrPtr`, main
+`0x4E842A8` on 1.1.1) has one 0x60-byte block per field type at `0x10 + type * 0x60` (u32 count,
+records pointer, then a `{u32 hash, u32 index}` map and its size at +0x10 / +0x1C; the game's getters
+probe the map from `hash % size`). Int (type 2) is at `+0xD0`, records 0x28 bytes with the value at
+`+0x1C` (`GameDataGetInt`, `0x17B3B0`); **Int64 (type 22) at `+0x850`**: count `+0x850`, records
+`+0x858` (0x30 bytes, the value at `+0x20`, a copy at `+0x28`), map `+0x860`, size `+0x86C` (seen in
+the game's code at `0xB9AC3C`; the same as Hyrule Tracker's memory reading). The field hashes appear
+nowhere in `main`: the game builds the names at run time.
+
 Also kinds of the log named by that run: **8 = a sword swing** (5 entries, one a swing), **17 = a file
 loaded** and **26 = the game saved**, both with the slot number as value1 (26's value 1 at the second
 `slot_01/progress.sav` was written). These totals are the game's own, so they are presumably what

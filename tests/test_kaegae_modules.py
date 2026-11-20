@@ -1178,7 +1178,7 @@ def check_adventure_log(fakes, tmp):
         g.expect("only 1.1.1 does): doing nothing")
         print("Adventure Log: ok (does nothing on a game without the play log)")
         return
-    g.expect("adventure log 0.2.0 on game 1.1.1")
+    g.expect("adventure log 0.3.0 on game 1.1.1")
     g.frame()                                       # no recorder yet: waits
     assert not g.logged("recorder is at")
     REC = 0x43000000
@@ -1208,13 +1208,42 @@ def check_adventure_log(fakes, tmp):
     plate = [r for r in g.rects() if r[4] == 0x101820]
     x, y, w, h, _ = plate[0]                         # the rectangles' origin is the lower left
     assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 112 * 8 + 16, plate
+    # the totals: a fake GameData manager with three Int64 fields (block at +0x850, records 0x30
+    # apart, value at +0x20, a {hash, index} map with open addressing from hash % size)
+    MGR, RECS, MAP = 0x44000000, 0x44010000, 0x44020000
+    g.p.uc.mem_map(MGR, 0x30000)
+    hashes = {0xA6454431: 10, 0x4AC3FF5D: 20, 0x2A24450A: 30}     # jumps, rolls, sword swings
+    size, table = 7, [None] * 7
+    for index, h in enumerate(hashes):
+        i = h % size
+        while table[i] is not None:
+            i = (i + 1) % size
+        table[i] = (h, index)
+    g.p.write(MAP, b"".join(struct.pack("<II", *(e or (0, 0))) for e in table))
+
+    def set_totals(values):
+        for index, v in enumerate(values):
+            g.p.write(RECS + index * 0x30, struct.pack("<Q", 0x4E000000))     # the records' class
+            g.p.write(RECS + index * 0x30 + 0x20, struct.pack("<qq", v, v))
+    set_totals(hashes.values())
+    g.p.write(MGR + 0x850, struct.pack("<I", 3))
+    g.p.write(MGR + 0x858, struct.pack("<QQ", RECS, MAP))
+    g.p.write(MGR + 0x86C, struct.pack("<I", size))
+    g.p.write(MAIN_BASE + PACK["global"]["GameDataMgrPtr"]["offset"], struct.pack("<Q", MGR))
+    for _ in range(10):
+        g.frame()
+    g.expect("totals: 10 jumps, 20 rolls, 30 sword swings")
+    set_totals((14, 26, 35))                        # 4 jumps, 6 rolls, 5 swings
+    for _ in range(10):
+        g.frame()
+    g.expect("jumps 14 (was 10)", "rolls 26 (was 20)", "sword swings 35 (was 30)")
     # a broken log (count over 1,024) is left alone
     g.p.write(REC + 0x6000, struct.pack("<II", 5, 5000))
     g.frame()
     g.expect("the log looks wrong")
     assert not g.p.unresolved, g.p.unresolved
     print("Adventure Log: ok (follows the game's log through main's pointer, names entries, wraps, "
-          "skips a read-back, leaves a broken log alone)")
+          "skips a read-back, reads the jump / roll / swing totals from GameData, leaves a broken log alone)")
 
 
 def main():

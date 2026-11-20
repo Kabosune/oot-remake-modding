@@ -12,6 +12,13 @@
 // Times are seconds since 1 January 2026, UTC. Actor names are CRC32 of the name, scene and event
 // names MurmurHash3 (names.c holds the game's actor, scene and event flow names).
 // 1.0.0 has no log, so the mod does nothing there.
+//
+// Jumps, rolls and sword swings since the file began: the game keeps them as Int64 GameData fields
+// (found 19 Nov 2026 by a save diff; their names aren't known, only their hashes). Read from the
+// GameData manager (Core's name GameDataMgrPtr): each field type has a 0x60-byte block in it, at
+// 0x10 + type * 0x60; Int64 is type 22, so +0x850: u32 count, records at +0x858 (0x30 bytes each,
+// the value at +0x20), a {u32 hash, u32 index} map at +0x860 with its size at +0x86C (open
+// addressing from hash % size, as the game's own getters do).
 #include <kaegae.h>
 
 extern const uint32_t notes_name_count;
@@ -131,6 +138,99 @@ static struct {                      // left for the render thread
 
 static int panel_on = -1;            // -1: follow the setting
 
+// ---- the totals in GameData ----
+#define GD_INT64_COUNT 0x850
+#define GD_INT64_RECS  0x858
+#define GD_INT64_MAP   0x860
+#define GD_INT64_SIZE  0x86C
+#define GD_INT64_STRIDE 0x30
+#define GD_INT64_VALUE 0x20
+
+enum { T_JUMPS, T_ROLLS, T_SWINGS, TOTALS };
+static const uint32_t total_hash[TOTALS] = { 0xA6454431u, 0x4AC3FF5Du, 0x2A24450Au };
+static const char *const total_name[TOTALS] = { "jumps", "rolls", "sword swings" };
+static uintptr_t gdm_slot;           // where main keeps the GameData manager pointer
+
+static struct {                      // left for the render thread
+    int state;                       // 0 not read yet, 1 read, 2 the layout doesn't look right
+    int64_t now[TOTALS], start[TOTALS];
+} totals;
+
+// One Int64 field by hash; 1 if found.
+static int gd_int64(uintptr_t mgr, uint32_t hash, int64_t *out) {
+    if (!kae_readable((const void *)(mgr + GD_INT64_COUNT), 0x20))
+        return 0;
+    uint32_t count = *(const uint32_t *)(mgr + GD_INT64_COUNT);
+    uintptr_t recs = *(const uintptr_t *)(mgr + GD_INT64_RECS);
+    uintptr_t map = *(const uintptr_t *)(mgr + GD_INT64_MAP);
+    uint32_t size = *(const uint32_t *)(mgr + GD_INT64_SIZE);
+    if (!map || !recs || !size || size > 0x100000 || !count || count > 0x100000)
+        return 0;
+    if (!kae_readable((const void *)map, (size_t)size * 8) ||
+        !kae_readable((const void *)recs, (size_t)count * GD_INT64_STRIDE))
+        return 0;
+    const uint32_t *m = (const uint32_t *)map;
+    uint32_t start = hash % size, i = start;
+    do {
+        uint32_t h = m[2 * i];
+        if (h == hash) {
+            uint32_t index = m[2 * i + 1];
+            if (index >= count)
+                return 0;
+            *out = *(const int64_t *)(recs + (uintptr_t)index * GD_INT64_STRIDE + GD_INT64_VALUE);
+            return 1;
+        }
+        if (!h)
+            return 0;
+        i = i + 1 < size ? i + 1 : 0;
+    } while (i != start);
+    return 0;
+}
+
+// Every few frames: the three totals. The records of a type all start with the same pointer (their
+// class), which checks the stride once.
+static void read_totals(void) {
+    if (!gdm_slot || totals.state == 2 || !kae_readable((const void *)gdm_slot, 8))
+        return;
+    uintptr_t mgr = *(const uintptr_t *)gdm_slot;
+    if (!mgr)
+        return;
+    if (totals.state == 0) {
+        if (!kae_readable((const void *)(mgr + GD_INT64_COUNT), 0x20))
+            return;
+        uint32_t count = *(const uint32_t *)(mgr + GD_INT64_COUNT);
+        uintptr_t recs = *(const uintptr_t *)(mgr + GD_INT64_RECS);
+        if (count < 2 || !recs || !kae_readable((const void *)recs, 2 * GD_INT64_STRIDE))
+            return;
+        if (*(const uintptr_t *)recs != *(const uintptr_t *)(recs + GD_INT64_STRIDE)) {
+            KAE_LOG("adventure log: the game's Int64 fields don't look as expected: no totals");
+            totals.state = 2;
+            return;
+        }
+    }
+    int64_t v[TOTALS];
+    for (int k = 0; k < TOTALS; k++)
+        if (!gd_int64(mgr, total_hash[k], &v[k]))
+            return;                  // not there yet (title screen) or gone: try again later
+    if (totals.state == 0) {
+        for (int k = 0; k < TOTALS; k++)
+            totals.start[k] = totals.now[k] = v[k];
+        totals.state = 1;
+        KAE_LOG("adventure log: totals: %lld jumps, %lld rolls, %lld sword swings",
+                (long long)v[T_JUMPS], (long long)v[T_ROLLS], (long long)v[T_SWINGS]);
+        return;
+    }
+    for (int k = 0; k < TOTALS; k++) {
+        if (v[k] == totals.now[k])
+            continue;
+        if (v[k] < totals.now[k] || v[k] > totals.now[k] + 1000)    // another file loaded
+            totals.start[k] = v[k];
+        if (settings[LOG_NEW].value)
+            KAE_LOG("adventure log: %s %lld (was %lld)", total_name[k], (long long)v[k], (long long)totals.now[k]);
+        totals.now[k] = v[k];
+    }
+}
+
 static const Entry *entry_at(uint32_t i) { return (const Entry *)(recorder + (uintptr_t)i * sizeof(Entry)); }
 
 static void log_entry(const Entry *e) {
@@ -178,6 +278,9 @@ static void frame(void *user) {
     (void)user;
     if (kae_binding_pressed(&settings[TOGGLE]))
         panel_on = !(panel_on < 0 ? settings[SHOW].value : panel_on);
+    static int tick;
+    if (++tick % 10 == 0)
+        read_totals();
 
     if (!kae_readable((const void *)slot, 8))
         return;
@@ -337,7 +440,7 @@ static void draw(const KaeFrame *f, void *user) {
     int s = settings[SIZE].value + 1;
     int line = 18 * s, pad = 8 * s;
     int recent = shown.state == 1 ? shown.recent_n : 0;
-    int lines = 3 + (shown.state == 1 ? ROWS + 2 + (recent ? 1 + recent : 0) : 0);
+    int lines = 3 + (shown.state == 1 ? ROWS + 3 + (recent ? 1 + recent : 0) : 0);
     int width = 112 * 8 * s + 2 * pad;
     if (width > f->width - 20)
         width = f->width - 20;
@@ -373,6 +476,22 @@ static void draw(const KaeFrame *f, void *user) {
         p = put(p, " hearts");
     }
     kae_draw_text(x, y, s, LIT, text);
+    y += line;
+    // the game's own totals since the file began, and this session's part of them
+    p = put(text, "Since the file began: ");
+    if (totals.state == 1) {
+        static const char *const label[TOTALS] = { " jumps", " rolls", " sword swings" };
+        for (int k = 0; k < TOTALS; k++) {
+            p = put_int(p, totals.now[k], 0);
+            p = put(p, label[k]);
+            p = put(p, " (+");
+            p = put_int(p, totals.now[k] - totals.start[k], 0);
+            p = put(p, k + 1 < TOTALS ? ")   " : ")");
+        }
+    } else {
+        put(p, totals.state == 2 ? "can't read them (see the log)" : "-");
+    }
+    kae_draw_text(x, y, s, totals.state == 1 ? LIT : LABEL, text);
     y += line;
     kae_draw_text(x, y, s, DIM, "                          session    log");
     y += line;
@@ -452,11 +571,14 @@ static int start(void) {
     if (!base)
         return 2;
     slot = base + RECORDER_SLOT;
+    gdm_slot = (uintptr_t)kae_sym("GameDataMgrPtr");
+    if (!gdm_slot)
+        KAE_LOG("adventure log: no GameDataMgrPtr in Core's names: no totals");
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Adventure Log", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("adventure log 0.2.0 on game 1.1.1, %u names", notes_name_count);
+    KAE_LOG("adventure log 0.3.0 on game 1.1.1, %u names", notes_name_count);
     return 0;
 }
 
-KAE_MOD("kabosune.adventure-log", "0.2.0", start, 0);
+KAE_MOD("kabosune.adventure-log", "0.3.0", start, 0);
