@@ -1178,7 +1178,7 @@ def check_adventure_log(fakes, tmp):
         g.expect("only 1.1.1 does): doing nothing")
         print("Adventure Log: ok (does nothing on a game without the play log)")
         return
-    g.expect("adventure log 0.3.0 on game 1.1.1")
+    g.expect("adventure log 0.3.1 on game 1.1.1")
     g.frame()                                       # no recorder yet: waits
     assert not g.logged("recorder is at")
     REC = 0x43000000
@@ -1225,11 +1225,15 @@ def check_adventure_log(fakes, tmp):
         for index, v in enumerate(values):
             g.p.write(RECS + index * 0x30, struct.pack("<Q", 0x4E000000))     # the records' class
             g.p.write(RECS + index * 0x30 + 0x20, struct.pack("<qq", v, v))
-    set_totals(hashes.values())
+    set_totals((0, 0, 0))                           # the title screen: no file loaded yet
     g.p.write(MGR + 0x850, struct.pack("<I", 3))
     g.p.write(MGR + 0x858, struct.pack("<QQ", RECS, MAP))
     g.p.write(MGR + 0x86C, struct.pack("<I", size))
     g.p.write(MAIN_BASE + PACK["global"]["GameDataMgrPtr"]["offset"], struct.pack("<Q", MGR))
+    for _ in range(10):
+        g.frame()
+    assert not g.logged("totals:"), "all-zero totals (the title screen) were taken as a reading"
+    set_totals(hashes.values())
     for _ in range(10):
         g.frame()
     g.expect("totals: 10 jumps, 20 rolls, 30 sword swings")

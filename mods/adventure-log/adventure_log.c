@@ -58,7 +58,7 @@ static const char *kind_name(uint32_t kind) {
     case 26: return "game saved";           // value1 = the slot
     case 27: return "equip change";          // old, new; value1 = the slot
     case 28: return "hit";                   // target, attacker
-    case 30: return "learned song";
+    case 30: return "song played";           // the song (Item_Melody_*)
     case 32: return "appeared?";             // enemies and shots coming into play
     case 33: return "removed";               // broken, collected or opened away
     case 34: return "room change";           // values = old and new floor / room
@@ -211,7 +211,9 @@ static void read_totals(void) {
     int64_t v[TOTALS];
     for (int k = 0; k < TOTALS; k++)
         if (!gd_int64(mgr, total_hash[k], &v[k]))
-            return;                  // not there yet (title screen) or gone: try again later
+            return;                  // not there yet or gone: try again later
+    if (!v[T_JUMPS] && !v[T_ROLLS] && !v[T_SWINGS])
+        return;                      // all 0: the title screen, before a file is loaded
     if (totals.state == 0) {
         for (int k = 0; k < TOTALS; k++)
             totals.start[k] = totals.now[k] = v[k];
@@ -402,7 +404,7 @@ enum { R_DEFEATED, R_HURT, R_HEARTS, R_GAME_OVER, R_AREAS, R_ROOMS, R_CHESTS, R_
        R_OCARINA, R_SONGS, ROWS };
 static const char *const row_label[ROWS] = {
     "Enemies defeated", "Times hurt", "Hearts lost", "Game Overs", "Areas entered", "Rooms entered",
-    "Chests opened", "Things picked up", "Lines of talk", "Items used", "Ocarina played", "Songs learned",
+    "Chests opened", "Things picked up", "Lines of talk", "Items used", "Ocarina taken out", "Songs played",
 };
 
 static uint32_t row_value(const Tally *t, int row) {   // hearts lost: in quarter hearts
@@ -577,8 +579,8 @@ static int start(void) {
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Adventure Log", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("adventure log 0.3.0 on game 1.1.1, %u names", notes_name_count);
+    KAE_LOG("adventure log 0.3.1 on game 1.1.1, %u names", notes_name_count);
     return 0;
 }
 
-KAE_MOD("kabosune.adventure-log", "0.3.0", start, 0);
+KAE_MOD("kabosune.adventure-log", "0.3.1", start, 0);

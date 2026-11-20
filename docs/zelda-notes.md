@@ -70,7 +70,7 @@ something done in the test; **likely** = fits every case seen; `?` = not known.
 | 26 | the game saved | | value1 = the slot (0 to 5) | seen (the same second the slot's file was written) |
 | 27 | equip change | old, new | the slot (0 sword, 4 tunic, 6 ocarina?, 8 the item button) | seen |
 | 28 | an attack landed | the target, the attacker | ?, ? | seen (arrow on a Keese, bomb on a cracked wall) |
-| 30 | learned a song | `Item_Melody_*` | | seen |
+| 30 | a song played | `Item_Melody_*` | | seen (Zelda's Lullaby, 19 Nov; also the warp songs). Taking the ocarina out is event `Dm_SY_Ocarina` (kind 16), each time |
 | 32 | came into play | enemies as a room starts, arrows as they're shot | | likely |
 | 33 | removed | -, the thing (a chain lock opened, a heart taken, a wall blown up, a bomb gone) | ?, ? | likely |
 | 34 | room change | | old and new floor / room code (`0x7F7F` outside, `0x80xx` in a dungeon) | likely |
