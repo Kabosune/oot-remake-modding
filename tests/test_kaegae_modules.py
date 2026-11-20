@@ -1198,13 +1198,13 @@ def check_adventure_log(fakes, tmp):
     g.expect("t=102 kind 25 (area change) HyruleField_Child Market_Child 7 8")
     # wrapping around the end of the 1,024 slots
     g.p.write(REC + 1023 * 24, entry(103, 11, zlib.crc32(b"Obj_Rupee_Green")))
-    g.p.write(REC + 0, entry(104, 99, 0x12345678))
+    g.p.write(REC + 0, entry(104, 99, 0x12345678, zlib.crc32(b"Obj_Armor_Child_Normal")))   # an item name from main's strings
     g.p.write(REC + 0x6000, struct.pack("<II", 1023, 1024))
     g.frame()
     g.expect("1020 entries at once")                # a jump of ~1,000: read back from a save, not counted
     g.p.write(REC + 0x6000, struct.pack("<II", 1, 1024))
     g.frame()
-    g.expect("t=103 kind 11 (picked up) Obj_Rupee_Green -", "t=104 kind 99 (?) 12345678 -")
+    g.expect("t=103 kind 11 (picked up) Obj_Rupee_Green -", "t=104 kind 99 (?) 12345678 Obj_Armor_Child_Normal")
     plate = [r for r in g.rects() if r[4] == 0x101820]
     x, y, w, h, _ = plate[0]                         # the rectangles' origin is the lower left
     assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 112 * 8 + 16, plate
