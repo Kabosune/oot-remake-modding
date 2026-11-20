@@ -1178,7 +1178,7 @@ def check_adventure_log(fakes, tmp):
         g.expect("only 1.1.1 does): doing nothing")
         print("Adventure Log: ok (does nothing on a game without the play log)")
         return
-    g.expect("adventure log 0.1.0 on game 1.1.1")
+    g.expect("adventure log 0.2.0 on game 1.1.1")
     g.frame()                                       # no recorder yet: waits
     assert not g.logged("recorder is at")
     REC = 0x43000000
@@ -1207,7 +1207,7 @@ def check_adventure_log(fakes, tmp):
     g.expect("t=103 kind 11 (picked up) Obj_Rupee_Green -", "t=104 kind 99 (?) 12345678 -")
     plate = [r for r in g.rects() if r[4] == 0x101820]
     x, y, w, h, _ = plate[0]                         # the rectangles' origin is the lower left
-    assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 74 * 8 + 16, plate
+    assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 112 * 8 + 16, plate
     # a broken log (count over 1,024) is left alone
     g.p.write(REC + 0x6000, struct.pack("<II", 5, 5000))
     g.frame()

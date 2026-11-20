@@ -5,7 +5,7 @@
 
 option.sav is in the emulator's save folder for the game (one per user, next to the slot_NN folders).
 
-Event kinds are named from watching a save (17 Nov 2026); names marked '?' are guesses. Same list as
+Event kinds are named from a test round (19 Nov 2026); names marked '?' are guesses. Same list as
 mods/adventure-log. More: docs/zelda-notes.md.
 Name hashes: actors are CRC32 of the actor name, scenes and events MurmurHash3 (seed 0).
 Give --names a text file with one candidate name per line (actor, scene, event names) to resolve them.
@@ -15,11 +15,13 @@ import argparse, collections, datetime, struct, zlib
 EPOCH = datetime.datetime(2026, 1, 1)          # times are UTC seconds since 1 Jan 2026
 HIST_HASH, POS_HASH = 0x5392E233, 0x3C99C416   # option.sav field hashes of the two Binary fields
 
-TYPES = {  # event type -> label ('?' = guess from one save)
-    2: 'enemy hit Link?', 3: 'Link hit an enemy?', 4: 'Z-target?', 5: 'cucco flight tick?',
-    11: 'picked up', 14: 'talk line (value = message hash)', 16: 'event start (blank = end)',
-    23: 'lift', 24: 'throw / put down', 25: 'scene change (from, to)', 27: 'equip change (old, new)',
-    28: 'hit by?', 30: 'learned song', 33: 'object gone?', 37: 'enemy defeated?', 38: 'dropped item',
+TYPES = {  # event kind -> what it is (19 Nov 2026 test round; '?' = guess). Same list as mods/adventure-log
+    1: 'Link hurt (value2 = quarter hearts)', 2: 'Link defeated', 3: 'enemy defeated', 4: 'Z-target (none = let go)',
+    5: 'item readied?', 7: 'item used (value1 = kind)', 11: 'picked up', 14: 'talk line (value1 = message)',
+    16: 'event (none = ended)', 17: 'file loaded?', 23: 'lift', 24: 'throw / put down',
+    25: 'area change (from, to)', 27: 'equip change (old, new; value1 = slot)', 28: 'attack landed (target, attacker)',
+    30: 'learned song', 32: 'came into play?', 33: 'removed', 34: 'room change (values = floor / room)',
+    37: 'Link hurt by the world', 38: 'dropped item', 39: 'life / magic (max << 16 | now)',
 }
 
 def mm3(s, seed=0):

@@ -5,8 +5,12 @@ The game's own play log, shown in the game. Game version 1.1.1 keeps a rolling l
 Zelda Notes app, even with Zelda Notes never set up and offline. This mod reads that log and shows it
 on screen: counts by kind for this session and the whole log, and the newest entries by name.
 
-Status: **0.1.0, test build.** Some kinds of entry are still guesses (marked `?`). With "Write new
-entries to the log" on, every new entry also goes to the emulator's log, to name the rest.
+Status: **0.2.0, test build.** 0.1.0 worked in the game (19 November 2026, Fritchii, Core 0.9.0), and
+its test round named most kinds of entry; the panel now counts enemies defeated, times hurt and
+hearts lost, Game Overs, areas and rooms entered, chests opened, things picked up, lines of talk,
+items used, ocarina played and songs learned, and shows Link's life. A few kinds are still guesses
+(marked `?`); with "Write new entries to the log" on, every new entry also goes to the emulator's
+log. Jumps, rolls and sword swings aren't in the game's log.
 
 - Needs KaeGae Core 0.8 or newer. **Game version 1.1.1 only** (1.0.0 has no play log: the mod does
   nothing there).

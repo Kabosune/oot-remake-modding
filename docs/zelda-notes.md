@@ -9,6 +9,9 @@ or not. This page says where it is and what is in it (checked 17 November 2026, 
 
 Mod on it: [`mods/adventure-log`](../mods/adventure-log). Save reader: `tools/zeldanotes_log.py`.
 
+When the game starts the recorder is empty; loading a file fills it from the save at once (Adventure
+Log saw 0 entries, then 163 in one frame, 19 Nov).
+
 ## In memory: the recorder
 
 - **main `0x4E6B718` (1.1.1, `.bss`) holds a pointer to the recorder**; 0 until the game made it.
@@ -45,30 +48,42 @@ day and a half the 1,024 events covered about 34 hours: the app has to pick them
 
 ## Kinds of entry
 
-From one save, so the ones with `?` are guesses (a test that does one thing at a time will name
-them; Adventure Log 0.1.0 writes every new entry to the emulator's log for that):
+Named from two saves and a test round (19 November 2026, Fire Temple, with Adventure Log writing
+each new entry to the emulator's log while KaboWabo did one thing at a time). **Seen** = matched to
+something done in the test; **likely** = fits every case seen; `?` = not known.
 
-| Kind | Seems to be | name1, name2 | values |
-|---|---|---|---|
-| 2 | an enemy hit Link? | enemy, Link | |
-| 3 | Link hit something? | Link, target | |
-| 4 | Z-target? | target, or none | |
-| 5 | cucco flight? | | many a second while gliding with a cucco |
-| 11 | picked up | the object (rupee, heart, Heart Piece) | |
-| 14 | a line of talk | who | message hash |
-| 16 | an event starts (no name: it ended) | event | |
-| 23 / 24 | lift / throw or put down | the thing (cucco, rock) | |
-| 25 | area change | from scene, to scene | two packed positions |
-| 27 | equip change | old, new item | |
-| 28 | was hit by? | target, attacker | |
-| 30 | learned a song | `Item_Melody_*` | |
-| 33 | an object gone? | -, the object | |
-| 37 | defeated? | the enemy | |
-| 38 | dropped an item | the enemy or object, the item | |
-| 34 | always just before 25 | | |
-| 26 | just after arriving in an area | | 0 to 5 |
+| Kind | What | name1, name2 | values | |
+|---|---|---|---|---|
+| 1 | Link hurt | what hurt him, - | -, damage (quarter hearts) | seen (life drops by value2 right after) |
+| 2 | Link defeated | what did it, Link | | seen (Game Over follows) |
+| 3 | Link defeated an enemy | Link, the enemy | 10, ? | seen (its drop follows) |
+| 4 | Z-target | the target; none = let go | | seen |
+| 5 | an item readied | | the item's kind, 1 | likely (before shooting) |
+| 7 | an item used | | the item's kind (3 bomb, 6 bow, 8 hookshot), 1 | likely |
+| 11 | picked up | the thing (rupee, heart, small key) | | seen |
+| 14 | a line of talk | who | the message | seen |
+| 16 | an event; no name = it ended | the event | | seen. Opening a chest is `Dm_SY_Treasurebox` / `Dm_SY_TreasureboxSmall`, the ocarina `Dm_SY_Ocarina`, falling into lava or a pit `DmF_SY_FallDown`, Game Over `DmF_SY_GameOver` |
+| 17 | a file loaded? | | 0 or 1 | likely (at the title and after Continue) |
+| 23 / 24 | lift / throw or put down | the thing (cucco, rock, bomb) | | seen |
+| 25 | area change | from, to (scene) | the two positions | seen |
+| 26 | ? | | 0 to 5 | after some events and arrivals |
+| 27 | equip change | old, new | the slot (0 sword, 4 tunic, 6 ocarina?, 8 the item button) | seen |
+| 28 | an attack landed | the target, the attacker | ?, ? | seen (arrow on a Keese, bomb on a cracked wall) |
+| 30 | learned a song | `Item_Melody_*` | | seen |
+| 32 | came into play | enemies as a room starts, arrows as they're shot | | likely |
+| 33 | removed | -, the thing (a chain lock opened, a heart taken, a wall blown up, a bomb gone) | ?, ? | likely |
+| 34 | room change | | old and new floor / room code (`0x7F7F` outside, `0x80xx` in a dungeon) | likely |
+| 37 | Link hurt by the world | `internal` (falls, lava) or what holds him (ReDead) | ?, damage | likely |
+| 38 | dropped an item | who or what dropped it, the item | | seen |
+| 39 | life and magic | | `max << 16 \| life` in quarter hearts; the same for magic (240 = full) | seen (a heart: +4; a fall: -4; Game Over at 0) |
 
-Kinds 5, 7, 8, 9, 10, 17, 22, 29, 36 and 39 also appear; not known yet.
+**Not in the log:** jumps, rolls and sword swings (all done in the test, none logged). The app's
+totals for those (`jump_count_total`, ...) must come from counters somewhere else. Kinds 8, 9, 10,
+22, 29, 36 appear in older logs; not known yet.
+
+Quarter hearts and magic 240 agree with the save keys `PlayerStatus.MaxLife` (hearts x 4) and
+`PlayerStatus.MPMax` (240 with magic), as [Hyrule Tracker](https://github.com/jv-prado/hyrule-tracker)
+(MIT, a desktop tracker that reads this game's saves and memory) maps them.
 
 ## Positions
 

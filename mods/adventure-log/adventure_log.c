@@ -3,7 +3,7 @@
 // Game version 1.1.1 keeps a rolling log of 1,024 events in memory (and in option.sav), even with
 // Zelda Notes never set up and offline. This mod reads it each frame and shows it on screen: counts
 // by kind, and the newest entries with their names. It can also write each new entry to the log, so
-// the kinds can be named by doing one thing at a time (test 0.1.0).
+// the rest of the kinds can be named by doing one thing at a time.
 //
 // The log (1.1.1, main 0x4E6B718 holds the recorder; found 17 Nov 2026 from the function that copies
 // it into the save, 0x587E80, and the one that adds an entry, 0xE46590):
@@ -30,28 +30,41 @@ typedef struct {
     int32_t value1, value2;
 } Entry;
 
-// What each kind seems to be, from one save (17 Nov 2026). '?' = a guess, to be checked.
+// What each kind is. From two saves and a test round (19 Nov 2026: one thing at a time, logged);
+// '?' = still a guess. Jumps, rolls and sword swings aren't logged (the game counts them elsewhere).
 static const char *kind_name(uint32_t kind) {
     switch (kind) {
-    case 2:  return "enemy hit Link?";
-    case 3:  return "Link hit something?";
-    case 4:  return "Z-target?";
-    case 5:  return "cucco flight?";
+    case 1:  return "Link hurt";             // by name1; value2 = damage in quarter hearts
+    case 2:  return "Link defeated";         // by name1 (Game Over follows)
+    case 3:  return "enemy defeated";        // Link, the enemy
+    case 4:  return "Z-target";              // the target; no name = let go
+    case 5:  return "item readied?";         // value1 = the item's kind
+    case 7:  return "item used";             // value1: 3 bomb, 6 bow, 8 hookshot...
     case 11: return "picked up";
-    case 14: return "talk line";
-    case 16: return "event (blank = end)";
+    case 14: return "talk line";             // who; value1 = the message
+    case 16: return "event";                 // no name = it ended (chests, ocarina, falls are events)
+    case 17: return "file loaded?";
     case 23: return "lift";
     case 24: return "throw / put down";
-    case 25: return "area change";
-    case 27: return "equip change";
-    case 28: return "was hit by?";
+    case 25: return "area change";           // from, to; values = the two positions
+    case 26: return "?";
+    case 27: return "equip change";          // old, new; value1 = the slot
+    case 28: return "hit";                   // target, attacker
     case 30: return "learned song";
-    case 33: return "object gone?";
-    case 37: return "defeated?";
-    case 38: return "dropped item";
+    case 32: return "appeared?";             // enemies and shots coming into play
+    case 33: return "removed";               // broken, collected or opened away
+    case 34: return "room change";           // values = old and new floor / room
+    case 37: return "Link hurt (world)";     // falls, fire, grabs; value2 = damage
+    case 38: return "dropped item";          // who dropped it, what
+    case 39: return "life / magic";          // value1 = max << 16 | life (quarter hearts), value2 the same for magic
     default: return "?";
     }
 }
+
+// Events (kind 16) worth counting by name: MurmurHash3 of the event's name.
+#define EV_CHEST_BIG   0x7494876Fu        // Dm_SY_Treasurebox
+#define EV_CHEST_SMALL 0x92126ED4u        // Dm_SY_TreasureboxSmall
+#define EV_OCARINA     0x956E2065u        // Dm_SY_Ocarina
 
 static const char *const size_names[] = { "Small", "Medium", "Large" };
 
@@ -88,15 +101,32 @@ static uintptr_t recorder;           // the recorder, once the game has made it
 static uint32_t last_head;
 static int synced;
 
+typedef struct {
+    uint32_t kinds[KINDS];
+    uint32_t chests, ocarina, hurt_quarters;
+} Tally;
+
+static void tally_add(Tally *t, const Entry *e) {
+    if (e->kind < KINDS)
+        t->kinds[e->kind]++;
+    if (e->kind == 16 && (e->name1 == EV_CHEST_BIG || e->name1 == EV_CHEST_SMALL))
+        t->chests++;
+    if (e->kind == 16 && e->name1 == EV_OCARINA)
+        t->ocarina++;
+    if ((e->kind == 1 || e->kind == 37) && e->value2 > 0 && e->value2 < 1000)
+        t->hurt_quarters += (uint32_t)e->value2;
+}
+
 static struct {                      // left for the render thread
     int state;                       // 0 no recorder yet, 1 reading, 2 something looks wrong
     uint32_t count;                  // entries in the game's log
     uint32_t session;                // entries added since the mod started
     uint32_t newest_time;
-    uint32_t kinds_session[KINDS], kinds_log[KINDS];
+    int32_t life;                    // the newest kind 39's value1, -1 if none
+    Tally in_session, in_log;
     Entry recent[RECENT_MAX];
     int recent_n;
-} shown;
+} shown = { .life = -1 };
 
 static int panel_on = -1;            // -1: follow the setting
 
@@ -122,12 +152,16 @@ static void log_entry(const Entry *e) {
 }
 
 static void snapshot(uint32_t head, uint32_t count) {
-    for (int k = 0; k < KINDS; k++)
-        shown.kinds_log[k] = 0;
-    for (uint32_t i = 0; i < count; i++) {
-        uint32_t kind = entry_at(i)->kind;
-        if (kind < KINDS)
-            shown.kinds_log[kind]++;
+    Tally t = { 0 };
+    for (uint32_t i = 0; i < count; i++)
+        tally_add(&t, entry_at(i));
+    shown.in_log = t;
+    for (uint32_t k = 0; k < count; k++) {        // newest life / magic
+        const Entry *e = entry_at((head + LOG_SIZE - 1 - k) % LOG_SIZE);
+        if (e->kind == 39) {
+            shown.life = e->value1;
+            break;
+        }
     }
     int n = settings[RECENT].value;
     if (n > RECENT_MAX) n = RECENT_MAX;
@@ -186,8 +220,7 @@ static void frame(void *user) {
         for (uint32_t k = 0; k < added; k++) {
             const Entry *e = entry_at((last_head + k) % LOG_SIZE);
             shown.session++;
-            if (e->kind < KINDS)
-                shown.kinds_session[e->kind]++;
+            tally_add(&shown.in_session, e);
             if (settings[LOG_NEW].value)
                 log_entry(e);
         }
@@ -260,8 +293,40 @@ static char *put_clock(char *out, uint32_t time) {
 
 enum { PLATE = 0x101820, LIT = 0xFFFFFF, DIM = 0x7A8A80, LABEL = 0x9AA79F, GOLD = 0xFFD040, GREEN = 0x80E090 };
 
-// The kinds worth a line of their own, in this order.
-static const uint8_t headline[] = { 37, 2, 3, 25, 11, 14, 30, 4, 23 };
+// The lines of the summary: a label and how to count it.
+enum { R_DEFEATED, R_HURT, R_HEARTS, R_GAME_OVER, R_AREAS, R_ROOMS, R_CHESTS, R_PICKED, R_TALK, R_ITEMS,
+       R_OCARINA, R_SONGS, ROWS };
+static const char *const row_label[ROWS] = {
+    "Enemies defeated", "Times hurt", "Hearts lost", "Game Overs", "Areas entered", "Rooms entered",
+    "Chests opened", "Things picked up", "Lines of talk", "Items used", "Ocarina played", "Songs learned",
+};
+
+static uint32_t row_value(const Tally *t, int row) {   // hearts lost: in quarter hearts
+    switch (row) {
+    case R_DEFEATED:  return t->kinds[3];
+    case R_HURT:      return t->kinds[1] + t->kinds[37];
+    case R_HEARTS:    return t->hurt_quarters;
+    case R_GAME_OVER: return t->kinds[2];
+    case R_AREAS:     return t->kinds[25];
+    case R_ROOMS:     return t->kinds[34];
+    case R_CHESTS:    return t->chests;
+    case R_PICKED:    return t->kinds[11];
+    case R_TALK:      return t->kinds[14];
+    case R_ITEMS:     return t->kinds[7];
+    case R_OCARINA:   return t->ocarina;
+    case R_SONGS:     return t->kinds[30];
+    }
+    return 0;
+}
+
+// A count, or for hearts quarter hearts as "3.25"
+static char *put_row_value(char *out, int row, uint32_t v) {
+    if (row != R_HEARTS)
+        return put_int(out, v, 0);
+    out = put_int(out, v / 4, 0);
+    static const char *const quarter[] = { "", ".25", ".5", ".75" };
+    return put(out, quarter[v % 4]);
+}
 
 static void draw(const KaeFrame *f, void *user) {
     (void)user;
@@ -271,8 +336,8 @@ static void draw(const KaeFrame *f, void *user) {
     int s = settings[SIZE].value + 1;
     int line = 18 * s, pad = 8 * s;
     int recent = shown.state == 1 ? shown.recent_n : 0;
-    int lines = 3 + (shown.state == 1 ? (int)(sizeof headline) + 2 + (recent ? 1 + recent : 0) : 0);
-    int width = 74 * 8 * s + 2 * pad;
+    int lines = 3 + (shown.state == 1 ? ROWS + 2 + (recent ? 1 + recent : 0) : 0);
+    int width = 112 * 8 * s + 2 * pad;
     if (width > f->width - 20)
         width = f->width - 20;
     int x = f->width / 60, y = f->height / 30;
@@ -298,35 +363,43 @@ static void draw(const KaeFrame *f, void *user) {
         p = put(p, "    newest ");
         p = put_clock(p, shown.newest_time);
     }
+    if (shown.life >= 0) {
+        uint32_t life = (uint32_t)shown.life & 0xFFFF, max = (uint32_t)shown.life >> 16;
+        p = put(p, "    life ");
+        p = put_row_value(p, R_HEARTS, life);
+        p = put(p, " / ");
+        p = put_row_value(p, R_HEARTS, max);
+        p = put(p, " hearts");
+    }
     kae_draw_text(x, y, s, LIT, text);
     y += line;
     kae_draw_text(x, y, s, DIM, "                          session    log");
     y += line;
-    for (unsigned k = 0; k < sizeof headline; k++) {
-        int kind = headline[k];
-        p = put(text, kind_name((uint32_t)kind));
+    for (int row = 0; row < ROWS; row++) {
+        p = put(text, row_label[row]);
         while (p < text + 26)
             *p++ = ' ';
         *p = 0;
+        uint32_t now = row_value(&shown.in_session, row);
         char num[16];
-        char *end = put_int(num, shown.kinds_session[kind], 0);
+        char *end = put_row_value(num, row, now);
         for (int pad_n = 7 - (int)(end - num); pad_n > 0; pad_n--)
             *p++ = ' ';
         p = put(p, num);
         p = put(p, "   ");
-        p = put_int(p, shown.kinds_log[kind], 0);
-        kae_draw_text(x, y, s, shown.kinds_session[kind] ? LIT : LABEL, text);
+        put_row_value(p, row, row_value(&shown.in_log, row));
+        kae_draw_text(x, y, s, now ? LIT : LABEL, text);
         y += line;
     }
     // every kind seen this session, as "kind:count"
     p = put(text, "All kinds this session: ");
     int any = 0;
     for (int k = 0; k < KINDS && p < text + 140; k++) {
-        if (!shown.kinds_session[k])
+        if (!shown.in_session.kinds[k])
             continue;
         p = put_int(p, k, 0);
         *p++ = ':';
-        p = put_int(p, shown.kinds_session[k], 0);
+        p = put_int(p, shown.in_session.kinds[k], 0);
         *p++ = ' ';
         *p = 0;
         any = 1;
@@ -381,8 +454,8 @@ static int start(void) {
     if (kae_on_frame(frame, 0, 0) != KAE_OK || kae_on_draw(draw, 0, 0) != KAE_OK)
         return 2;
     kae_settings("Adventure Log", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("adventure log 0.1.0 on game 1.1.1, %u names", notes_name_count);
+    KAE_LOG("adventure log 0.2.0 on game 1.1.1, %u names", notes_name_count);
     return 0;
 }
 
-KAE_MOD("kabosune.adventure-log", "0.1.0", start, 0);
+KAE_MOD("kabosune.adventure-log", "0.2.0", start, 0);
