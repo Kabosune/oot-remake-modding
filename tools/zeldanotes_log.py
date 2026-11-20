@@ -17,9 +17,9 @@ HIST_HASH, POS_HASH = 0x5392E233, 0x3C99C416   # option.sav field hashes of the 
 
 TYPES = {  # event kind -> what it is (19 Nov 2026 test round; '?' = guess). Same list as mods/adventure-log
     1: 'Link hurt (value2 = quarter hearts)', 2: 'Link defeated', 3: 'enemy defeated', 4: 'Z-target (none = let go)',
-    5: 'item readied?', 7: 'item used (value1 = kind)', 11: 'picked up', 14: 'talk line (value1 = message)',
-    16: 'event (none = ended)', 17: 'file loaded?', 23: 'lift', 24: 'throw / put down',
-    25: 'area change (from, to)', 27: 'equip change (old, new; value1 = slot)', 28: 'attack landed (target, attacker)',
+    5: 'item readied?', 7: 'item used (value1 = kind)', 8: 'sword swing', 11: 'picked up', 14: 'talk line (value1 = message)',
+    16: 'event (none = ended)', 17: 'file loaded (value1 = slot)', 23: 'lift', 24: 'throw / put down',
+    25: 'area change (from, to)', 26: 'game saved (value1 = slot)', 27: 'equip change (old, new; value1 = slot)', 28: 'attack landed (target, attacker)',
     30: 'learned song', 32: 'came into play?', 33: 'removed', 34: 'room change (values = floor / room)',
     37: 'Link hurt by the world', 38: 'dropped item', 39: 'life / magic (max << 16 | now)',
 }

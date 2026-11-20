@@ -59,14 +59,15 @@ something done in the test; **likely** = fits every case seen; `?` = not known.
 | 3 | Link defeated an enemy | Link, the enemy | 10, ? | seen (its drop follows) |
 | 4 | Z-target | the target; none = let go | | seen |
 | 5 | an item readied | | the item's kind, 1 | likely (before shooting) |
+| 8 | a sword swing | | | seen (5 swings, 5 entries) |
 | 7 | an item used | | the item's kind (3 bomb, 6 bow, 8 hookshot), 1 | likely |
 | 11 | picked up | the thing (rupee, heart, small key) | | seen |
 | 14 | a line of talk | who | the message | seen |
 | 16 | an event; no name = it ended | the event | | seen. Opening a chest is `Dm_SY_Treasurebox` / `Dm_SY_TreasureboxSmall`, the ocarina `Dm_SY_Ocarina`, falling into lava or a pit `DmF_SY_FallDown`, Game Over `DmF_SY_GameOver` |
-| 17 | a file loaded? | | 0 or 1 | likely (at the title and after Continue) |
+| 17 | a file loaded | | value1 = the slot | seen |
 | 23 / 24 | lift / throw or put down | the thing (cucco, rock, bomb) | | seen |
 | 25 | area change | from, to (scene) | the two positions | seen |
-| 26 | ? | | 0 to 5 | after some events and arrivals |
+| 26 | the game saved | | value1 = the slot (0 to 5) | seen (the same second the slot's file was written) |
 | 27 | equip change | old, new | the slot (0 sword, 4 tunic, 6 ocarina?, 8 the item button) | seen |
 | 28 | an attack landed | the target, the attacker | ?, ? | seen (arrow on a Keese, bomb on a cracked wall) |
 | 30 | learned a song | `Item_Melody_*` | | seen |
@@ -77,13 +78,35 @@ something done in the test; **likely** = fits every case seen; `?` = not known.
 | 38 | dropped an item | who or what dropped it, the item | | seen |
 | 39 | life and magic | | `max << 16 \| life` in quarter hearts; the same for magic (240 = full) | seen (a heart: +4; a fall: -4; Game Over at 0) |
 
-**Not in the log:** jumps, rolls and sword swings (all done in the test, none logged). The app's
-totals for those (`jump_count_total`, ...) must come from counters somewhere else. Kinds 8, 9, 10,
-22, 29, 36 appear in older logs; not known yet.
+**Not in the log:** jumps and rolls (their totals are in the save: next section). Kinds 9, 10, 22,
+29, 36 appear in older logs; not known yet.
 
 Quarter hearts and magic 240 agree with the save keys `PlayerStatus.MaxLife` (hearts x 4) and
 `PlayerStatus.MPMax` (240 with magic), as [Hyrule Tracker](https://github.com/jv-prado/hyrule-tracker)
 (MIT, a desktop tracker that reads this game's saves and memory) maps them.
+
+## Totals in the save: jumps, swings, rolls (19 November 2026)
+
+Jumps and rolls aren't in the play log, but the game counts them in each slot's `progress.sav`, as
+**Int64** fields (GameData type 22: the table value is the offset of an `s64`). Found by a diff: one
+save before and one after KaboWabo jumped 4 times, swung the sword 5 times and rolled 6 times, and
+nothing else, in the same slot. Names unknown (no string in `main` hashes to them):
+
+| Field (MurmurHash3) | Changed by | Before → after | What |
+|---|---|---|---|
+| `0xA6454431` | +4 | 2,152 → 2,156 | **jumps** |
+| `0x2A24450A` | +5 | 1,233 → 1,238 | **sword swings** (also logged one by one: kind 8) |
+| `0x4AC3FF5D` | +6 | 1,285 → 1,291 | **rolls** |
+| `0x3EEAFADD` | +10 | 61,987 → 61,997 | ? (maybe distance) |
+| `0xCE97845E` | +25 | 53,942 → 53,967 | ? (maybe distance) |
+| `0xE53EB6D1`, `0xE573F564` (UInt) | +39 each | | likely play time in seconds |
+| `0x3F8D9D86` (UInt) | +34 | | ? |
+| `0xEF10B80F` (UInt64) | +2,062 | | ? |
+
+Also kinds of the log named by that run: **8 = a sword swing** (5 entries, one a swing), **17 = a file
+loaded** and **26 = the game saved**, both with the slot number as value1 (26's value 1 at the second
+`slot_01/progress.sav` was written). These totals are the game's own, so they are presumably what
+`jump_count_total`, `sword_swing_count_total` and `roll_count_total` send to the app.
 
 ## Positions
 

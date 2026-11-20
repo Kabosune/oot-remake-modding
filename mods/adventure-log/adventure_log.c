@@ -31,7 +31,7 @@ typedef struct {
 } Entry;
 
 // What each kind is. From two saves and a test round (19 Nov 2026: one thing at a time, logged);
-// '?' = still a guess. Jumps, rolls and sword swings aren't logged (the game counts them elsewhere).
+// '?' = still a guess. Jumps and rolls aren't logged (their totals are Int64 fields in the save).
 static const char *kind_name(uint32_t kind) {
     switch (kind) {
     case 1:  return "Link hurt";             // by name1; value2 = damage in quarter hearts
@@ -40,14 +40,15 @@ static const char *kind_name(uint32_t kind) {
     case 4:  return "Z-target";              // the target; no name = let go
     case 5:  return "item readied?";         // value1 = the item's kind
     case 7:  return "item used";             // value1: 3 bomb, 6 bow, 8 hookshot...
+    case 8:  return "sword swing";
     case 11: return "picked up";
     case 14: return "talk line";             // who; value1 = the message
     case 16: return "event";                 // no name = it ended (chests, ocarina, falls are events)
-    case 17: return "file loaded?";
+    case 17: return "file loaded";          // value1 = the slot
     case 23: return "lift";
     case 24: return "throw / put down";
     case 25: return "area change";           // from, to; values = the two positions
-    case 26: return "?";
+    case 26: return "game saved";           // value1 = the slot
     case 27: return "equip change";          // old, new; value1 = the slot
     case 28: return "hit";                   // target, attacker
     case 30: return "learned song";
