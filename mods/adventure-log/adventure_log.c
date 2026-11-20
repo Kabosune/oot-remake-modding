@@ -151,9 +151,11 @@ static int panel_on = -1;            // -1: follow the setting
 typedef struct { uint32_t block, stride, value; } GdType;
 static const GdType GD_INT = { 0xD0, 0x28, 0x1C }, GD_INT64 = { 0x850, 0x30, 0x20 };
 
-enum { T_JUMPS, T_ROLLS, T_SWINGS, T_RUN, T_WALK, TOTALS };
+enum { T_JUMPS, T_ROLLS, T_SWINGS, T_FOOT, T_OTHER, TOTALS };
 static const uint32_t total_hash[TOTALS] = { 0xA6454431u, 0x4AC3FF5Du, 0x2A24450Au, 0x3EEAFADDu, 0xCE97845Eu };
-static const char *const total_name[TOTALS] = { "jumps", "rolls", "sword swings", "metres run", "metres walked" };
+static const char *const total_name[TOTALS] = { "jumps", "rolls", "sword swings", "metres on foot", "0xCE97845E" };
+// T_FOOT counts in 10 m steps and matches the distance the mod measures itself (19 Nov). T_OTHER grows
+// while Link moves, also when he runs, but slower: not distance; not known yet.
 // Int fields by their names (MurmurHash3): PlayerStatus.CurrentRupee, .Life, .MaxLife,
 // PouchData.Item_Token_Gold.StockNum, PouchData.Obj_Heart_Piece.StockNum
 enum { S_RUPEES, S_LIFE, S_MAX_LIFE, S_TOKENS, S_PIECES, STATS };
@@ -247,16 +249,16 @@ static void read_totals(void) {
         for (int k = 0; k < TOTALS; k++)
             totals.start[k] = totals.now[k] = v[k];
         totals.state = 1;
-        KAE_LOG("adventure log: totals: %lld jumps, %lld rolls, %lld sword swings, %lld m run, %lld m walked",
-                (long long)v[T_JUMPS], (long long)v[T_ROLLS], (long long)v[T_SWINGS], (long long)v[T_RUN],
-                (long long)v[T_WALK]);
+        KAE_LOG("adventure log: totals: %lld jumps, %lld rolls, %lld sword swings, %lld m on foot (0xCE97845E: %lld)",
+                (long long)v[T_JUMPS], (long long)v[T_ROLLS], (long long)v[T_SWINGS], (long long)v[T_FOOT],
+                (long long)v[T_OTHER]);
     } else {
         for (int k = 0; k < TOTALS; k++) {
             if (v[k] == totals.now[k])
                 continue;
             if (v[k] < totals.now[k] || v[k] > totals.now[k] + 100000)    // another file loaded
                 totals.start[k] = v[k];
-            if (settings[LOG_NEW].value && k < T_RUN)       // distances change every step: see walk_log
+            if (settings[LOG_NEW].value && k < T_FOOT)       // distances change every step: see walk_log
                 KAE_LOG("adventure log: %s %lld (was %lld)", total_name[k], (long long)v[k], (long long)totals.now[k]);
             totals.now[k] = v[k];
         }
@@ -267,7 +269,7 @@ static void read_totals(void) {
                 totals.stat[S_PIECES]);
 }
 
-// ---- distance the mod measures itself (a check on the game's two distance counters) ----
+// ---- distance the mod measures itself (a check on the game's distance counter) ----
 #define RATE 30.0f                   // Link's movement updates a second
 static float walked_m;               // along the ground, this session
 static float walk_last[3];
@@ -297,15 +299,15 @@ static void player_move(const KaePlayer *link, void *user) {
     walk_have = 1;
 }
 
-// Every 5 seconds, if Link moved: the mod's distance next to the game's two counters.
+// Every 5 seconds, if Link moved: the mod's distance next to the game's.
 static void walk_log(void) {
     static float logged = 0;
     if (!settings[LOG_NEW].value || totals.state != 1 || walked_m - logged < 1.0f)
         return;
     logged = walked_m;
-    KAE_LOG("adventure log: distance: %.1f m measured by the mod this session; the game's counters: run +%lld m, walked +%lld m",
-            (double)walked_m, (long long)(totals.now[T_RUN] - totals.start[T_RUN]),
-            (long long)(totals.now[T_WALK] - totals.start[T_WALK]));
+    KAE_LOG("adventure log: distance: %.1f m measured by the mod this session; the game's: +%lld m (0xCE97845E +%lld)",
+            (double)walked_m, (long long)(totals.now[T_FOOT] - totals.start[T_FOOT]),
+            (long long)(totals.now[T_OTHER] - totals.start[T_OTHER]));
 }
 
 static const Entry *entry_at(uint32_t i) { return (const Entry *)(recorder + (uintptr_t)i * sizeof(Entry)); }
@@ -597,7 +599,7 @@ static void draw(const KaeFrame *f, void *user) {
     // the game's own totals since the file began, and this session's part of them
     p = put(text, "Since the file began: ");
     if (totals.state == 1) {
-        static const char *const label[TOTALS] = { " jumps", " rolls", " sword swings", " m run", " m walked" };
+        static const char *const label[TOTALS] = { " jumps", " rolls", " sword swings", " m on foot", " (0xCE97845E)" };
         for (int k = 0; k < TOTALS; k++) {
             p = put_int(p, totals.now[k], 0);
             p = put(p, label[k]);
@@ -861,7 +863,7 @@ static void draw_simple(const KaeFrame *f) {
         p = put_count(text, totals.now[T_JUMPS] - totals.start[T_JUMPS], "jump", "jumps");  p = put(p, "   ");
         p = put_count(p, totals.now[T_ROLLS] - totals.start[T_ROLLS], "roll", "rolls");     p = put(p, "   ");
         p = put_count(p, totals.now[T_SWINGS] - totals.start[T_SWINGS], "swing", "swings"); p = put(p, "   ");
-        p = put_km(p, totals.now[T_RUN] - totals.start[T_RUN] + totals.now[T_WALK] - totals.start[T_WALK]);
+        p = put_km(p, totals.now[T_FOOT] - totals.start[T_FOOT]);
         p = put(p, "   ");
         uint64_t secs = frames_seen / 30;
         p = put_int(p, (long long)(secs / 3600), 0); p = put(p, "h ");
@@ -877,7 +879,7 @@ static void draw_simple(const KaeFrame *f) {
         p = put_int(text, totals.now[T_JUMPS], 0);  p = put(p, " jumps   ");
         p = put_int(p, totals.now[T_ROLLS], 0);     p = put(p, " rolls   ");
         p = put_int(p, totals.now[T_SWINGS], 0);    p = put(p, " swings   ");
-        p = put_km(p, totals.now[T_RUN] + totals.now[T_WALK]);
+        p = put_km(p, totals.now[T_FOOT]);
         put(p, " on foot");
     } else {
         put(text, "-");
@@ -918,8 +920,8 @@ static int start(void) {
     if (kae_on_player_move(player_move, 0, 0) != KAE_OK)
         KAE_LOG("adventure log: no player_move event in this game: no distance of its own");
     kae_settings("Adventure Log", settings, sizeof settings / sizeof *settings);
-    KAE_LOG("adventure log 0.4.0 on game 1.1.1, %u names", notes_name_count);
+    KAE_LOG("adventure log 0.4.1 on game 1.1.1, %u names", notes_name_count);
     return 0;
 }
 
-KAE_MOD("kabosune.adventure-log", "0.4.0", start, 0);
+KAE_MOD("kabosune.adventure-log", "0.4.1", start, 0);

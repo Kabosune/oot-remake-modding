@@ -1180,7 +1180,7 @@ def check_adventure_log(fakes, tmp):
         g.expect("only 1.1.1 does): doing nothing")
         print("Adventure Log: ok (does nothing on a game without the play log)")
         return
-    g.expect("adventure log 0.4.0 on game 1.1.1")
+    g.expect("adventure log 0.4.1 on game 1.1.1")
     g.frame()                                       # no recorder yet: waits
     assert not g.logged("recorder is at")
     REC = 0x43000000
@@ -1223,7 +1223,7 @@ def check_adventure_log(fakes, tmp):
                 i = (i + 1) % size
             table[i] = (h, index)
         g.p.write(at, b"".join(struct.pack("<II", *(e or (0, 0))) for e in table))
-    # Int64: jumps, rolls, sword swings, metres run, metres walked
+    # Int64: jumps, rolls, sword swings, metres on foot, 0xCE97845E (not known)
     hashes = {0xA6454431: 10, 0x4AC3FF5D: 20, 0x2A24450A: 30, 0x3EEAFADD: 1000, 0xCE97845E: 500}
     hash_map(MAP, hashes, 7)
 
@@ -1251,9 +1251,9 @@ def check_adventure_log(fakes, tmp):
     set_totals(hashes.values())
     for _ in range(10):
         g.frame()
-    g.expect("totals: 10 jumps, 20 rolls, 30 sword swings, 1000 m run, 500 m walked",
+    g.expect("totals: 10 jumps, 20 rolls, 30 sword swings, 1000 m on foot (0xCE97845E: 500)",
              "153 rupees, life 13 / 20 (quarter hearts), 16 Gold Skulltulas, 1 heart pieces")
-    set_totals((14, 26, 35, 1190, 539))             # 4 jumps, 6 rolls, 5 swings, 190 m run, 39 m walked
+    set_totals((14, 26, 35, 1190, 539))             # 4 jumps, 6 rolls, 5 swings, 190 m
     for _ in range(10):
         g.frame()
     g.expect("jumps 14 (was 10)", "rolls 26 (was 20)", "sword swings 35 (was 30)")

@@ -3,14 +3,14 @@ manifest = 1
 
 id       = "kabosune.adventure-log"
 name     = "Adventure Log"
-version  = "0.4.0"
+version  = "0.4.1"
 authors  = ["KaboWabo/Kabosune"]
 license  = "MIT"
 homepage = "https://github.com/Kabosune/oot-remake-modding"
 
 [game]
 title = "0400486024DEC000"
-tested = ["1.1.1"]               # 0.3.0, Fritchii v6.2, Core 0.9.0, 19 November 2026
+tested = ["1.1.1"]               # 0.4.0, Fritchii v6.2, Core 0.9.0, 19 November 2026
 # 1.1.1 only: 1.0.0 has no play log. Reads the recorder by its 1.1.1 address (kae_game_base) until
 # Core's pack has a name for it.
 

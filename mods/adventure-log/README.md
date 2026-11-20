@@ -5,12 +5,13 @@ The game's own play log, shown in the game. Game version 1.1.1 keeps a rolling l
 Zelda Notes app, even with Zelda Notes never set up and offline. This mod reads that log and shows it
 on screen, together with the game's own totals of jumps, rolls and sword swings.
 
-Status: **0.4.0, test build** (0.3.1 is the release: `releases/adventure-log.zip`). 0.3.0 works in
-the game (19 November 2026, Fritchii v6.2, KaeGae Core 0.9.0, game 1.1.1).
+Status: **0.4.1.** 0.4.0 works in the game (19 November 2026, Fritchii v6.2, KaeGae Core 0.9.0,
+game 1.1.1); 0.4.1 shows only the game's own distance counter as distance (0.4.0 added a second
+counter that turned out not to be distance).
 
 Two panels (top left; pick one on the Mods menu page, "Panel"):
 
-**Simple** (the default from 0.4.0):
+**Simple** (the default):
 
 - The area Link is in.
 - His hearts, rupees, Gold Skulltulas and heart pieces (the game's own numbers).
@@ -21,8 +22,7 @@ Two panels (top left; pick one on the Mods menu page, "Panel"):
 - The newest highlights: enemies defeated, things picked up, areas entered, songs played, chests,
   saves, Game Overs.
 
-**Detailed:** every count for this session and the whole log, the totals with distance run and
-walked separately, Link's life, and the newest entries of the log by name (12,409 of the game's
+**Detailed:** every count for this session and the whole log, the totals with distance, Link's life, and the newest entries of the log by name (12,409 of the game's
 actor, area and event names).
 
 With "Write new entries to the log" on (the default), every new entry and every change of the totals
