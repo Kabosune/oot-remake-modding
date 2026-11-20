@@ -97,11 +97,24 @@ nothing else, in the same slot. Names unknown (no string in `main` hashes to the
 | `0xA6454431` | +4 | 2,152 → 2,156 | **jumps** |
 | `0x2A24450A` | +5 | 1,233 → 1,238 | **sword swings** (also logged one by one: kind 8) |
 | `0x4AC3FF5D` | +6 | 1,285 → 1,291 | **rolls** |
-| `0x3EEAFADD` | +10 | 61,987 → 61,997 | ? (maybe distance) |
-| `0xCE97845E` | +25 | 53,942 → 53,967 | ? (maybe distance) |
-| `0xE53EB6D1`, `0xE573F564` (UInt) | +39 each | | likely play time in seconds |
+| `0x3EEAFADD` | +10 | 61,987 → 61,997 | **metres run** (see below) |
+| `0xCE97845E` | +25 | 53,942 → 53,967 | **metres walked / jogged** (see below) |
+| `0xE573F564` (UInt) | +39 | | play time in seconds (Hyrule Tracker found it the same way) |
+| `0xE53EB6D1` (UInt) | +39 | | ? (also seconds) |
 | `0x3F8D9D86` (UInt) | +34 | | ? |
 | `0xEF10B80F` (UInt64) | +2,062 | | ? |
+
+**Distance (19 November, second diff):** KaboWabo ran back and forth, then jogged, between two saves
+to one slot (55 s of play time). `0x3EEAFADD` went up 190 and `0xCE97845E` 39. The game's own
+position trail (`option.sav`) has ~36 s of movement at ~6 m/s, ~196 m in all, which matches the
+first: **metres run**. The trail seems to keep only the running; ~19 s more at a jog (~2 m/s) is
+about 39 m: the second, **metres walked or jogged**. The first diff fits (jumps and rolls in place:
++10 run, +25 walked). Likely, not certain: a jog-only run would settle the second. UInt64
+`0xEF10B80F` went up 3,375 in those 55 s (frames at ~60 a second?).
+
+**Other numbers the panel uses** (Int fields, names from Hyrule Tracker): `PlayerStatus.CurrentRupee`,
+`PlayerStatus.Life` / `MaxLife` (quarter hearts), `PouchData.Item_Token_Gold.StockNum` (Gold
+Skulltulas), `PouchData.Obj_Heart_Piece.StockNum`.
 
 **Reading them live** (Adventure Log 0.3.0): the GameData manager (`GameDataMgrPtr`, main
 `0x4E842A8` on 1.1.1) has one 0x60-byte block per field type at `0x10 + type * 0x60` (u32 count,

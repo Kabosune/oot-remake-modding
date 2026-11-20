@@ -11,6 +11,8 @@ how the real rtld, emulator or console behave: that takes the in-game test in ap
 Needs clang, ld.lld, llvm-nm, llvm-objcopy, Python 3.11+ and Unicorn 2. No game files.
 """
 import math
+import json
+import os
 import struct
 import subprocess
 import sys
@@ -1178,7 +1180,7 @@ def check_adventure_log(fakes, tmp):
         g.expect("only 1.1.1 does): doing nothing")
         print("Adventure Log: ok (does nothing on a game without the play log)")
         return
-    g.expect("adventure log 0.3.1 on game 1.1.1")
+    g.expect("adventure log 0.4.0 on game 1.1.1")
     g.frame()                                       # no recorder yet: waits
     assert not g.logged("recorder is at")
     REC = 0x43000000
@@ -1205,30 +1207,43 @@ def check_adventure_log(fakes, tmp):
     g.p.write(REC + 0x6000, struct.pack("<II", 1, 1024))
     g.frame()
     g.expect("t=103 kind 11 (picked up) Obj_Rupee_Green -", "t=104 kind 99 (?) 12345678 Obj_Armor_Child_Normal")
-    plate = [r for r in g.rects() if r[4] == 0x101820]
-    x, y, w, h, _ = plate[0]                         # the rectangles' origin is the lower left
-    assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 112 * 8 + 16, plate
+    card = [r for r in g.rects() if r[4] == 0x0E1418]          # the simple panel (the default)
+    x, y, w, h, _ = card[0]                          # the rectangles' origin is the lower left
+    assert x == 1280 // 60 and y + h == 720 - 720 // 30 and w == 64 * 8 + 16, card
     # the totals: a fake GameData manager with three Int64 fields (block at +0x850, records 0x30
     # apart, value at +0x20, a {hash, index} map with open addressing from hash % size)
-    MGR, RECS, MAP = 0x44000000, 0x44010000, 0x44020000
-    g.p.uc.mem_map(MGR, 0x30000)
-    hashes = {0xA6454431: 10, 0x4AC3FF5D: 20, 0x2A24450A: 30}     # jumps, rolls, sword swings
-    size, table = 7, [None] * 7
-    for index, h in enumerate(hashes):
-        i = h % size
-        while table[i] is not None:
-            i = (i + 1) % size
-        table[i] = (h, index)
-    g.p.write(MAP, b"".join(struct.pack("<II", *(e or (0, 0))) for e in table))
+    MGR, RECS, MAP, IRECS, IMAP = 0x44000000, 0x44010000, 0x44020000, 0x44030000, 0x44040000
+    g.p.uc.mem_map(MGR, 0x50000)
+
+    def hash_map(at, hashes, size):
+        table = [None] * size
+        for index, h in enumerate(hashes):
+            i = h % size
+            while table[i] is not None:
+                i = (i + 1) % size
+            table[i] = (h, index)
+        g.p.write(at, b"".join(struct.pack("<II", *(e or (0, 0))) for e in table))
+    # Int64: jumps, rolls, sword swings, metres run, metres walked
+    hashes = {0xA6454431: 10, 0x4AC3FF5D: 20, 0x2A24450A: 30, 0x3EEAFADD: 1000, 0xCE97845E: 500}
+    hash_map(MAP, hashes, 7)
 
     def set_totals(values):
         for index, v in enumerate(values):
             g.p.write(RECS + index * 0x30, struct.pack("<Q", 0x4E000000))     # the records' class
             g.p.write(RECS + index * 0x30 + 0x20, struct.pack("<qq", v, v))
-    set_totals((0, 0, 0))                           # the title screen: no file loaded yet
-    g.p.write(MGR + 0x850, struct.pack("<I", 3))
+    set_totals((0, 0, 0, 0, 0))                     # the title screen: no file loaded yet
+    g.p.write(MGR + 0x850, struct.pack("<I", len(hashes)))
     g.p.write(MGR + 0x858, struct.pack("<QQ", RECS, MAP))
-    g.p.write(MGR + 0x86C, struct.pack("<I", size))
+    g.p.write(MGR + 0x86C, struct.pack("<I", 7))
+    # Int (records 0x28, value +0x1C): rupees, life, max life, Gold Skulltulas, heart pieces
+    ints = {0xA77921D7: 153, 0x31AB5580: 13, 0xFBE01DA1: 20, 0x04735978: 16, 0x51EC97B3: 1}
+    hash_map(IMAP, ints, 11)
+    for index, v in enumerate(ints.values()):
+        g.p.write(IRECS + index * 0x28, struct.pack("<Q", 0x4E000100))
+        g.p.write(IRECS + index * 0x28 + 0x1C, struct.pack("<ii", v, v))
+    g.p.write(MGR + 0xD0, struct.pack("<I", len(ints)))
+    g.p.write(MGR + 0xD8, struct.pack("<QQ", IRECS, IMAP))
+    g.p.write(MGR + 0xEC, struct.pack("<I", 11))
     g.p.write(MAIN_BASE + PACK["global"]["GameDataMgrPtr"]["offset"], struct.pack("<Q", MGR))
     for _ in range(10):
         g.frame()
@@ -1236,18 +1251,40 @@ def check_adventure_log(fakes, tmp):
     set_totals(hashes.values())
     for _ in range(10):
         g.frame()
-    g.expect("totals: 10 jumps, 20 rolls, 30 sword swings")
-    set_totals((14, 26, 35))                        # 4 jumps, 6 rolls, 5 swings
+    g.expect("totals: 10 jumps, 20 rolls, 30 sword swings, 1000 m run, 500 m walked",
+             "153 rupees, life 13 / 20 (quarter hearts), 16 Gold Skulltulas, 1 heart pieces")
+    set_totals((14, 26, 35, 1190, 539))             # 4 jumps, 6 rolls, 5 swings, 190 m run, 39 m walked
     for _ in range(10):
         g.frame()
     g.expect("jumps 14 (was 10)", "rolls 26 (was 20)", "sword swings 35 (was 30)")
+    # the simple panel now has the hearts (13 of 20 quarters: 3 full, a quarter, 1 empty), the rupee
+    # and the Gold Skulltula token
+    if os.environ.get("ADVENTURE_LOG_RECTS"):          # for a picture of the panel
+        Path(os.environ["ADVENTURE_LOG_RECTS"]).write_text(json.dumps(g.rects()))
+    colours = {r[4] for r in g.rects()}
+    assert {0xE8384A, 0x3A2A30, 0x40D070, 0xF0C040} <= colours, sorted(hex(c) for c in colours)
+    for _ in range(150):                            # Link didn't move: no distance line
+        g.frame()
+    assert not g.logged("distance:")
     # a broken log (count over 1,024) is left alone
     g.p.write(REC + 0x6000, struct.pack("<II", 5, 5000))
     g.frame()
     g.expect("the log looks wrong")
     assert not g.p.unresolved, g.p.unresolved
+    # the detailed panel is still there: Panel = Detailed in the settings file
+    g = Game(fakes, kaemod.build([kaemod.Mod(REPO / "mods" / "adventure-log")], False, tmp / "adventure-log-2"))
+    text = "[kabosune.adventure-log]\nPanel = 1\n"
+    g.p.write(g.sdk.exports["sdk_file"], text.encode())
+    g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+    g.game("game_boot")
+    for _ in range(3):
+        g.frame()
+    plate = [r for r in g.rects() if r[4] == 0x101820]
+    assert plate and plate[0][2] == 112 * 8 + 16, plate
+    assert not [r for r in g.rects() if r[4] == 0x0E1418], "the simple panel drawn too"
     print("Adventure Log: ok (follows the game's log through main's pointer, names entries, wraps, "
-          "skips a read-back, reads the jump / roll / swing totals from GameData, leaves a broken log alone)")
+          "skips a read-back, reads the totals and stats from GameData, draws the simple panel with its hearts, "
+          "the detailed one when picked, leaves a broken log alone)")
 
 
 def main():
