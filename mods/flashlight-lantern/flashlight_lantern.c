@@ -6,8 +6,9 @@
 // execute function does (1.1.1 0x295F8C0, 1.0.0 0x290D570) and then keeps the light next to Link:
 //
 //   holder = [[main + LIGHT_GLOBAL] + 0x1E8];  mgr = [holder + MGR_OFF]   (when holder byte + 0xE20 has bit 1)
-//   pool   = [mgr + 0x58 + 8 * kind]        kinds: 0 point, 1 spot (the action writes spot fields
-//                                            only for 1), 3 Navi's pool (Light_NaviNum), 2, 4 others
+//   pool   = [mgr + 0x58 + 8 * kind]        kinds: 0 point, 1 spot, 2 line, 3 Navi's, 4 amplifier
+//                                            (the manager's setup fills them from Light_PointNum,
+//                                            Light_SpotNum, Light_LineNum, Light_NaviNum, ...)
 //   light  = pool->vtable[2](pool)           a free light from the pool (null if it's full)
 //   light + 0xF8 = 0, + 0x108 = 7 (the tag the action's lights carry), byte + 0x132 |= 1
 //   light->vtable[9](light, x, y, z)         its position
@@ -22,6 +23,10 @@
 // the mod looks its light up by name: gone = make a new one. That keeps it safe across area loads.
 // The game's map can't remove one name, so "off" sets the intensity to 0 (the light stays in its
 // pool until the area changes).
+//
+// Navi's own glow is a light from pool 3 (made by the game's code, 0x170 bytes each: the pool keeps
+// its count at + 0x28 and its lights at [+ 0x30]). "Navi's glow" off darkens every light in that
+// pool except the lantern, and puts back the intensities it took when switched on again.
 //
 // The addresses are each version's own (raw offsets; found 22 Nov 2026, see docs/lights.md): a test
 // build. They go into Core's symbol packs at the next Core release.
@@ -46,6 +51,11 @@ static const Addrs ADDRS[] = {
 #define POOLS_OFF    0x58
 #define MAP_OFF      0xD0E0       // u32 hash + pad + ptr, 16 bytes each; count +8, capacity +0xC
 #define KINDS        5
+#define NAVI_KIND    3
+#define NAVI_COUNT   0x28         // Navi pool: number of lights, then a pointer to them
+#define NAVI_ARRAY   0x30
+#define NAVI_STRIDE  0x170
+#define NAVI_MAX     64
 
 typedef void *(*PoolAllocFn)(void *pool);
 typedef void  (*PoolFreeFn)(void *pool, void *light);
@@ -73,6 +83,7 @@ static const char *const aims[] = { "Where Link faces", "Where the camera looks"
 enum {
     LANTERN, L_TOGGLE, L_BRIGHT, L_COLOUR, L_GLOW, L_HEIGHT, L_SIZE, L_KIND,
     FLASH, F_TOGGLE, F_BRIGHT, F_COLOUR, F_WIDTH, F_AIM, F_TILT, F_HEIGHT, F_FORWARD,
+    NAVI,
     STATUS,
     ITEMS
 };
@@ -93,11 +104,12 @@ static KaeItem settings[ITEMS] = {
     [F_TOGGLE]  = KEY("Flashlight on / off", "A button to switch the flashlight while playing."),
     [F_BRIGHT]  = NUM("Flashlight brightness", "The beam's intensity (the game's spot lights use about 10 to 200).", 80, 1, 1000, 5),
     [F_COLOUR]  = CHO("Flashlight colour", 0, 0, flash_colours),
-    [F_WIDTH]   = NUM("Beam width (degrees)", "The beam's outer angle; its bright middle is 60 % of it.", 25, 5, 80, 1),
+    [F_WIDTH]   = NUM("Beam width (degrees)", "The beam's outer angle; its bright middle is 60 % of it.", 25, 5, 160, 1),
     [F_AIM]     = CHO("Flashlight aim", 0, 0, aims),
     [F_TILT]    = NUM("Beam tilt down (degrees)", "For \"Where Link faces\": how far the beam points down.", 10, -45, 60, 1),
     [F_HEIGHT]  = NUM("Flashlight height (cm)", "How far above Link's feet the beam starts.", 90, 0, 300, 10),
     [F_FORWARD] = NUM("Flashlight forward (cm)", "How far in front of Link the beam starts.", 30, 0, 200, 5),
+    [NAVI]      = TOG("Navi's glow", "Off: Navi gives no light (the lantern can still use her kind of light).", 1),
     [STATUS]    = TOG("Show status", "A few lines on screen: whether each light exists, and its kind (for testing).", 0),
 };
 
@@ -286,6 +298,65 @@ static void update(Lamp *lamp, int want, int kind, const float pos[3], const flo
     }
 }
 
+// ---- Navi's own glow ----
+
+typedef struct { void *light; float intensity; } Taken;
+static Taken taken[NAVI_MAX];
+static int taken_count, navi_dark, navi_relit;
+static void *taken_mgr;
+
+// Every light in Navi's pool but ours: dark while the setting is off, given back when it's on again.
+static void navi_glow(void *mgr, int want_dark) {
+    if (mgr != taken_mgr) {          // a new manager: what we took belonged to the old one
+        taken_count = 0;
+        taken_mgr = mgr;
+    }
+    if (!want_dark) {
+        for (int i = 0; i < taken_count; i++)
+            if (kae_readable((uint8_t *)taken[i].light + 0x28, 4) && *(float *)((uint8_t *)taken[i].light + 0x28) == 0.0f)
+                *(float *)((uint8_t *)taken[i].light + 0x28) = taken[i].intensity;
+        if (taken_count || navi_dark)
+            KAE_LOG("flashlight & lantern: Navi's glow back on (%d lights)", taken_count);
+        taken_count = 0;
+        navi_dark = navi_relit = 0;
+        return;
+    }
+    uintptr_t pool = mgr ? (uintptr_t)read_ptr((uintptr_t)mgr + POOLS_OFF + 8 * NAVI_KIND) : 0;
+    if (!pool || !kae_readable((const void *)(pool + NAVI_COUNT), NAVI_ARRAY + 8 - NAVI_COUNT))
+        return;
+    int32_t count = *(int32_t *)(pool + NAVI_COUNT);
+    uint8_t *arr = read_ptr(pool + NAVI_ARRAY);
+    if (count <= 0 || count > NAVI_MAX || !arr || !kae_readable(arr, (size_t)count * NAVI_STRIDE))
+        return;
+    int newly = 0;
+    for (int i = 0; i < count; i++) {
+        uint8_t *l = arr + (size_t)i * NAVI_STRIDE;
+        if (l == lantern.light)
+            continue;
+        float *f = (float *)(l + 0x28);
+        if (*f == 0.0f)
+            continue;
+        int k = 0;
+        while (k < taken_count && taken[k].light != l)
+            k++;
+        if (k == taken_count && taken_count < NAVI_MAX)
+            taken_count++;
+        if (k < NAVI_MAX) {
+            taken[k].light = l;
+            taken[k].intensity = *f;
+        }
+        *f = 0.0f;
+        newly++;
+    }
+    if (!navi_dark) {
+        KAE_LOG("flashlight & lantern: Navi's glow off (%d of %d lights in her pool darkened)", newly, (int)count);
+        navi_dark = 1;
+    } else if (newly > 0 && navi_relit++ == 0) {
+        // the game lit one again (Navi sets her light each frame?): we keep darkening it
+        KAE_LOG("flashlight & lantern: the game lit %d of Navi's lights again; darkening them each update", newly);
+    }
+}
+
 // ---- events ----
 
 static volatile float cam_look[3];
@@ -342,6 +413,8 @@ static void player_move(const KaePlayer *link, void *user) {
     update(&lantern, settings[LANTERN].value, lkind, lpos, 0, (float)settings[L_BRIGHT].value * glow(),
            lantern_rgb[settings[L_COLOUR].value], (float)settings[L_SIZE].value * 0.01f, 0);
 
+    navi_glow(manager(), !settings[NAVI].value);
+
     float fwd = (float)settings[F_FORWARD].value * 0.01f;
     float fpos[3] = { p[0] + fx * fwd, p[1] + (float)settings[F_HEIGHT].value * 0.01f, p[2] + fz * fwd };
     float dir[3];
@@ -389,11 +462,20 @@ static void draw(const KaeFrame *frame, void *user) {
     if (!settings[STATUS].value || kae_menu_open())
         return;
     char line[128];
-    int s = frame->height >= 1000 ? 2 : 1, y = frame->height - 3 * 18 * s;
+    int s = frame->height >= 1000 ? 2 : 1, y = frame->height - 4 * 18 * s;
     status_line(line, &lantern, settings[LANTERN].value);
     kae_draw_text(16 * s, y, s, 0xFFE0A0, line);
     status_line(line, &flash, settings[FLASH].value);
     kae_draw_text(16 * s, y + 18 * s, s, 0xC0E0FF, line);
+    char *o = put(line, "Navi's glow: ");
+    o = put(o, navi_dark ? "off, lights darkened " : "the game's own");
+    if (navi_dark) {
+        o = put_int(o, taken_count);
+        o = put(o, ", relit by the game ");
+        o = put_int(o, navi_relit);
+    }
+    *o = 0;
+    kae_draw_text(16 * s, y + 36 * s, s, 0xB0FFB0, line);
 }
 
 static int start(void) {
@@ -423,8 +505,8 @@ static int start(void) {
         KAE_LOG("flashlight & lantern: no view event: the flashlight can only aim where Link faces");
     kae_on_draw(draw, 0, 0);
     kae_settings("Flashlight & Lantern", settings, ITEMS);
-    KAE_LOG("flashlight & lantern 0.1.0 on game %s (light manager pointer at main+0x%lx)", v, (unsigned long)addrs->global);
+    KAE_LOG("flashlight & lantern 0.1.1 on game %s (light manager pointer at main+0x%lx)", v, (unsigned long)addrs->global);
     return 0;
 }
 
-KAE_MOD("kabosune.flashlight-lantern", "0.1.0", start, 0);
+KAE_MOD("kabosune.flashlight-lantern", "0.1.1", start, 0);

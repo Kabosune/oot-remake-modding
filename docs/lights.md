@@ -2,8 +2,9 @@
 
 How the remake lights things that move: lamps, torches, glowing switches, Navi, and lights an event
 makes on the spot. Found 22 November 2026 in both `main`s (1.0.0 `33FA6C2C`, 1.1.1 `E0F3CCFA`) and
-the romfs, for [Flashlight & Lantern](../mods/flashlight-lantern/README.md). Nothing here is checked
-in the game yet: the in-game test of Flashlight & Lantern 0.1.0 is the first.
+the romfs, for [Flashlight & Lantern](../mods/flashlight-lantern/README.md). Checked in the game
+with Flashlight & Lantern 0.1.0 (22 November 2026, Fritchii, 1.1.1): lights made this way from the
+point, spot and Navi pools shine, follow Link and survive area changes.
 
 ## The data
 
@@ -45,11 +46,15 @@ in the game yet: the in-game test of Flashlight & Lantern 0.1.0 is the first.
 
 - **Pools:** `[mgr + 0x58 + 8 * kind]`, five of them. A pool's vtable slot 2 (`+0x10`) gives a free
   light (null when full), slot 3 (`+0x18`) takes one back `(pool, light)`. A light's vtable slot 6
-  (`+0x30`) says which pool it's from. Kinds: **0 point, 1 spot** (the create action writes the
-  spot fields only for 1, and checks the light against the spot light's type info first). The
-  rig code (1.1.1 `0x2BCA580`) maps its own light types to pools 0-4 and sends one of them to pool
-  3; with the init param's order (Point, Line, Spot, Navi, Amplifier) pool 3 is most likely
-  Navi's. Not checked.
+  (`+0x30`) says which pool it's from. **Kinds: 0 point, 1 spot, 2 line, 3 Navi, 4 amplifier**: the
+  manager's setup (1.1.1 `0xCBF3F0..0xCBF4F4`) makes each pool with the count from one
+  `LocationalLightMgrInitializeParam` field (its getters `0xCBF110` Point, `0xCBF050` Spot, `0xCBF0B0`
+  Line, `0xCBF230` Navi, `0xCBEFF0` Amplifier) and stores them at `+0x58`, `+0x60`, `+0x68`,
+  `+0x70`, `+0x78`. Light classes (1.1.1 vtables): point `0x4B8ADB0`, spot `0x4B8B3E8` (both seen in
+  the game's log, 22 Nov), Navi `0x4B8ACE0`; point and spot lights are 0x188 bytes, Navi's 0x170.
+  The pools hold their lights differently: the point / spot pools keep the count at `+0x20` and the
+  lights at `[+0x28]`, **Navi's pool at `+0x28` / `[+0x30]`** (its setup `0xCBE4C0`; the same code
+  in 1.0.0 at `0xC66DAC`).
 - **Named lights:** `mgr + 0xD0E0` holds a table of 16-byte entries `{u32 hash, pad, light}`,
   `+0xD0E8` the count, `+0xD0EC` the capacity; open addressing from `hash % capacity`, 0 = empty.
   The hash is MurmurHash3 (seed 0) of the action's `LightHash` string (the function at 1.1.1
@@ -71,9 +76,34 @@ Common to the kinds (both versions):
 | `+0x108` | u32 | a tag: 7 for the action's lights, 3 for rig lights. `0xF09FA0` takes every non-7 light out of a list at `mgr + 0xD090` |
 | `+0x132` | u8 | flags: bit 0 set by the create action while it sets the light up (and left set); the rig code sets bits 5 and 7 from its params |
 
-Spot lights also: `+0x158` f32[3] the direction (unit), `+0x164` the inner angle and `+0x168` the
-outer angle (radians: the action turns its degrees into radians and clamps them to about
-0.005 .. 3.13, outer above inner), `+0x16C` = 0.
+Point lights: position `+0x150` f32[3] (slot 9 compares, sets a changed bit in `+0x14C`), then
+`+0x15C` and `+0x160`, both 1.0 when made and not set by any code found; the light's GPU record
+(slot 12, `0x31CC180`) sends `1 / [+0x15C]` next to the position and `[+0x160]` in a second
+record. What they mean isn't known (a falloff scale?).
+
+Spot lights: position `+0x14C` f32[3] (slot 9 = `0x31CE510`), `+0x158` f32[3] the direction (unit),
+`+0x164` the inner angle and `+0x168` the outer angle (radians: the action turns its degrees into
+radians and clamps them to about 0.005 .. 3.13, outer above inner), `+0x16C` (1.0 when made; the
+action sets it to 0), then the range the game works out (below).
+
+Navi lights: position `+0x14C`, range at `+0x158` (below).
+
+### How far a light reaches
+
+There's no range in the light files and no range field the code reads from outside. Each frame the
+light's update (spot: vtable slot 17, `0x31CDDF0`; Navi: `0x31CBD20`) works it out from the
+brightness: `I = intensity * scale(+0x11C) * 4π`, range = `sqrt(I * 0.2652)` (+ `[+0x168]` for Navi),
+stored at spot `+0x170` (and `* 1.05` at `+0x174`) / Navi `+0x158`. With `+0x132` bit 5 set, a
+value from a global graphics object replaces the 1.0 the 0.2652 is multiplied by. So a light's
+reach follows its brightness (the game culls it where its light would fall below a fixed level);
+changing reach alone would need a hook on that update. Plus the falloff itself is physical (light
+over distance squared).
+
+### Navi's glow
+
+Navi's light is one of the lights in pool 3 (who takes it from the pool wasn't traced). Flashlight &
+Lantern 0.1.1's "Navi's glow" switch darkens every light in that pool except its own lantern and
+gives the intensities back when switched on again.
 
 ## Making a light at run time
 

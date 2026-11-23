@@ -1350,7 +1350,7 @@ def check_flashlight_lantern(fakes, tmp):
     g.p.write(g.sdk.exports["sdk_file"], text.encode())
     g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
     g.game("game_boot")
-    g.expect("mod kabosune.flashlight-lantern 0.1.0 started", f"flashlight & lantern 0.1.0 on game {PACK['version']}")
+    g.expect("mod kabosune.flashlight-lantern 0.1.1 started", f"flashlight & lantern 0.1.1 on game {PACK['version']}")
     g.frame(actor=LINK)
     assert not g.logged("made the"), "a light made with no light manager"
     # the manager appears: main's pointer -> top; top + 0x1E8 -> holder; holder + version's offset -> mgr
@@ -1359,7 +1359,7 @@ def check_flashlight_lantern(fakes, tmp):
     g.p.write(MAIN_BASE + glob, struct.pack("<Q", top))
     g.p.write(top + 0x1E8, struct.pack("<Q", holder))
     g.p.write(holder + mgr_off, struct.pack("<Q", mgr))
-    pool_size = 8 + 4 + 4 * 4 + 4          # {vt, kind, used[4]} padded to 8
+    pool_size = 0x38                       # {vt, kind, used[4], pad, count at +0x28, lights at +0x30}
     for k in range(5):
         g.p.write(mgr + 0x58 + 8 * k, struct.pack("<Q", pools + k * pool_size))
     g.p.write(mgr + 0xD0E0, struct.pack("<QII", table, 0, 64))
@@ -1408,10 +1408,49 @@ def check_flashlight_lantern(fakes, tmp):
     g.frame(actor=LINK)
     g.expect("the lantern's light is gone", "the flashlight's light is gone")
     assert len(g.logged("made the")) == 4 and g.p.u32(mgr + 0xD0E8) == 2
+    # Navi's glow: two lights in her pool (count at +0x28, lights at +0x30, 0x170 apart), one lit
+    navi = sym["fake_navi_lights"]
+    g.p.write(navi + 0x28, struct.pack("<f", 3.5))
+    g.p.write(navi + 0x170 + 0x28, struct.pack("<f", 0.0))
+    g.frame(actor=LINK)
+    assert f32(navi + 0x28)[0] == 3.5, "Navi darkened with the setting on"
+    g2 = Game(fakes, kaemod.build([kaemod.Mod(REPO / "mods" / "flashlight-lantern")], False, work / "build-navi"))
+    g = g2
+    g.p.uc.mem_map(LIGHTS_BASE, 0x100000)
+    for vaddr, data, memsz in emu.elf_segments(elf):
+        g.p.write(vaddr, data + bytes(memsz - len(data)))
+    g.p.uc.mem_map(0x40000000, 0x10000)
+    for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                      (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                      (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                      (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                      (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                      (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"]),
+                      (MAIN_BASE + glob, top), (top + 0x1E8, holder), (holder + mgr_off, mgr)):
+        g.p.write(at, struct.pack("<Q", value))
+    g.p.write(RESOURCE + 0x58, b"Player\0")
+    g.p.write(holder + 0xE20, b"\x02")
+    for k in range(5):
+        g.p.write(mgr + 0x58 + 8 * k, struct.pack("<Q", pools + k * pool_size))
+    g.p.write(mgr + 0xD0E0, struct.pack("<QII", table, 0, 64))
+    g.p.write(navi + 0x28, struct.pack("<f", 3.5))
+    # Navi's glow off, the lantern as Navi's kind (it lives in her pool and must stay lit), Navi on / off on B
+    text = "[kabosune.flashlight-lantern]\nNavi's glow = 0\nLantern light kind = 1\n"
+    g.p.write(g.sdk.exports["sdk_file"], text.encode())
+    g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+    g.game("game_boot")
+    g.frame(actor=LINK)
+    g.expect("made the lantern", "from pool 3", "Navi's glow off (1 of 2 lights in her pool darkened)")
+    assert f32(navi + 0x28)[0] == 0.0 and f32(navi + 0x170 + 0x28)[0] == 12.0  # Navi dark, the lantern (her pool's 2nd light) lit
+    g.p.write(navi + 0x28, struct.pack("<f", 4.0))                              # the game lights her again
+    g.frame(actor=LINK)
+    g.expect("the game lit 1 of Navi's lights again")
+    assert f32(navi + 0x28)[0] == 0.0
     assert not g.p.unresolved, g.p.unresolved
     print("Flashlight & Lantern: ok (waits for the light manager, takes a point and a spot light from their pools "
           "set up like the game's action, names them, follows Link and his facing, the lantern's button darkens "
-          "and relights it, both made again after the manager clears its lights)")
+          "and relights it, both made again after the manager clears its lights; Navi's glow off darkens her pool "
+          "but not a lantern in it, and again when the game relights her)")
 
 
 def main():

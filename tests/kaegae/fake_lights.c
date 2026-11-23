@@ -48,7 +48,11 @@ __attribute__((section(".fake_lookup"))) void *light_lookup(uint8_t *mgr, uint32
     return 0;
 }
 
-typedef struct Pool { void **vt; int kind; int used[PER_KIND]; } Pool;
+// The game's Navi pool keeps its own lights' count at + 0x28 and a pointer to them at + 0x30
+// (0x170 bytes each); the fake keeps them there for every pool and fills them in for pool 3.
+typedef struct Pool { void **vt; int kind; int used[PER_KIND]; uint8_t pad[0x28 - 0x1C]; int32_t count, pad2; void *lights; } Pool;
+
+uint8_t fake_navi_lights[2][0x170] __attribute__((aligned(16)));
 
 uint8_t fake_light_mem[KINDS][PER_KIND][LIGHT_SIZE] __attribute__((aligned(16)));
 int fake_light_setpos_calls;
@@ -66,8 +70,9 @@ static void *pool_alloc(Pool *pool) {
     for (int i = 0; i < PER_KIND; i++)
         if (!pool->used[i]) {
             pool->used[i] = 1;
-            uint8_t *l = fake_light_mem[pool->kind][i];
-            for (int k = 0; k < LIGHT_SIZE; k++)
+            // Navi's pool hands out its own lights (the game's are inside its array)
+            uint8_t *l = pool->kind == 3 && i < 2 ? fake_navi_lights[i] : fake_light_mem[pool->kind][i];
+            for (int k = 0; k < (pool->kind == 3 && i < 2 ? 0x170 : LIGHT_SIZE); k++)
                 l[k] = 0;
             *(void ***)l = light_vt;
             return l;
@@ -77,7 +82,7 @@ static void *pool_alloc(Pool *pool) {
 
 static void pool_free(Pool *pool, uint8_t *l) {
     for (int i = 0; i < PER_KIND; i++)
-        if (fake_light_mem[pool->kind][i] == l)
+        if (fake_light_mem[pool->kind][i] == l || (pool->kind == 3 && i < 2 && fake_navi_lights[i] == l))
             pool->used[i] = 0;
     fake_light_frees++;
 }
@@ -85,7 +90,8 @@ static void pool_free(Pool *pool, uint8_t *l) {
 static void *pool_vt[4] = { 0, 0, (void *)pool_alloc, (void *)pool_free };
 
 Pool fake_light_pools[KINDS] = {
-    { pool_vt, 0, { 0 } }, { pool_vt, 1, { 0 } }, { pool_vt, 2, { 0 } }, { pool_vt, 3, { 0 } }, { pool_vt, 4, { 0 } },
+    { pool_vt, 0, { 0 }, { 0 }, 0, 0, 0 }, { pool_vt, 1, { 0 }, { 0 }, 0, 0, 0 }, { pool_vt, 2, { 0 }, { 0 }, 0, 0, 0 },
+    { pool_vt, 3, { 1 }, { 0 }, 2, 0, fake_navi_lights }   /* light 0 is Navi's own */, { pool_vt, 4, { 0 }, { 0 }, 0, 0, 0 },
 };
 
 uint8_t fake_light_top[0x200] __attribute__((aligned(16)));
