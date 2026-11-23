@@ -931,6 +931,30 @@ one budget (memory for actors); the blocks use most of it (about 20,500 fit), an
 (the flag's plus 2 MiB), only get made when enough is left, which a second load in the same session makes less likely.
 Test: the same map with far fewer blocks (well under 20,000), entered several times, also after a save reload.
 
+## Dark Deku Tree (D1, D2, 22 Nov 2026)
+
+KaboWabo (22 Nov ~22:34 PT): "can you remove the baked in lighting in inside deku tree as a test map? so that its
+pretty much dark. I have a flashlight test i want to test." A dark place for Flashlight & Lantern, not a map test:
+the vanilla Deku Tree (its own placement and collision) with its light turned down. Builder: `build_dark_tests.py`
+(needs only the four game files it lists). Both change the same two files plus the size table; only one on at a time,
+and **no map test on with them** (S30–S34 change the Kokiri Forest door and ship their own size table).
+
+What B43 / B44 found is the starting point: `IsEnableBakeLight` false made the Deku Tree "very dark (not black)" and
+Navi's light still lit things; the env palette's `AmbientIntensity` / `HemiLightIntensity` raised the light (B44, B50),
+so turned to 0 they should take away what's left. The Deku Tree has three palettes (`InsideTheDekuTree`,
+`_BeforeBossDemo`, `_BossRoom`, all with parent `Parent_Dungeon`); each gets the same values.
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| D1. Bake and ambient off | `GameBancParam` `IsEnableBakeLight` true -> false; the three palettes' `AmbientIntensity` (0.1 / parent's 1.0) and `HemiLightIntensity` (0.25 / 0.03 / parent's) -> 0 | Dark apart from Navi, the flashlight / lantern, glowing materials and the scene's placed lights (torches etc.): the dark test room. Still a dim grey: something else lights it (D2) |
+| D2. D1 with the palette's other lights off | D1 plus, in the three palettes: `AddSpecLightIntensity` (parent 0.4) -> 0, `SubCharaLightIntensity` (Link's fill light, 0.05) -> 0, `VolumeFogProbeBakeLightScale` (3.5) -> 0, `CubeMapAmbientColor` white -> black | Darker than D1: some of these lit it. The same: D1 is as dark as the palette goes. Broken / black screen: one of the four isn't safe at 0 (bisect) |
+
+Not changed: the baked AO (`IsEnableBakeAO`: it only darkens), the scene's placed lights
+(`LocationalLightScenePlacement`, next if the rooms are still lit in spots), the exposure keys (if the picture looks
+brighter after a few seconds in the dark, that's eye adaptation: `ExposureValue` next).
+
+Result of D1 / D2: (not tested yet)
+
 ## Building
 
 ```
