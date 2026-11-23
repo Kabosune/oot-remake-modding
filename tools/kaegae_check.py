@@ -180,7 +180,7 @@ def check(mods, registries=None, target=None, main_image=None):
     out = []
     for mod in mods:
         out += mod.problems
-        if not mod.patches and not mod.exefs and not mod.romfs:
+        if not mod.patches and not mod.exefs and not mod.romfs and not (mod.manifest and mod.manifest.patches):
             out.append(Problem("note", "empty", "nothing here that the game loads (no exefs or romfs folder)", (mod.name,)))
 
     out += _check_ids(mods)
@@ -194,6 +194,7 @@ def check(mods, registries=None, target=None, main_image=None):
     out += _check_relations(mods)
     out += _check_core(mods)
     out += _check_size_table(mods)
+    out += _check_byml_built(mods)
     order = {"error": 0, "warning": 1, "note": 2}
     return sorted(out, key=lambda p: order[p.level])
 
@@ -405,6 +406,22 @@ def _check_core(mods):
         if not (mod.manifest and CORE_SLOT in mod.manifest.modules):
             out.append(Problem("note", "unnamed-core", f"has exefs/{CORE_SLOT} (where KaeGae Core goes) but no manifest "
                                                        "saying which version it is", (mod.name,)))
+    return out
+
+
+def _check_byml_built(mods):
+    """Mods that change game files need `kaegae build` (with --romfs) to have written them."""
+    built = [m for m in mods if m.id == kaegae_build.BUILT_ID]
+    have = set(built[0].romfs) if built else set()
+    out = []
+    for mod in mods:
+        if not mod.manifest:
+            continue
+        need = sorted({p["path"] for p in mod.manifest.patches if p.get("kind") == "byml"} - have)
+        if need:
+            out.append(Problem("warning", "romfs-patch-not-built", f"changes {', '.join(need)}, and no built copy is "
+                               "installed: run `kaegae build --romfs <your dump's romfs>` (the mod does nothing without it)",
+                               (mod.name,)))
     return out
 
 

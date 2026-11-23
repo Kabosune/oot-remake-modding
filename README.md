@@ -40,14 +40,16 @@ Core may not run yet properly ([issue #2](https://github.com/Kabosune/oot-remake
 
 ### Extra mods
 
-Small, just-for-fun mods built on KaeGae Core. They all need Core, have their settings on the
-Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
+Small, just-for-fun mods. Moon Jump, Speedometer and Drunk Mode are built on KaeGae Core, need it,
+have their settings on the Mods menu, and work in Fritchii (KaeGae Core 0.6, game 1.1.1, 11 Nov).
+Dark Deku Tree is a romfs mod without Core.
 
 | Mod | Download | What it does |
 |---|---|---|
 | [Moon Jump](mods/moon-jump/README.md) | [moon-jump.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/moon-jump.zip) | Low gravity, boosted jumps, hold L + A to fly up. |
 | [Speedometer](mods/speedometer/README.md) | [speedometer.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/speedometer.zip) | Link's speed as a big number and a bar, with his top speed and rise / fall. m/s, km/h or mph. |
 | [Drunk Mode](mods/drunk-mode/README.md) | [drunk-mode.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/drunk-mode.zip) | The movement stick wobbles; sticks and A / B can be mirrored, flipped or swapped. |
+| [Dark Deku Tree](mods/dark-deku-tree/README.md) | [dark-deku-tree.zip](https://github.com/Kabosune/oot-remake-modding/raw/main/releases/dark-deku-tree.zip) | Inside the Deku Tree with no baked light, ambient light or fog: pitch dark, for Flashlight & Lantern. **No Core needed**, but its files are built from your own dump with `python3 tools/kaegae.py build --romfs <dump>` (see its page). Works in Fritchii on 1.1.1 (22 Nov). |
 
 Mods install like any exefs mod: copy the zip's `0400486024DEC000` folder into the emulator's
 `load` folder (Fritchii v5.8 and later: `%APPDATA%\fritchii\load\`; Lichii, Eden and older

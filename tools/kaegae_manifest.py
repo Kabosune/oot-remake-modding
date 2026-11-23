@@ -372,6 +372,11 @@ def load_manifest(path):
         if missing:
             err("romfs-patch", f"[[romfs-patch]] {n} ({kind}): missing {', '.join(missing)}")
             continue
+        if kind == "byml" and (not isinstance(patch["set"], dict) or not patch["set"]
+                               or not isinstance(patch.get("file", ""), str)):
+            err("romfs-patch", f"[[romfs-patch]] {n} (byml): set must be a table of keys and values "
+                               "(set = {{ Key = 1.0 }}), file the name of a file inside the pack")
+            continue
         m.patches.append(patch)
         if kind == "size-table":
             try:

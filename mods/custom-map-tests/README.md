@@ -964,7 +964,10 @@ KaboWabo: "d1 is fine, but can you remove the fog and mist?"
 |---|---|---|
 | D3. D1 without the fog | D1 plus `VolumeFogIsEnabled`, `VolumeFogEnableFog1`, `VolumeFogEnableFog2` true -> false, only where a palette has them (main and `_BeforeBossDemo`; `_BossRoom` inherits). No key added | Fog / mist gone. Mist still there: it's particles (`EnvEffectType` in `GameBancParam`, or placed effect actors), not the volume fog |
 
-Result of D3: (not tested yet)
+Result of D3 (22 Nov ~23:02 PT): **works**, KaboWabo: "d3 map is perfect. add it as an extra mod for the repo". Now
+the mod [Dark Deku Tree](../dark-deku-tree/README.md) 0.1.0: the same changes as `[[romfs-patch]]` kind = "byml" lines
+in its manifest, built from the player's dump by `kaegae build --romfs` (which learned that kind for it). That build
+gives byte for byte D3's three files.
 
 ## Building
 

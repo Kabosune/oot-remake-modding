@@ -377,20 +377,34 @@ def cmd_build(args):
         mods += [m for m in installed(place)[0] if m.name not in names]
         mods = [m for m in mods if m.id != kb.BUILT_ID]
         dest = Path(args.out) if args.out else place.title_dir / kb.BUILT_NAME
+        try:
+            patches = kb.collect_byml(mods)
+        except kb.PatchError as e:
+            raise Stop(str(e)) from e
         requests = kb.collect(mods)
-        if not requests:
+        if not requests and not patches:
             print("no installed mod asks for anything to be built"
                   + (f"; {dest} is no longer needed and can be removed" if dest.exists() else ""))
             return 0
-        if not args.game_table:
-            raise Stop("these mods ask for resource size table entries: " + ", ".join(sorted(requests))
+        if patches and not args.romfs:
+            raise Stop("these mods change game files: " + ", ".join(sorted({p for p, _ in patches}))
+                       + "\ngive your dump's romfs folder with --romfs (docs/romfs.md)")
+        game_table = args.game_table
+        if not game_table and args.romfs and (Path(args.romfs) / kb.TABLE_DIR / kb.RSTB_NAME).is_file():
+            game_table = Path(args.romfs) / kb.TABLE_DIR / kb.RSTB_NAME
+        if not game_table:
+            raise Stop("these mods ask for resource size table entries: " + ", ".join(sorted(requests or {p for p, _ in patches}))
                        + "\ngive the game's own table with --game-table: romfs/System/Resource/"
                          "ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs from your dump (docs/romfs.md)")
         staging = Path(work) / "built"
         try:
-            changes, missing, _ = kb.write_folder(staging, TITLE_ID, args.game_table, mods)
+            changes, missing, requests, log = kb.write_folder(staging, TITLE_ID, game_table, mods, romfs=args.romfs)
         except (kb.TableError, OSError) as e:
-            raise Stop(f"{args.game_table}: {e}") from e
+            raise Stop(f"{game_table}: {e}") from e
+        except kb.PatchError as e:
+            raise Stop(str(e)) from e
+        for where, key, old, new, who in log:
+            print(f"  {where}: {key} {old!r} -> {new!r}  ({who})")
         for path, old, new in changes:
             print(f"  {path}: {old} -> {new}  ({', '.join(requests[path][1])})" if new != old
                   else f"  {path}: stays {old}, already enough  ({', '.join(requests[path][1])})")
@@ -406,7 +420,7 @@ def cmd_build(args):
         else:
             place.title_dir.mkdir(parents=True, exist_ok=True)
             put_in_place(place, staging, kb.BUILT_NAME)
-        print(f"wrote {dest}\nIt holds a changed copy of a game file: keep it on this machine.")
+        print(f"wrote {dest}\nIt holds changed copies of game files: keep it on this machine.")
     return 1 if missing else 0
 
 
@@ -569,9 +583,10 @@ def main(argv=None):
     c.add_argument("--dry-run", action="store_true", help="check only, copy nothing")
     c.set_defaults(run=cmd_install)
 
-    c = sub.add_parser("build", parents=[where], help="make the files several mods share (the resource size table) from your dump")
+    c = sub.add_parser("build", parents=[where], help="make the files several mods share (the resource size table, changed game files) from your dump")
     c.add_argument("mods", nargs="*", help="more mod folders or zips to count, besides the installed ones that are on")
-    c.add_argument("--game-table", type=Path, help="the game's own resource size table, from your dump")
+    c.add_argument("--game-table", type=Path, help="the game's own resource size table, from your dump (default: the one in --romfs)")
+    c.add_argument("--romfs", type=Path, help="your dump's romfs folder: needed when a mod changes game files ([[romfs-patch]] kind = \"byml\")")
     c.add_argument("--out", type=Path, help=f"where to write the folder (default: '{kb.BUILT_NAME}' in the load folder)")
     c.add_argument("--dry-run", action="store_true", help="say what would change, write nothing")
     c.set_defaults(run=cmd_build)

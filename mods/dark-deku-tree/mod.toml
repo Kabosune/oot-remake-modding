@@ -1,0 +1,41 @@
+# Dark Deku Tree's manifest: a romfs mod that ships no game files. `kaegae build --romfs <your dump>`
+# applies these changes to your own copies of the two files (README.md).
+manifest = 1
+
+id          = "kabosune.dark-deku-tree"
+name        = "Dark Deku Tree"
+version     = "0.1.0"
+authors     = ["KaboWabo/Kabosune"]
+license     = "MIT"
+homepage    = "https://github.com/Kabosune/oot-remake-modding"
+description = "Inside the Deku Tree without its baked light, ambient light or fog: dark, for Flashlight & Lantern."
+
+[game]
+title  = "0400486024DEC000"
+tested = ["1.1.1"]
+
+# The scene's baked light off (custom map test B43)
+[[romfs-patch]]
+kind = "byml"
+path = "Banc/GameBancParam/InsideTheDekuTree.game__banc__GameBancParam.bgyml"
+set  = { IsEnableBakeLight = false }
+
+# The Deku Tree's three env palettes: no ambient or sky / ground light, no volume fog (test D3).
+# _BeforeBossDemo and _BossRoom take the first one as their parent.
+[[romfs-patch]]
+kind = "byml"
+path = "Pack/EnvPalette.pack.zs"
+file = "WorldMgr/ResEnvPalette/InsideTheDekuTree.game__wm__ResEnvPalette.bgyml"
+set  = { AmbientIntensity = 0.0, HemiLightIntensity = 0.0, VolumeFogIsEnabled = false, VolumeFogEnableFog1 = false, VolumeFogEnableFog2 = false }
+
+[[romfs-patch]]
+kind = "byml"
+path = "Pack/EnvPalette.pack.zs"
+file = "WorldMgr/ResEnvPalette/InsideTheDekuTree_BeforeBossDemo.game__wm__ResEnvPalette.bgyml"
+set  = { AmbientIntensity = 0.0, HemiLightIntensity = 0.0, VolumeFogIsEnabled = false, VolumeFogEnableFog1 = false, VolumeFogEnableFog2 = false }
+
+[[romfs-patch]]
+kind = "byml"
+path = "Pack/EnvPalette.pack.zs"
+file = "WorldMgr/ResEnvPalette/InsideTheDekuTree_BossRoom.game__wm__ResEnvPalette.bgyml"
+set  = { AmbientIntensity = 0.0, HemiLightIntensity = 0.0 }

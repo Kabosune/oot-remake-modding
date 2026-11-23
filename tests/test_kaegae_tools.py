@@ -357,6 +357,66 @@ def fake_table(sizes, named=()):
     return out + b"".join(p.encode().ljust(160, b"\0") + struct.pack("<I", s) for p, s in named)
 
 
+def test_build_byml(work):
+    """[[romfs-patch]] kind = "byml": a plain file and a file inside a zstd pack, made up here (no game files)."""
+    try:
+        import zstandard
+    except ImportError:
+        print("  (no zstandard here: `kaegae build` byml patches were not tested)")
+        return
+    import byml
+    import kaegae_build as kb
+    import zsmod
+    load, romfs = Path(work) / "emu-byml" / "load", Path(work) / "dump" / "romfs"
+    plain = {"IsEnableBakeLight": True, "Count": byml.U32(3), "Name": "x"}
+    inner = {"Amb": 0.5, "Fog": True, "Params": {"Density": 2.0}}
+    files = {"Scene/A.bgyml": byml.dumps(plain),
+             "Pack/P.pack.zs": zstandard.ZstdCompressor().compress(zsmod.sarc_pack({"W/Pal.bgyml": byml.dumps(inner),
+                                                                                    "W/Other.bgyml": byml.dumps({"Amb": 1.0})}))}
+    for rel, data in files.items():
+        (romfs / rel).parent.mkdir(parents=True, exist_ok=True)
+        (romfs / rel).write_bytes(data)
+    table = fake_table({"Scene/A.bgyml": 64, "Pack/P.pack": 64, "W/Pal.bgyml": 64, "W/Other.bgyml": 64})
+    (romfs / kb.TABLE_DIR).mkdir(parents=True)
+    (romfs / kb.TABLE_DIR / kb.RSTB_NAME).write_bytes(kb.pack(table))
+    def patcher(name, body):
+        return make(load / TITLE, name, manifest("x." + name.lower()) + body)
+    patcher("Dark", '[[romfs-patch]]\nkind = "byml"\npath = "Scene/A.bgyml"\nset = { IsEnableBakeLight = false, Count = 0 }\n'
+                    '[[romfs-patch]]\nkind = "byml"\npath = "Pack/P.pack.zs"\nfile = "W/Pal.bgyml"\n'
+                    'set = { Amb = 0, Fog = false, "Params.Density" = 0.0 }\n')
+    code, text = run("check", "--load-dir", load)
+    ok(code == 0 and "romfs-patch-not-built" in text and "[empty]" not in text, f"not built yet: a warning, not 'empty': {text}")
+    code, text = run("build", "--load-dir", load)
+    ok(code == 2 and "--romfs" in text, f"build asks for the dump: {text}")
+    code, text = run("build", "--load-dir", load, "--romfs", romfs)
+    built = load / TITLE / kb.BUILT_NAME
+    ok(code == 0 and (built / "romfs/Scene/A.bgyml").is_file() and (built / "romfs/Pack/P.pack.zs").is_file(), f"both files written: {text}")
+    a = byml.loads((built / "romfs/Scene/A.bgyml").read_bytes())
+    ok(a["IsEnableBakeLight"] is False and type(a["Count"]) is byml.U32 and a["Count"] == 0 and a["Name"] == "x",
+       f"values set, the unsigned stays unsigned, the rest unchanged: {a}")
+    sarc = __import__("zstool").Sarc(zstandard.ZstdDecompressor().decompress((built / "romfs/Pack/P.pack.zs").read_bytes()))
+    pal, other = byml.loads(sarc.read("W/Pal.bgyml")), byml.loads(sarc.read("W/Other.bgyml"))
+    ok(pal == {"Amb": 0.0, "Fog": False, "Params": {"Density": 0.0}} and type(pal["Amb"]) is float and other == {"Amb": 1.0},
+       f"inside the pack: an int written where the game has a float becomes 0.0, nested keys, other files kept: {pal} {other}")
+    bt = kb.built_table(km.load_folder(built))
+    ok(kb.size_of(bt, "Pack/P.pack") > 64 and kb.size_of(bt, "W/Pal.bgyml") > 64 and kb.size_of(bt, "W/Other.bgyml") == 64,
+       "the pack and the changed file in it get room in the size table")
+    code, text = run("check", "--load-dir", load)
+    ok(code == 0 and "romfs-patch" not in text, f"then the check is quiet: {text}")
+    patcher("Same", '[[romfs-patch]]\nkind = "byml"\npath = "Scene/A.bgyml"\nset = { IsEnableBakeLight = false }\n')
+    ok(run("build", "--load-dir", load, "--romfs", romfs)[0] == 0, "a second mod setting the same value is fine")
+    patcher("Other", '[[romfs-patch]]\nkind = "byml"\npath = "Scene/A.bgyml"\nset = { IsEnableBakeLight = true }\n')
+    code, text = run("build", "--load-dir", load, "--romfs", romfs)
+    ok(code == 2 and "IsEnableBakeLight" in text and "Other" in text and "Dark" in text, f"two mods setting one key differently: refused: {text}")
+    shutil.rmtree(load / TITLE / "Other")
+    patcher("Wrong", '[[romfs-patch]]\nkind = "byml"\npath = "Scene/A.bgyml"\nset = { Name = 1 }\n')
+    code, text = run("build", "--load-dir", load, "--romfs", romfs)
+    ok(code == 2 and "Name" in text, f"a number where the game has a string: refused: {text}")
+    shutil.rmtree(load / TITLE / "Wrong")
+    patcher("Bad", '[[romfs-patch]]\nkind = "byml"\npath = "Scene/A.bgyml"\nset = 3\n')
+    ok("romfs-patch" in codes(km.load_folder(load / TITLE / "Bad").problems), "set must be a table")
+
+
 def test_build(work):
     try:
         import zstandard  # noqa: F401
@@ -414,7 +474,7 @@ def main():
     test_values()
     test_ips()
     test_registry()
-    for test in (test_manifest_against_files, test_conflicts, test_install, test_init, test_build, test_built_package):
+    for test in (test_manifest_against_files, test_conflicts, test_install, test_init, test_build, test_build_byml, test_built_package):
         with tempfile.TemporaryDirectory() as work:
             test(work)
     print(f"all kaegae tool tests passed ({count} checks)")

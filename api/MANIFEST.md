@@ -143,14 +143,31 @@ path are an error.
 
 `[[romfs-patch]]` tables describe changes to game files without shipping them (DESIGN.md, "Changes
 to game files without shipping game files"). The kinds `size-table`, `byml`, `text`, `binary` and
-`script` are read and checked for their required keys. Only `size-table` is acted on so far:
+`script` are read and checked for their required keys. `size-table` and `byml` are acted on so far:
 
 ```toml
 [[romfs-patch]]
 kind     = "size-table"
 path     = "AS/Dm_Zora_0010_KingZora.root.asb"     # the romfs path, without .zs
 at-least = 6368                                    # bytes; rounded up to a multiple of 8
+
+[[romfs-patch]]
+kind = "byml"                                      # a BYML / BGYML file (zstd or not)
+path = "Pack/EnvPalette.pack.zs"                   # the romfs path, as in the dump
+file = "WorldMgr/ResEnvPalette/InsideTheDekuTree.game__wm__ResEnvPalette.bgyml"   # only for a file inside a pack
+set  = { AmbientIntensity = 0.0, VolumeFogIsEnabled = false, "VolumeFogParams1.MieDensity" = 0.0 }
 ```
+
+`set` keys are top-level keys, or a dotted path into nested dictionaries. A value keeps the type
+the game's value has (a float stays a float, an unsigned stays unsigned), so `0` works where the
+game has `0.0`; a bool, string or number where the game has another of those is refused. A key the
+file doesn't have is added (Dark Deku Tree adds two floats to child palettes, tested; adding a
+whole dictionary crashed the game at boot in test D2, so prefer keys the file already has).
+`kaegae build --romfs <your dump's romfs>` applies every mod's changes to that file (two mods
+setting one key to different values is an error, the same value is fine), writes the result into
+`KaeGae Built Files` and raises the size table entries of the changed file and, in a pack, of the
+changed files inside it (their size + 512). `check` warns (`romfs-patch-not-built`) while no built
+copy is installed.
 
 A mod whose file grows asks for its entry this way instead of shipping the table (a changed copy
 of a 1.4 MB game file, and any two mods that ship one overwrite each other). A folder that does
@@ -158,8 +175,9 @@ ship a whole table gets a warning.
 
 ## Building the shared files
 
-`kaegae build --game-table <file>` collects the size table requests of every installed mod that
-is on, raises those entries in a copy of the game's own table (the largest request wins, nothing
+`kaegae build --game-table <file>` (or `--romfs <your dump's romfs>`, which also finds the table
+there) collects the size table requests of every installed mod that is on, applies their `byml`
+changes (needs `--romfs`), raises those entries in a copy of the game's own table (the largest request wins, nothing
 is ever lowered) and writes the result as a mod folder, `KaeGae Built Files`, in the load folder.
 The game's table is
 `romfs/System/Resource/ResourceSizeTable.Product.111.Nin_Ounce_NVN2.rsizetable.zs` from your own
@@ -233,6 +251,7 @@ the way the player expects. Notes are information. The name in brackets is stabl
 | `ships-size-table` | warning | The folder ships a whole resource size table |
 | `size-table-not-built` | warning | Mods ask for resource size table entries and `kaegae build` hasn't been run |
 | `size-table-stale` | error | The built table is too small for a request: run `kaegae build` again |
+| `romfs-patch-not-built` | warning | A mod changes game files (`byml`) and `kaegae build --romfs` hasn't written them |
 | `registered-to-other` | note | The patch uses space registered to a mod that isn't installed |
 | `recognised`, `unknown-patch`, `unnamed-core`, `empty` | note | What a folder without a manifest turned out to be |
 
@@ -285,8 +304,8 @@ works on any set of folders today.
 
 ## Not done yet
 
-- The rest of `kaegae build` (roadmap M1): the `byml`, `text`, `binary` and `script` kinds, and adding
-  size table entries for files the game doesn't have.
+- The rest of `kaegae build` (roadmap M1): the `text`, `binary` and `script` kinds, and adding
+  size table entries for files the game doesn't have. (`byml` works since 22 November: Dark Deku Tree.)
 - Reading `.pchtxt` patches (they are reported and skipped).
 - Generating the memory map page from the registry.
 - ~~A registry survey for 1.0.0~~: done 17 November (free space and Core's claim; [registry/33fa6c2c.toml](../registry/33fa6c2c.toml)).
