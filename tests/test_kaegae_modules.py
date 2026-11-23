@@ -1034,6 +1034,8 @@ def suite():
         print("Equip Anything: ok (items opened to the ages their button lacks, the Kokiri Tunic's pair left alone, an item picked again taken off)")
         # Adventure Log: reads the game's play log (1.1.1 only) through main's recorder pointer
         check_adventure_log(fakes, tmp)
+        # Flashlight & Lantern: lights from the game's LocationalLight manager (a fake one), next to Link
+        check_flashlight_lantern(fakes, tmp)
 
         # the view event (0.8) and the two mods on it: First Person 2 and FPV Drone 2. The fake view
         # update fills the registers, passes Core's hook point and stores them: they must come back.
@@ -1285,6 +1287,131 @@ def check_adventure_log(fakes, tmp):
     print("Adventure Log: ok (follows the game's log through main's pointer, names entries, wraps, "
           "skips a read-back, reads the totals and stats from GameData, draws the simple panel with its hearts, "
           "the detailed one when picked, leaves a broken log alone)")
+
+
+# Flashlight & Lantern's raw offsets, per version (the mod's own table): the pointer the game's
+# light action reads first, the manager's offset in the holder, the named-light insert and find.
+LIGHT_ADDRS = {"1.1.1": (0x4E3E258, 0xBA0, 0x31C9A30, 0x31C9AA0), "1.0.0": (0x4DCE228, 0xBA8, 0x3173B20, 0x3173B90)}
+LIGHTS_BASE = 0x45000000
+
+
+def build_fake_lights(tmp, reg, lookup):
+    """tests/kaegae/fake_lights.c linked with its insert / find at main's addresses: (ELF, symbols)."""
+    obj, elf, script = tmp / "fake_lights.o", tmp / "fake_lights.elf", tmp / "fake_lights.ld"
+    run("clang", "--target=aarch64-none-elf", "-O1", "-fno-pic", "-ffreestanding", "-fno-builtin", "-Wall",
+        "-Werror", "-std=c11", "-c", HERE / "fake_lights.c", "-o", obj)
+    script.write_text(f"""SECTIONS {{
+  . = {LIGHTS_BASE:#x};        .text : {{ *(.text .text.*) }}
+  .rodata : {{ *(.rodata .rodata.*) }}
+  .data : {{ *(.data .data.*) }}
+  .bss : {{ *(.bss .bss.* COMMON) }}
+  . = {MAIN_BASE + reg:#x};    .fake_reg : {{ *(.fake_reg) }}
+  . = {MAIN_BASE + lookup:#x}; .fake_lookup : {{ *(.fake_lookup) }}
+  /DISCARD/ : {{ *(.comment) *(.note*) }}
+}}""")
+    run("ld.lld", "-static", "-e", "0", "-T", script, "-o", elf, obj)
+    out = subprocess.run(["llvm-nm", str(elf)], check=True, capture_output=True, text=True).stdout
+    syms = {line.split()[2]: int(line.split()[0], 16) for line in out.splitlines() if len(line.split()) == 3}
+    assert syms["light_register"] == MAIN_BASE + reg and syms["light_lookup"] == MAIN_BASE + lookup, syms
+    return elf.read_bytes(), syms
+
+
+def check_flashlight_lantern(fakes, tmp):
+    """Flashlight & Lantern next to Core, with a fake light manager behind its raw offsets: nothing
+    before the manager exists; then a point light (the lantern) and a spot light (the flashlight)
+    are taken from their pools, tagged and named the way the game's OneshotCreateLocationalLight
+    does it, and kept next to Link (his facing, the beam's direction and angles); a button switches
+    the lantern off (dark, not freed) and on; when the manager clears its named lights (an area
+    change) both are made again."""
+    glob, mgr_off, reg, lookup = LIGHT_ADDRS[PACK["version"]]
+    work = tmp / "flashlight-lantern"
+    work.mkdir(parents=True, exist_ok=True)
+    elf, sym = build_fake_lights(work, reg, lookup)
+    g = Game(fakes, kaemod.build([kaemod.Mod(REPO / "mods" / "flashlight-lantern")], False, work / "build"))
+    g.p.uc.mem_map(LIGHTS_BASE, 0x100000)
+    for vaddr, data, memsz in emu.elf_segments(elf):
+        g.p.write(vaddr, data + bytes(memsz - len(data)))
+    # Link, laid out as the game has him (the player_move test's chain), facing +x
+    LINK, COMPONENTS, C1, C2, C3, CCT, RESOURCE, BODY, PLAYER = (0x40000000 + i * 0x1000 for i in range(9))
+    MOVEMENT = PLAYER + 0x1D50
+    g.p.uc.mem_map(0x40000000, 0x10000)
+    for at, value in ((LINK, MAIN_BASE + PACK["vtable"]["Actor"]["offset"]), (LINK + 0x270, COMPONENTS),
+                      (COMPONENTS + 0x320, MOVEMENT), (MOVEMENT + 0x18, LINK),
+                      (PLAYER, MAIN_BASE + PACK["vtable"]["Player"]["offset"]), (PLAYER + 0x10, RESOURCE),
+                      (COMPONENTS + 0x50, C1), (C1 + 0x20, C2), (C2 + 0x10, C3), (C3 + 0x08, CCT),
+                      (CCT, MAIN_BASE + PACK["vtable"]["Cct"]["offset"]), (CCT + 0x20, BODY),
+                      (BODY, MAIN_BASE + PACK["vtable"]["CctBody"]["offset"])):
+        g.p.write(at, struct.pack("<Q", value))
+    g.p.write(RESOURCE + 0x58, b"Player\0")
+    g.p.write(LINK + PACK["field"]["Actor.position"]["offset"], struct.pack("<3f", 10.0, 2.0, -5.0))
+    # rotation rows (+0x328, 3 x 3 floats): a quarter turn, so his third column (facing) is +x
+    g.p.write(LINK + 0x328, struct.pack("<9f", 0, 0, 1, 0, 1, 0, -1, 0, 0))
+    text = "[kabosune.flashlight-lantern]\nFlashlight = 1\nLantern on / off = 0x1\n"
+    g.p.write(g.sdk.exports["sdk_file"], text.encode())
+    g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
+    g.game("game_boot")
+    g.expect("mod kabosune.flashlight-lantern 0.1.0 started", f"flashlight & lantern 0.1.0 on game {PACK['version']}")
+    g.frame(actor=LINK)
+    assert not g.logged("made the"), "a light made with no light manager"
+    # the manager appears: main's pointer -> top; top + 0x1E8 -> holder; holder + version's offset -> mgr
+    top, holder, mgr, pools, table = (sym[n] for n in ("fake_light_top", "fake_light_holder", "fake_light_mgr",
+                                                       "fake_light_pools", "fake_light_map"))
+    g.p.write(MAIN_BASE + glob, struct.pack("<Q", top))
+    g.p.write(top + 0x1E8, struct.pack("<Q", holder))
+    g.p.write(holder + mgr_off, struct.pack("<Q", mgr))
+    pool_size = 8 + 4 + 4 * 4 + 4          # {vt, kind, used[4]} padded to 8
+    for k in range(5):
+        g.p.write(mgr + 0x58 + 8 * k, struct.pack("<Q", pools + k * pool_size))
+    g.p.write(mgr + 0xD0E0, struct.pack("<QII", table, 0, 64))
+    g.frame(actor=LINK)
+    assert not g.logged("made the"), "a light made before the holder said the lights are ready"
+    g.p.write(holder + 0xE20, b"\x02")
+    g.frame(actor=LINK)
+    g.expect("made the lantern", "made the flashlight")
+    light = lambda kind, i=0: sym["fake_light_mem"] + (kind * 4 + i) * 0x200          # noqa: E731
+    f32 = lambda at, n=1: struct.unpack(f"<{n}f", g.p.read(at, 4 * n))                # noqa: E731
+    lan, fl = light(0), light(1)
+    assert g.p.u32(lan + 0x108) == 7 and g.p.read(lan + 0x132, 1)[0] & 1 and g.p.u64(lan + 0xF8) == 0
+    x, y, z = f32(lan + 0x40, 3)                                           # the fake's setpos keeps it here
+    assert (x, round(y, 4), z) == (10.0, 3.1, -5.0), (x, y, z)             # 110 cm above his feet
+    assert f32(lan + 0x28)[0] == 12.0 and abs(f32(lan + 0x2C)[0] - 0.3) < 1e-6
+    r, gg, b, a = f32(lan + 0x18, 4)                                       # warm, divided by its luminance
+    assert a == 1.0 and abs(0.299 * r + 0.587 * gg + 0.114 * b - 1.0) < 1e-4 and r > gg > b, (r, gg, b)
+    x, y, z = f32(fl + 0x40, 3)
+    assert (round(x, 4), round(y, 4), z) == (10.3, 2.9, -5.0), (x, y, z)  # 30 cm in front, 90 cm up
+    dx, dy, dz = f32(fl + 0x158, 3)                                        # +x, 10 degrees down
+    assert abs(dx - math.cos(math.radians(10))) < 2e-3 and abs(dy + math.sin(math.radians(10))) < 2e-3 and dz == 0, (dx, dy, dz)
+    outer, inner = f32(fl + 0x168)[0], f32(fl + 0x164)[0]
+    assert abs(outer - math.radians(25)) < 1e-5 and abs(inner - 0.6 * outer) < 1e-5, (inner, outer)
+    assert f32(fl + 0x28)[0] == 80.0
+    entries = g.p.u32(mgr + 0xD0E8)
+    assert entries == 2, entries
+    names = {struct.unpack_from("<I", g.p.read(table + 16 * i, 4))[0] for i in range(64)} - {0}
+    assert names == {murmur3("KaeGae_Lantern_Point"), murmur3("KaeGae_Flashlight_Spot")}, names
+    # Link walks: the lights follow, nothing new is made
+    g.p.write(LINK + PACK["field"]["Actor.position"]["offset"], struct.pack("<3f", 20.0, 2.0, -5.0))
+    g.frame(actor=LINK)
+    assert f32(lan + 0x40)[0] == 20.0 and len(g.logged("made the")) == 2
+    # the lantern's button (A): off = dark but kept, then on again
+    g.set_controller(1)
+    g.frame(actor=LINK)
+    assert f32(lan + 0x28)[0] == 0.0 and f32(fl + 0x28)[0] == 80.0
+    g.set_controller(0)
+    g.frame(actor=LINK)
+    g.set_controller(1)
+    g.frame(actor=LINK)
+    assert f32(lan + 0x28)[0] == 12.0 and g.p.u32(sym["fake_light_frees"]) == 0
+    # the manager clears its named lights (the area changed): both made again
+    g.p.write(table, bytes(16 * 64))
+    g.p.write(mgr + 0xD0E8, struct.pack("<I", 0))
+    g.set_controller(0)
+    g.frame(actor=LINK)
+    g.expect("the lantern's light is gone", "the flashlight's light is gone")
+    assert len(g.logged("made the")) == 4 and g.p.u32(mgr + 0xD0E8) == 2
+    assert not g.p.unresolved, g.p.unresolved
+    print("Flashlight & Lantern: ok (waits for the light manager, takes a point and a spot light from their pools "
+          "set up like the game's action, names them, follows Link and his facing, the lantern's button darkens "
+          "and relights it, both made again after the manager clears its lights)")
 
 
 def main():
