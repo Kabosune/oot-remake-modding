@@ -36,9 +36,15 @@ D1_PALETTE = {"AmbientIntensity": 0.0, "HemiLightIntensity": 0.0}
 D2_PALETTE = {**D1_PALETTE, "AddSpecLightIntensity": 0.0, "SubCharaLightIntensity": 0.0,
               "VolumeFogProbeBakeLightScale": 0.0,
               "CubeMapAmbientColor": {"A": 1.0, "B": 0.0, "G": 0.0, "R": 0.0}}
+# D2 result (22 Nov): the game crashed ~20 s after boot, while reading the env palettes (D1 boots fine).
+
+# D3: D1 plus the volume fog (the mist) switched off, only where a palette already has these keys (D2 added keys
+# the palettes lacked, among them a struct; D3 adds none of its own). _BeforeBossDemo and _BossRoom take the main
+# Deku Tree palette as their parent, not Parent_Dungeon.
+D3_FOG = {"VolumeFogIsEnabled": False, "VolumeFogEnableFog1": False, "VolumeFogEnableFog2": False}
 
 
-def build(game, out, label, banc_set, palette_set, about):
+def build(game, out, label, banc_set, palette_set, about, existing=None):
     files, entries, notes = {}, {}, [f"{label}: {about}"]
     bp = game.byml(bt.DEKU_BANC)
     for k, v in banc_set.items():
@@ -53,6 +59,10 @@ def build(game, out, label, banc_set, palette_set, about):
         for k, v in palette_set.items():
             notes.append(f"{label}: {bt.ENV_PACK} {name.split('/')[-1]} {k} {pal.get(k, '(from the parent)')!r} -> {v!r}")
             pal[k] = v
+        for k, v in (existing or {}).items():
+            if k in pal:
+                notes.append(f"{label}: {bt.ENV_PACK} {name.split('/')[-1]} {k} {pal[k]!r} -> {v!r}")
+                pal[k] = v
         inner[name] = byml.dumps(pal)
         entries[name] = len(inner[name]) + 512
     files[bt.ENV_PACK] = (zsmod.sarc_pack(inner, like=raw), byml.frame_dict_id(game.r / bt.ENV_PACK))
@@ -69,6 +79,8 @@ def main():
           "Inside the Deku Tree with its baked light off and its palettes' ambient and hemi light at 0")
     build(game, out / "KaeGae Dark Test D2 - D1 with the palette's other lights off", "D2", D1_BANC, D2_PALETTE,
           "D1 plus the palettes' added specular, Link's fill light, the fog's probe light and the cube map ambient off")
+    build(game, out / "KaeGae Dark Test D3 - D1 without the fog", "D3", D1_BANC, D1_PALETTE,
+          "D1 plus the palettes' volume fog off (only keys the palettes already have)", existing=D3_FOG)
 
 
 if __name__ == "__main__":

@@ -953,7 +953,18 @@ Not changed: the baked AO (`IsEnableBakeAO`: it only darkens), the scene's place
 (`LocationalLightScenePlacement`, next if the rooms are still lit in spots), the exposure keys (if the picture looks
 brighter after a few seconds in the dark, that's eye adaptation: `ExposureValue` next).
 
-Result of D1 / D2: (not tested yet)
+Result (22 Nov ~22:47 PT): **D1 works** (dark, loads). **D2 doesn't start**: the game crashes ~20 s after boot (log:
+a null pointer call, `__ResEnv...` text in a register: while reading the env palettes). Not bisected. D2 added keys the
+palettes didn't have (a whole `CubeMapAmbientColor` struct in two children among them); D1 added only floats. Also found:
+`_BeforeBossDemo` and `_BossRoom` take the main Deku Tree palette as their parent, not `Parent_Dungeon`.
+
+KaboWabo: "d1 is fine, but can you remove the fog and mist?"
+
+| Test | What it changes | Tells us |
+|---|---|---|
+| D3. D1 without the fog | D1 plus `VolumeFogIsEnabled`, `VolumeFogEnableFog1`, `VolumeFogEnableFog2` true -> false, only where a palette has them (main and `_BeforeBossDemo`; `_BossRoom` inherits). No key added | Fog / mist gone. Mist still there: it's particles (`EnvEffectType` in `GameBancParam`, or placed effect actors), not the volume fog |
+
+Result of D3: (not tested yet)
 
 ## Building
 
