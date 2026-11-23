@@ -3,8 +3,9 @@
 How the remake lights things that move: lamps, torches, glowing switches, Navi, and lights an event
 makes on the spot. Found 22 November 2026 in both `main`s (1.0.0 `33FA6C2C`, 1.1.1 `E0F3CCFA`) and
 the romfs, for [Flashlight & Lantern](../mods/flashlight-lantern/README.md). Checked in the game
-with Flashlight & Lantern 0.1.0 (22 November 2026, Fritchii, 1.1.1): lights made this way from the
-point, spot and Navi pools shine, follow Link and survive area changes.
+with Flashlight & Lantern 0.1.0-0.1.2 (22 November 2026, Fritchii, 1.1.1): lights made this way from
+the point, spot and Navi pools shine, follow Link and survive area changes, and Navi's own light
+goes dark with its scale at 0.
 
 ## The data
 
@@ -107,9 +108,10 @@ colour (`+0x18`) x intensity (`+0x28`) x scale (`+0x11C`) x a global (`[0x4D414A
 radius². **Flashlight & Lantern 0.1.1 zeroed only the intensity and Navi still shone: the game set
 one light's intensity again (its log: "the game lit 1 of Navi's lights again"), most likely every
 frame, after the mod's `player_move`.** 0.1.2 zeroes colour, intensity and scale and logs which of
-them the game sets again. If all three come back, the next ways in: the code that sets Navi's light
-each frame (not found yet; probably reads the palettes' `NaviLightIntensity`), or a data mod setting
-`IsOverWriteNaviLight` / `NaviLightIntensity` 0 in the environment palettes (always off, no switch).
+them the game sets again: **colour and intensity** (log, 22 Nov: "the game set Navi's light again
+(colour intensity )"). The scale stays at 0, so with 0.1.2 her light is off (KaboWabo: "it works").
+So the code that drives Navi's light writes her colour and intensity each frame but not `+0x11C`.
+(That code wasn't found; it probably reads the palettes' `NaviLightIntensity`.)
 
 ## Making a light at run time
 

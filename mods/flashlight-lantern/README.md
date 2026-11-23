@@ -10,10 +10,11 @@ Two real lights that follow Link, made with the game's own dynamic lighting:
 - **Navi's glow**: a switch to turn Navi's own light off.
 
 Both are switched on and off on the mod's page in KaeGae's Mods menu (- and + together), and each
-can get a button to switch it while playing. **0.1.0 is a test build**: for now both lights shine
-out of Link himself (later the flashlight and lantern can be items he holds).
+can get a button to switch it while playing. For now both lights shine out of Link himself (later
+the flashlight and lantern could be items he holds).
 
-Tried in Fritchii on 1.1.1 (0.1.0, 22 November 2026): both lights and their settings work. The Navi's glow switch didn't work in 0.1.1 (the game sets her light's brightness again every frame); 0.1.2 tries harder.
+**0.1.2 works in Fritchii on 1.1.1** (KaeGae Core 0.9.0, 22 November 2026): both lights, their
+settings, and the Navi's glow switch.
 
 A core mod: it needs [KaeGae Core](../../api/README.md) 0.8 or later.
 
@@ -65,7 +66,15 @@ notices the name is gone and makes new ones. Details: [docs/lights.md](../../doc
 ## Game versions
 
 Reads the light manager by each version's own addresses, for 1.0.0 and 1.1.1 (found in both
-`main`s). Tried on 1.1.1; 1.0.0 not yet. Those addresses move into KaeGae Core's symbol packs at the
+`main`s). Tried on 1.1.1; 1.0.0 not yet.
+
+## Versions
+
+- 0.1.2: flashlight brightness 140 and beam width 75° by default; Navi's glow off also zeroes her
+  light's colour and scale (the game sets her colour and brightness again every frame, so 0.1.1's
+  switch did nothing you could see). Works.
+- 0.1.1: beam width up to 160°, the Navi's glow switch (didn't work yet).
+- 0.1.0: the lantern and the flashlight. Works. Those addresses move into KaeGae Core's symbol packs at the
 next Core release.
 
 Installing by hand: the zip's module is `exefs/subsdk2`; rename it to a slot no other switched-on
