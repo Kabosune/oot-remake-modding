@@ -26,7 +26,7 @@
 //
 // Navi's own glow is a light from pool 3 (made by the game's code, 0x170 bytes each: the pool keeps
 // its count at + 0x28 and its lights at [+ 0x30]). "Navi's glow" off darkens every light in that
-// pool except the lantern, and puts back the intensities it took when switched on again.
+// pool except the lantern (colour, intensity and scale), and puts them back when switched on again.
 //
 // The addresses are each version's own (raw offsets; found 22 Nov 2026, see docs/lights.md): a test
 // build. They go into Core's symbol packs at the next Core release.
@@ -102,9 +102,9 @@ static KaeItem settings[ITEMS] = {
     [L_KIND]    = CHO("Lantern light kind", "Point light, or a light from the pool the game keeps for Navi (a test).", 0, kinds),
     [FLASH]     = TOG("Flashlight", "A beam out of Link's chest.", 0),
     [F_TOGGLE]  = KEY("Flashlight on / off", "A button to switch the flashlight while playing."),
-    [F_BRIGHT]  = NUM("Flashlight brightness", "The beam's intensity (the game's spot lights use about 10 to 200).", 80, 1, 1000, 5),
+    [F_BRIGHT]  = NUM("Flashlight brightness", "The beam's intensity (the game's spot lights use about 10 to 200).", 140, 1, 1000, 5),
     [F_COLOUR]  = CHO("Flashlight colour", 0, 0, flash_colours),
-    [F_WIDTH]   = NUM("Beam width (degrees)", "The beam's outer angle; its bright middle is 60 % of it.", 25, 5, 160, 1),
+    [F_WIDTH]   = NUM("Beam width (degrees)", "The beam's outer angle; its bright middle is 60 % of it.", 75, 5, 160, 1),
     [F_AIM]     = CHO("Flashlight aim", 0, 0, aims),
     [F_TILT]    = NUM("Beam tilt down (degrees)", "For \"Where Link faces\": how far the beam points down.", 10, -45, 60, 1),
     [F_HEIGHT]  = NUM("Flashlight height (cm)", "How far above Link's feet the beam starts.", 90, 0, 300, 10),
@@ -286,6 +286,9 @@ static void update(Lamp *lamp, int want, int kind, const float pos[3], const flo
         return;
     }
     ((SetPosFn)lvt[9])(l, pos[0], pos[1], pos[2]);
+    // a light from Navi's pool may carry a 0 scale from "Navi's glow" off (it darkens the whole pool)
+    if (*(float *)(b + 0x11C) == 0.0f)
+        *(float *)(b + 0x11C) = 1.0f;
     set_colour(b, rgb);
     *(float *)(b + 0x28) = intensity;
     *(float *)(b + 0x2C) = radius;
@@ -300,10 +303,19 @@ static void update(Lamp *lamp, int want, int kind, const float pos[3], const flo
 
 // ---- Navi's own glow ----
 
-typedef struct { void *light; float intensity; } Taken;
+// The fields a light is drawn with: colour (+0x18, three floats), intensity (+0x28) and a scale
+// (+0x11C; the light's GPU record multiplies all three). 0.1.1 zeroed only the intensity and the
+// game set it again every frame (22 Nov), so 0.1.2 zeroes all three and logs which ones the game
+// puts back.
+#define F_COLOUR 1
+#define F_INTENSITY 2
+#define F_SCALE 4
+typedef struct { void *light; float colour[3], intensity, scale; } Taken;
 static Taken taken[NAVI_MAX];
-static int taken_count, navi_dark, navi_relit;
+static int taken_count, navi_dark, navi_relit, relit_fields, logged_fields;
 static void *taken_mgr;
+
+static float *fld(void *l, int off) { return (float *)((uint8_t *)l + off); }
 
 // Every light in Navi's pool but ours: dark while the setting is off, given back when it's on again.
 static void navi_glow(void *mgr, int want_dark) {
@@ -312,13 +324,19 @@ static void navi_glow(void *mgr, int want_dark) {
         taken_mgr = mgr;
     }
     if (!want_dark) {
-        for (int i = 0; i < taken_count; i++)
-            if (kae_readable((uint8_t *)taken[i].light + 0x28, 4) && *(float *)((uint8_t *)taken[i].light + 0x28) == 0.0f)
-                *(float *)((uint8_t *)taken[i].light + 0x28) = taken[i].intensity;
+        for (int i = 0; i < taken_count; i++) {
+            Taken *t = &taken[i];
+            if (!kae_readable(t->light, 0x120))
+                continue;
+            for (int c = 0; c < 3; c++)
+                if (*fld(t->light, 0x18 + 4 * c) == 0.0f) *fld(t->light, 0x18 + 4 * c) = t->colour[c];
+            if (*fld(t->light, 0x28) == 0.0f) *fld(t->light, 0x28) = t->intensity;
+            if (*fld(t->light, 0x11C) == 0.0f) *fld(t->light, 0x11C) = t->scale;
+        }
         if (taken_count || navi_dark)
             KAE_LOG("flashlight & lantern: Navi's glow back on (%d lights)", taken_count);
         taken_count = 0;
-        navi_dark = navi_relit = 0;
+        navi_dark = navi_relit = relit_fields = logged_fields = 0;
         return;
     }
     uintptr_t pool = mgr ? (uintptr_t)read_ptr((uintptr_t)mgr + POOLS_OFF + 8 * NAVI_KIND) : 0;
@@ -333,27 +351,39 @@ static void navi_glow(void *mgr, int want_dark) {
         uint8_t *l = arr + (size_t)i * NAVI_STRIDE;
         if (l == lantern.light)
             continue;
-        float *f = (float *)(l + 0x28);
-        if (*f == 0.0f)
+        float *col = fld(l, 0x18), *in = fld(l, 0x28), *sc = fld(l, 0x11C);
+        int lit = (col[0] != 0.0f || col[1] != 0.0f || col[2] != 0.0f ? F_COLOUR : 0) |
+                  (*in != 0.0f ? F_INTENSITY : 0) | (*sc != 0.0f ? F_SCALE : 0);
+        if (!lit)
             continue;
         int k = 0;
         while (k < taken_count && taken[k].light != l)
             k++;
-        if (k == taken_count && taken_count < NAVI_MAX)
+        if (k == taken_count) {
+            if (taken_count == NAVI_MAX)
+                continue;
             taken_count++;
-        if (k < NAVI_MAX) {
             taken[k].light = l;
-            taken[k].intensity = *f;
+            taken[k].colour[0] = taken[k].colour[1] = taken[k].colour[2] = 1.0f;
+            taken[k].intensity = taken[k].scale = 1.0f;
+        } else {
+            relit_fields |= lit;     // we darkened it before: the game set these again
+            navi_relit++;
         }
-        *f = 0.0f;
+        Taken *t = &taken[k];
+        if (lit & F_COLOUR) { t->colour[0] = col[0]; t->colour[1] = col[1]; t->colour[2] = col[2]; col[0] = col[1] = col[2] = 0.0f; }
+        if (lit & F_INTENSITY) { t->intensity = *in; *in = 0.0f; }
+        if (lit & F_SCALE) { t->scale = *sc; *sc = 0.0f; }
         newly++;
     }
     if (!navi_dark) {
         KAE_LOG("flashlight & lantern: Navi's glow off (%d of %d lights in her pool darkened)", newly, (int)count);
         navi_dark = 1;
-    } else if (newly > 0 && navi_relit++ == 0) {
-        // the game lit one again (Navi sets her light each frame?): we keep darkening it
-        KAE_LOG("flashlight & lantern: the game lit %d of Navi's lights again; darkening them each update", newly);
+    } else if (relit_fields != logged_fields) {
+        KAE_LOG("flashlight & lantern: the game set Navi's light again (%s%s%s); darkening it each update",
+                relit_fields & F_COLOUR ? "colour " : "", relit_fields & F_INTENSITY ? "intensity " : "",
+                relit_fields & F_SCALE ? "scale" : "");
+        logged_fields = relit_fields;
     }
 }
 
@@ -473,6 +503,9 @@ static void draw(const KaeFrame *frame, void *user) {
         o = put_int(o, taken_count);
         o = put(o, ", relit by the game ");
         o = put_int(o, navi_relit);
+        o = put(o, relit_fields & F_COLOUR ? " c" : "");
+        o = put(o, relit_fields & F_INTENSITY ? " i" : "");
+        o = put(o, relit_fields & F_SCALE ? " s" : "");
     }
     *o = 0;
     kae_draw_text(16 * s, y + 36 * s, s, 0xB0FFB0, line);
@@ -505,8 +538,8 @@ static int start(void) {
         KAE_LOG("flashlight & lantern: no view event: the flashlight can only aim where Link faces");
     kae_on_draw(draw, 0, 0);
     kae_settings("Flashlight & Lantern", settings, ITEMS);
-    KAE_LOG("flashlight & lantern 0.1.1 on game %s (light manager pointer at main+0x%lx)", v, (unsigned long)addrs->global);
+    KAE_LOG("flashlight & lantern 0.1.2 on game %s (light manager pointer at main+0x%lx)", v, (unsigned long)addrs->global);
     return 0;
 }
 
-KAE_MOD("kabosune.flashlight-lantern", "0.1.1", start, 0);
+KAE_MOD("kabosune.flashlight-lantern", "0.1.2", start, 0);

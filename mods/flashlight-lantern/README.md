@@ -13,7 +13,7 @@ Both are switched on and off on the mod's page in KaeGae's Mods menu (- and + to
 can get a button to switch it while playing. **0.1.0 is a test build**: for now both lights shine
 out of Link himself (later the flashlight and lantern can be items he holds).
 
-Tried in Fritchii on 1.1.1 (0.1.0, 22 November 2026): both lights and their settings work.
+Tried in Fritchii on 1.1.1 (0.1.0, 22 November 2026): both lights and their settings work. The Navi's glow switch didn't work in 0.1.1 (the game sets her light's brightness again every frame); 0.1.2 tries harder.
 
 A core mod: it needs [KaeGae Core](../../api/README.md) 0.8 or later.
 
@@ -31,9 +31,9 @@ A core mod: it needs [KaeGae Core](../../api/README.md) 0.8 or later.
 | Lantern light kind | Point light | Point light, or a light from the pool the game keeps for Navi (a test: what it does there isn't known yet) |
 | Flashlight | off | The flashlight's beam |
 | Flashlight on / off | (none) | A button to switch the flashlight while playing |
-| Flashlight brightness | 80 | The beam's intensity (the game's spot lights use about 10 to 200) |
+| Flashlight brightness | 140 | The beam's intensity (the game's spot lights use about 10 to 200) |
 | Flashlight colour | White | White, Warm, Cool |
-| Beam width (degrees) | 25 | The beam's outer angle (up to 160); its bright middle is 60 % of it |
+| Beam width (degrees) | 75 | The beam's outer angle (up to 160); its bright middle is 60 % of it |
 | Flashlight aim | Where Link faces | Or where the camera looks (nice with First Person) |
 | Beam tilt down (degrees) | 10 | For "Where Link faces" |
 | Flashlight height (cm) | 90 | Above Link's feet |

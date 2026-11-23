@@ -101,9 +101,15 @@ over distance squared).
 
 ### Navi's glow
 
-Navi's light is one of the lights in pool 3 (who takes it from the pool wasn't traced). Flashlight &
-Lantern 0.1.1's "Navi's glow" switch darkens every light in that pool except its own lantern and
-gives the intensities back when switched on again.
+Navi's light is one of the lights in pool 3 (who takes it from the pool wasn't traced). In the game
+(22 Nov, 1.1.1) the pool holds 32 lights; Navi's GPU record (vtable slot 12, `0x31CBBB0`) draws
+colour (`+0x18`) x intensity (`+0x28`) x scale (`+0x11C`) x a global (`[0x4D414A8]`) / source
+radius². **Flashlight & Lantern 0.1.1 zeroed only the intensity and Navi still shone: the game set
+one light's intensity again (its log: "the game lit 1 of Navi's lights again"), most likely every
+frame, after the mod's `player_move`.** 0.1.2 zeroes colour, intensity and scale and logs which of
+them the game sets again. If all three come back, the next ways in: the code that sets Navi's light
+each frame (not found yet; probably reads the palettes' `NaviLightIntensity`), or a data mod setting
+`IsOverWriteNaviLight` / `NaviLightIntensity` 0 in the environment palettes (always off, no switch).
 
 ## Making a light at run time
 

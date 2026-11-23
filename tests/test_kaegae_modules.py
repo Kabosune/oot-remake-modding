@@ -1350,7 +1350,7 @@ def check_flashlight_lantern(fakes, tmp):
     g.p.write(g.sdk.exports["sdk_file"], text.encode())
     g.p.write(g.sdk.exports["sdk_file_len"], struct.pack("<i", len(text)))
     g.game("game_boot")
-    g.expect("mod kabosune.flashlight-lantern 0.1.1 started", f"flashlight & lantern 0.1.1 on game {PACK['version']}")
+    g.expect("mod kabosune.flashlight-lantern 0.1.2 started", f"flashlight & lantern 0.1.2 on game {PACK['version']}")
     g.frame(actor=LINK)
     assert not g.logged("made the"), "a light made with no light manager"
     # the manager appears: main's pointer -> top; top + 0x1E8 -> holder; holder + version's offset -> mgr
@@ -1382,8 +1382,8 @@ def check_flashlight_lantern(fakes, tmp):
     dx, dy, dz = f32(fl + 0x158, 3)                                        # +x, 10 degrees down
     assert abs(dx - math.cos(math.radians(10))) < 2e-3 and abs(dy + math.sin(math.radians(10))) < 2e-3 and dz == 0, (dx, dy, dz)
     outer, inner = f32(fl + 0x168)[0], f32(fl + 0x164)[0]
-    assert abs(outer - math.radians(25)) < 1e-5 and abs(inner - 0.6 * outer) < 1e-5, (inner, outer)
-    assert f32(fl + 0x28)[0] == 80.0
+    assert abs(outer - math.radians(75)) < 1e-5 and abs(inner - 0.6 * outer) < 1e-5, (inner, outer)
+    assert f32(fl + 0x28)[0] == 140.0
     entries = g.p.u32(mgr + 0xD0E8)
     assert entries == 2, entries
     names = {struct.unpack_from("<I", g.p.read(table + 16 * i, 4))[0] for i in range(64)} - {0}
@@ -1395,7 +1395,7 @@ def check_flashlight_lantern(fakes, tmp):
     # the lantern's button (A): off = dark but kept, then on again
     g.set_controller(1)
     g.frame(actor=LINK)
-    assert f32(lan + 0x28)[0] == 0.0 and f32(fl + 0x28)[0] == 80.0
+    assert f32(lan + 0x28)[0] == 0.0 and f32(fl + 0x28)[0] == 140.0
     g.set_controller(0)
     g.frame(actor=LINK)
     g.set_controller(1)
@@ -1433,7 +1433,9 @@ def check_flashlight_lantern(fakes, tmp):
     for k in range(5):
         g.p.write(mgr + 0x58 + 8 * k, struct.pack("<Q", pools + k * pool_size))
     g.p.write(mgr + 0xD0E0, struct.pack("<QII", table, 0, 64))
+    g.p.write(navi + 0x18, struct.pack("<3f", 0.8, 1.0, 1.2))
     g.p.write(navi + 0x28, struct.pack("<f", 3.5))
+    g.p.write(navi + 0x11C, struct.pack("<f", 1.0))
     # Navi's glow off, the lantern as Navi's kind (it lives in her pool and must stay lit), Navi on / off on B
     text = "[kabosune.flashlight-lantern]\nNavi's glow = 0\nLantern light kind = 1\n"
     g.p.write(g.sdk.exports["sdk_file"], text.encode())
@@ -1441,10 +1443,11 @@ def check_flashlight_lantern(fakes, tmp):
     g.game("game_boot")
     g.frame(actor=LINK)
     g.expect("made the lantern", "from pool 3", "Navi's glow off (1 of 2 lights in her pool darkened)")
-    assert f32(navi + 0x28)[0] == 0.0 and f32(navi + 0x170 + 0x28)[0] == 12.0  # Navi dark, the lantern (her pool's 2nd light) lit
-    g.p.write(navi + 0x28, struct.pack("<f", 4.0))                              # the game lights her again
+    assert f32(navi + 0x18, 3) == (0, 0, 0) and f32(navi + 0x28)[0] == 0.0 and f32(navi + 0x11C)[0] == 0.0
+    assert f32(navi + 0x170 + 0x28)[0] == 12.0 and f32(navi + 0x170 + 0x11C)[0] == 1.0   # the lantern (her pool's 2nd light) lit
+    g.p.write(navi + 0x28, struct.pack("<f", 4.0))                              # the game sets her brightness again
     g.frame(actor=LINK)
-    g.expect("the game lit 1 of Navi's lights again")
+    g.expect("the game set Navi's light again (intensity )")
     assert f32(navi + 0x28)[0] == 0.0
     assert not g.p.unresolved, g.p.unresolved
     print("Flashlight & Lantern: ok (waits for the light manager, takes a point and a spot light from their pools "
